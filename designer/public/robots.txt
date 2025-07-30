@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# サイトマップの場所
+Sitemap: https://your-domain.com/sitemap.xml
+
+# 検索エンジンが頻繁にクロールしないようにする
+Crawl-delay: 1
