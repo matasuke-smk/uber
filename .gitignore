@@ -1,0 +1,20 @@
+# OS generated files
+desktop.ini
+.DS_Store
+Thumbs.db
+
+# Personal files
+*.txt
+*.xlsx
+*.lnk
+*.fmp12
+
+# Directories
+short-av-main/
+uber/.claude/
+広報部Ｘ/
+新しいフォルダー/
+
+# IDE
+.vscode/
+.idea/
