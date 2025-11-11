@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#10b981">
+  <meta name="description" content="Uber Eats配達パートナー向け週間売上シミュレーター">
+  <title>Uber Eats 週間売上シミュレーター</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚴</text></svg>">
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    // Lucide icons as simple SVG components
+    const Calculator = () => (
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="4" y="2" width="16" height="20" rx="2"/>
+        <line x1="8" y1="6" x2="16" y2="6"/>
+        <line x1="16" y1="14" x2="16" y2="14.01"/>
+        <line x1="12" y1="14" x2="12" y2="14.01"/>
+        <line x1="8" y1="14" x2="8" y2="14.01"/>
+        <line x1="16" y1="18" x2="16" y2="18.01"/>
+        <line x1="12" y1="18" x2="12" y2="18.01"/>
+        <line x1="8" y1="18" x2="8" y2="18.01"/>
+      </svg>
+    );
+
+    const DollarSign = () => (
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="12" y1="1" x2="12" y2="23"/>
+        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+      </svg>
+    );
+
+    const Package = () => (
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/>
+        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+        <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+        <line x1="12" y1="22.08" x2="12" y2="12"/>
+      </svg>
+    );
+
+    const Award = () => (
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="8" r="7"/>
+        <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>
+      </svg>
+    );
+
+    function UberEatsSimulator() {
+      // 定数定義
+      const days = ['月', '火', '水', '木', '金', '土', '日'];
+      const weekdays = ['月', '火', '水', '木'];
+      const weekends = ['金', '土', '日'];
+      
+      // モーダル状態
+      const [showBasicSettings, setShowBasicSettings] = useState(false);
+      const [showQuestSettings, setShowQuestSettings] = useState(false);
+      
+      // localStorageから初期値を読み込む
+      const loadFromStorage = (key, defaultValue) => {
+        if (typeof window !== 'undefined') {
+          const saved = localStorage.getItem(key);
+          return saved ? JSON.parse(saved) : defaultValue;
+        }
+        return defaultValue;
+      };
+      
+      // 基本設定
+      const [avgPrice, setAvgPrice] = useState(() => loadFromStorage('avgPrice', 400));
+      const [deliveriesPerHour, setDeliveriesPerHour] = useState(() => loadFromStorage('deliveriesPerHour', 4));
+      
+      // クエスト設定 - 月～木用
+      const [weekdayQuests, setWeekdayQuests] = useState(() => loadFromStorage('weekdayQuests', [
+        { count: 10, reward: 0 },
+        { count: 10, reward: 0 },
+        { count: 10, reward: 0 },
+        { count: 10, reward: 0 },
+        { count: 10, reward: 0 }
+      ]));
+      
+      // クエスト設定 - 金～日用
+      const [weekendQuests, setWeekendQuests] = useState(() => loadFromStorage('weekendQuests', [
+        { count: 10, reward: 0 },
+        { count: 10, reward: 0 },
+        { count: 10, reward: 0 },
+        { count: 10, reward: 0 },
+        { count: 10, reward: 0 }
+      ]));
+      
+      // 各曜日の稼働時間・件数・金額
+      const [hours, setHours] = useState(() => {
+        const saved = loadFromStorage('hours', null);
+        // 旧形式から新形式への移行
+        if (saved && typeof saved['月'] === 'number') {
+          const converted = {};
+          days.forEach(day => {
+            converted[day] = { hours: saved[day] || 0, deliveries: 0, earnings: 0 };
+          });
+          return converted;
+        }
+        return loadFromStorage('hours', {
+          月: { hours: 0, deliveries: 0, earnings: 0 },
+          火: { hours: 0, deliveries: 0, earnings: 0 },
+          水: { hours: 0, deliveries: 0, earnings: 0 },
+          木: { hours: 0, deliveries: 0, earnings: 0 },
+          金: { hours: 0, deliveries: 0, earnings: 0 },
+          土: { hours: 0, deliveries: 0, earnings: 0 },
+          日: { hours: 0, deliveries: 0, earnings: 0 }
+        });
+      });
+      
+      // 目標金額
+      const [targetAmount, setTargetAmount] = useState(() => loadFromStorage('targetAmount', 0));
+      
+      // データをlocalStorageに保存
+      useEffect(() => {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('avgPrice', JSON.stringify(avgPrice));
+        }
+      }, [avgPrice]);
+      
+      useEffect(() => {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('deliveriesPerHour', JSON.stringify(deliveriesPerHour));
+        }
+      }, [deliveriesPerHour]);
+      
+      useEffect(() => {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('weekdayQuests', JSON.stringify(weekdayQuests));
+        }
+      }, [weekdayQuests]);
+      
+      useEffect(() => {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('weekendQuests', JSON.stringify(weekendQuests));
+        }
+      }, [weekendQuests]);
+      
+      useEffect(() => {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('hours', JSON.stringify(hours));
+        }
+      }, [hours]);
+      
+      useEffect(() => {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('targetAmount', JSON.stringify(targetAmount));
+        }
+      }, [targetAmount]);
+      
+      // クエスト更新 - 月～木
+      const updateWeekdayQuest = (index, field, value) => {
+        const newQuests = [...weekdayQuests];
+        newQuests[index][field] = value;
+        setWeekdayQuests(newQuests);
+      };
+      
+      // クエスト更新 - 金～日
+      const updateWeekendQuest = (index, field, value) => {
+        const newQuests = [...weekendQuests];
+        newQuests[index][field] = value;
+        setWeekendQuests(newQuests);
+      };
+      
+      // 稼働時間更新
+      const updateHours = (day, field, value) => {
+        setHours({ 
+          ...hours, 
+          [day]: { 
+            ...hours[day], 
+            [field]: parseFloat(value) || 0 
+          } 
+        });
+      };
+      
+      // 計算
+      const calculate = () => {
+        // 月～木の合計
+        let weekdayHours = 0;
+        let weekdayDeliveries = 0;
+        let weekdayBasicEarnings = 0;
+        
+        weekdays.forEach(day => {
+          const dayData = hours[day];
+          weekdayHours += dayData.hours;
+          
+          // 件数：入力があればそれを使用、なければ予想
+          const dayDeliveries = dayData.deliveries > 0 ? dayData.deliveries : dayData.hours * deliveriesPerHour;
+          weekdayDeliveries += dayDeliveries;
+          
+          // 金額：入力があればそれを使用、なければ予想
+          const dayEarnings = dayData.earnings > 0 ? dayData.earnings : dayData.hours * deliveriesPerHour * avgPrice;
+          weekdayBasicEarnings += dayEarnings;
+        });
+        
+        // 月～木のクエスト報酬
+        let weekdayQuestEarnings = 0;
+        let cumulativeWeekday = 0;
+        weekdayQuests.forEach(quest => {
+          cumulativeWeekday += quest.count;
+          if (weekdayDeliveries >= cumulativeWeekday) {
+            weekdayQuestEarnings += quest.reward;
+          }
+        });
+        
+        // 金～日の合計
+        let weekendHours = 0;
+        let weekendDeliveries = 0;
+        let weekendBasicEarnings = 0;
+        
+        weekends.forEach(day => {
+          const dayData = hours[day];
+          weekendHours += dayData.hours;
+          
+          // 件数：入力があればそれを使用、なければ予想
+          const dayDeliveries = dayData.deliveries > 0 ? dayData.deliveries : dayData.hours * deliveriesPerHour;
+          weekendDeliveries += dayDeliveries;
+          
+          // 金額：入力があればそれを使用、なければ予想
+          const dayEarnings = dayData.earnings > 0 ? dayData.earnings : dayData.hours * deliveriesPerHour * avgPrice;
+          weekendBasicEarnings += dayEarnings;
+        });
+        
+        // 金～日のクエスト報酬
+        let weekendQuestEarnings = 0;
+        let cumulativeWeekend = 0;
+        weekendQuests.forEach(quest => {
+          cumulativeWeekend += quest.count;
+          if (weekendDeliveries >= cumulativeWeekend) {
+            weekendQuestEarnings += quest.reward;
+          }
+        });
+        
+        // 週の合計
+        const totalHours = weekdayHours + weekendHours;
+        const totalDeliveries = weekdayDeliveries + weekendDeliveries;
+        const basicEarnings = weekdayBasicEarnings + weekendBasicEarnings;
+        const questEarnings = weekdayQuestEarnings + weekendQuestEarnings;
+        const totalEarnings = basicEarnings + questEarnings;
+        
+        // 1日あたりの平均
+        const daysWorked = Object.values(hours).filter(h => h.hours > 0).length;
+        const avgPerDay = daysWorked > 0 ? totalEarnings / daysWorked : 0;
+        
+        // 平均時給
+        const avgHourlyWage = totalHours > 0 ? totalEarnings / totalHours : 0;
+        
+        // 目標達成に必要な時間
+        let hoursNeeded = 0;
+        if (targetAmount > 0 && totalEarnings < targetAmount && avgHourlyWage > 0) {
+          const remaining = targetAmount - totalEarnings;
+          hoursNeeded = remaining / avgHourlyWage;
+        }
+        
+        return {
+          totalHours: totalHours.toFixed(1),
+          totalDeliveries: Math.floor(totalDeliveries),
+          weekdayDeliveries: Math.floor(weekdayDeliveries),
+          weekendDeliveries: Math.floor(weekendDeliveries),
+          basicEarnings: Math.floor(basicEarnings),
+          questEarnings: Math.floor(questEarnings),
+          totalEarnings: Math.floor(totalEarnings),
+          avgPerDay: Math.floor(avgPerDay),
+          avgHourlyWage: Math.floor(avgHourlyWage),
+          hoursNeeded: hoursNeeded.toFixed(1),
+          daysWorked
+        };
+      };
+      
+      const results = calculate();
+      
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-4 pb-20">
+          <div className="max-w-2xl mx-auto">
+            {/* ヘッダー */}
+            <div className="bg-white rounded-2xl shadow-lg p-6 mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-3">
+                  <div className="bg-green-500 p-3 rounded-xl">
+                    <Calculator />
+                  </div>
+                  <div>
+                    <h1 className="text-2xl font-bold text-gray-800">Uber Eats</h1>
+                    <p className="text-sm text-gray-600">週間売上シミュレーター</p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* 設定ボタン */}
+              <div className="flex gap-2 mt-4">
+                <button
+                  onClick={() => setShowBasicSettings(true)}
+                  className="flex-1 bg-blue-500 text-white px-4 py-3 rounded-xl font-medium hover:bg-blue-600 transition-colors"
+                >
+                  ⚙️ 基本設定
+                </button>
+                <button
+                  onClick={() => setShowQuestSettings(true)}
+                  className="flex-1 bg-yellow-500 text-white px-4 py-3 rounded-xl font-medium hover:bg-yellow-600 transition-colors"
+                >
+                  🏆 クエスト設定
+                </button>
+              </div>
+            </div>
+            
+            {/* 目標金額設定 */}
+            <div className="bg-white rounded-2xl shadow-lg p-6 mb-4">
+              <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <DollarSign />
+                目標金額
+              </h2>
+              
+              <div className="flex items-center gap-3">
+                <input
+                  type="number"
+                  step="1000"
+                  value={targetAmount || ''}
+                  onChange={(e) => setTargetAmount(parseFloat(e.target.value) || 0)}
+                  className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none text-lg"
+                  placeholder="目標金額を入力"
+                />
+                <span className="text-gray-600 font-medium">円</span>
+              </div>
+            </div>
+            
+            {/* 稼働時間入力 */}
+            <div className="bg-white rounded-2xl shadow-lg p-6 mb-4">
+              <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <Package />
+                1日の稼働時間(時間)
+              </h2>
+              
+              <div className="space-y-3">
+                {days.map(day => (
+                  <div key={day} className="space-y-2">
+                    <div className="font-medium text-gray-700">{day}曜</div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <input
+                          type="number"
+                          step="0.2"
+                          value={hours[day].hours || ''}
+                          onChange={(e) => updateHours(day, 'hours', e.target.value)}
+                          className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm"
+                          placeholder="時間"
+                        />
+                        <div className="text-xs text-gray-500 mt-1 text-center">時間</div>
+                      </div>
+                      <div>
+                        <input
+                          type="number"
+                          value={hours[day].deliveries || ''}
+                          onChange={(e) => updateHours(day, 'deliveries', e.target.value)}
+                          className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm"
+                          placeholder="件数"
+                        />
+                        <div className="text-xs text-gray-500 mt-1 text-center">件数</div>
+                      </div>
+                      <div>
+                        <input
+                          type="number"
+                          step="10"
+                          value={hours[day].earnings || ''}
+                          onChange={(e) => updateHours(day, 'earnings', e.target.value)}
+                          className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm"
+                          placeholder="金額"
+                        />
+                        <div className="text-xs text-gray-500 mt-1 text-center">金額</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                <p className="text-xs text-gray-600">
+                  💡 時間のみ入力で予想金額を計算<br/>
+                  すべて入力で実績値を反映
+                </p>
+              </div>
+            </div>
+            
+            {/* 結果表示 */}
+            <div className="bg-gradient-to-br from-green-500 to-blue-500 rounded-2xl shadow-xl p-6 text-white">
+              <h2 className="text-xl font-bold mb-6">週間売上予測</h2>
+              
+              <div className="space-y-4">
+                <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4">
+                  <div className="text-sm opacity-90 mb-1">合計稼働時間</div>
+                  <div className="text-2xl font-bold">{results.totalHours} 時間</div>
+                </div>
+                
+                <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4">
+                  <div className="text-sm opacity-90 mb-1">合計配達件数</div>
+                  <div className="text-2xl font-bold">{results.totalDeliveries} 件</div>
+                  <div className="text-xs opacity-80 mt-2 flex gap-3">
+                    <span>月～木: {results.weekdayDeliveries}件</span>
+                    <span>金～日: {results.weekendDeliveries}件</span>
+                  </div>
+                </div>
+                
+                <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4">
+                  <div className="text-sm opacity-90 mb-1">基本売上</div>
+                  <div className="text-2xl font-bold">¥{results.basicEarnings.toLocaleString()}</div>
+                </div>
+                
+                <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4">
+                  <div className="text-sm opacity-90 mb-1">クエスト報酬</div>
+                  <div className="text-2xl font-bold">¥{results.questEarnings.toLocaleString()}</div>
+                </div>
+                
+                <div className="bg-white/30 backdrop-blur-sm rounded-xl p-5 border-2 border-white/50">
+                  <div className="text-sm opacity-90 mb-1">週間合計売上</div>
+                  <div className="text-4xl font-bold">¥{results.totalEarnings.toLocaleString()}</div>
+                </div>
+                
+                {results.daysWorked > 0 && (
+                  <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4">
+                    <div className="text-sm opacity-90 mb-1">1日平均({results.daysWorked}日稼働)</div>
+                    <div className="text-2xl font-bold">¥{results.avgPerDay.toLocaleString()}</div>
+                  </div>
+                )}
+                
+                {parseFloat(results.totalHours) > 0 && (
+                  <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4">
+                    <div className="text-sm opacity-90 mb-1">平均時給</div>
+                    <div className="text-2xl font-bold">¥{results.avgHourlyWage.toLocaleString()}</div>
+                  </div>
+                )}
+                
+                {targetAmount > 0 && results.totalEarnings < targetAmount && parseFloat(results.hoursNeeded) > 0 && (
+                  <div className="bg-red-500/30 backdrop-blur-sm rounded-xl p-4 border-2 border-red-400">
+                    <div className="text-sm opacity-90 mb-1">目標達成まで</div>
+                    <div className="text-2xl font-bold">あと {results.hoursNeeded} 時間</div>
+                    <div className="text-xs opacity-80 mt-1">残り ¥{(targetAmount - results.totalEarnings).toLocaleString()}</div>
+                  </div>
+                )}
+                
+                {targetAmount > 0 && results.totalEarnings >= targetAmount && (
+                  <div className="bg-yellow-500/30 backdrop-blur-sm rounded-xl p-4 border-2 border-yellow-400">
+                    <div className="text-2xl font-bold">🎉 目標達成！</div>
+                    <div className="text-sm opacity-90 mt-1">目標 ¥{targetAmount.toLocaleString()} 達成</div>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* フッター */}
+            <div className="text-center text-gray-600 text-sm mt-6">
+              ※実際の売上は配達エリアや時間帯により変動します
+            </div>
+            
+            {/* 基本設定モーダル */}
+            {showBasicSettings && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+                <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+                  <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
+                    <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                      <DollarSign />
+                      基本設定
+                    </h2>
+                    <button
+                      onClick={() => setShowBasicSettings(false)}
+                      className="text-gray-500 hover:text-gray-700 text-2xl"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  
+                  <div className="p-6 space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        平均単価(円/件)
+                      </label>
+                      <input
+                        type="number"
+                        step="10"
+                        value={avgPrice}
+                        onChange={(e) => setAvgPrice(parseFloat(e.target.value) || 0)}
+                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none text-lg"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        1時間当たりの平均配達件数
+                      </label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={deliveriesPerHour}
+                        onChange={(e) => setDeliveriesPerHour(parseFloat(e.target.value) || 0)}
+                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none text-lg"
+                      />
+                    </div>
+                    
+                    <button
+                      onClick={() => setShowBasicSettings(false)}
+                      className="w-full bg-green-500 text-white py-3 rounded-xl font-medium hover:bg-green-600 transition-colors"
+                    >
+                      完了
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* クエスト設定モーダル */}
+            {showQuestSettings && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+                <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+                  <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
+                    <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                      <Award />
+                      クエスト設定
+                    </h2>
+                    <button
+                      onClick={() => setShowQuestSettings(false)}
+                      className="text-gray-500 hover:text-gray-700 text-2xl"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  
+                  <div className="p-6 space-y-6">
+                    {/* 月～木のクエスト */}
+                    <div>
+                      <h3 className="font-bold text-gray-800 mb-1">月～木クエスト</h3>
+                      <p className="text-xs text-gray-500 mb-3">※各クエストは順番に達成されます</p>
+                      <div className="space-y-2">
+                        {weekdayQuests.map((quest, index) => (
+                          <div key={index} className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg">
+                            <div className="w-7 h-7 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold text-xs">
+                              {index + 1}
+                            </div>
+                            <input
+                              type="number"
+                              value={quest.count}
+                              onChange={(e) => updateWeekdayQuest(index, 'count', parseInt(e.target.value) || 0)}
+                              className="w-16 px-2 py-1.5 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm"
+                            />
+                            <span className="text-xs text-gray-600">回</span>
+                            <input
+                              type="number"
+                              step="50"
+                              value={quest.reward || ''}
+                              onChange={(e) => updateWeekdayQuest(index, 'reward', parseInt(e.target.value) || 0)}
+                              className="flex-1 px-2 py-1.5 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm"
+                            />
+                            <span className="text-xs text-gray-600">円</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    {/* 金～日のクエスト */}
+                    <div>
+                      <h3 className="font-bold text-gray-800 mb-1">金～日クエスト</h3>
+                      <p className="text-xs text-gray-500 mb-3">※各クエストは順番に達成されます</p>
+                      <div className="space-y-2">
+                        {weekendQuests.map((quest, index) => (
+                          <div key={index} className="flex items-center gap-2 p-2 bg-yellow-50 rounded-lg">
+                            <div className="w-7 h-7 bg-yellow-500 text-white rounded-full flex items-center justify-center font-bold text-xs">
+                              {index + 1}
+                            </div>
+                            <input
+                              type="number"
+                              value={quest.count}
+                              onChange={(e) => updateWeekendQuest(index, 'count', parseInt(e.target.value) || 0)}
+                              className="w-16 px-2 py-1.5 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none text-sm"
+                            />
+                            <span className="text-xs text-gray-600">回</span>
+                            <input
+                              type="number"
+                              step="50"
+                              value={quest.reward || ''}
+                              onChange={(e) => updateWeekendQuest(index, 'reward', parseInt(e.target.value) || 0)}
+                              className="flex-1 px-2 py-1.5 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none text-sm"
+                            />
+                            <span className="text-xs text-gray-600">円</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <button
+                      onClick={() => setShowQuestSettings(false)}
+                      className="w-full bg-yellow-500 text-white py-3 rounded-xl font-medium hover:bg-yellow-600 transition-colors"
+                    >
+                      完了
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // Render the app
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<UberEatsSimulator />);
+
+    // Service Workerの登録
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then(registration => console.log('SW registered'))
+          .catch(err => console.log('SW registration failed'));
+      });
+    }
+  </script>
+</body>
+</html>
