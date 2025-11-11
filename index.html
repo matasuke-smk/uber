@@ -428,28 +428,34 @@
               <h2 className="text-xl font-bold mb-6">週間売上予測</h2>
               
               <div className="space-y-4">
-                <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4">
-                  <div className="text-sm opacity-90 mb-1">合計稼働時間</div>
-                  <div className="text-2xl font-bold">{results.totalHours} 時間</div>
-                </div>
-                
-                <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4">
-                  <div className="text-sm opacity-90 mb-1">合計配達件数</div>
-                  <div className="text-2xl font-bold">{results.totalDeliveries} 件</div>
-                  <div className="text-xs opacity-80 mt-2 flex gap-3">
-                    <span>月～木: {results.weekdayDeliveries}件</span>
-                    <span>金～日: {results.weekendDeliveries}件</span>
+                {/* 合計稼働時間と合計配達件数 */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4">
+                    <div className="text-sm opacity-90 mb-1">合計稼働時間</div>
+                    <div className="text-2xl font-bold">{results.totalHours} 時間</div>
+                  </div>
+
+                  <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4">
+                    <div className="text-sm opacity-90 mb-1">合計配達件数</div>
+                    <div className="text-2xl font-bold">{results.totalDeliveries} 件</div>
+                    <div className="text-xs opacity-80 mt-2">
+                      <div>月～木: {results.weekdayDeliveries}件</div>
+                      <div>金～日: {results.weekendDeliveries}件</div>
+                    </div>
                   </div>
                 </div>
-                
-                <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4">
-                  <div className="text-sm opacity-90 mb-1">基本売上</div>
-                  <div className="text-2xl font-bold">¥{results.basicEarnings.toLocaleString()}</div>
-                </div>
-                
-                <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4">
-                  <div className="text-sm opacity-90 mb-1">クエスト報酬</div>
-                  <div className="text-2xl font-bold">¥{results.questEarnings.toLocaleString()}</div>
+
+                {/* 基本売上とクエスト報酬 */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4">
+                    <div className="text-sm opacity-90 mb-1">基本売上</div>
+                    <div className="text-2xl font-bold">¥{results.basicEarnings.toLocaleString()}</div>
+                  </div>
+
+                  <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4">
+                    <div className="text-sm opacity-90 mb-1">クエスト報酬</div>
+                    <div className="text-2xl font-bold">¥{results.questEarnings.toLocaleString()}</div>
+                  </div>
                 </div>
                 
                 <div className="bg-white/30 backdrop-blur-sm rounded-xl p-5 border-2 border-white/50">
@@ -457,17 +463,22 @@
                   <div className="text-4xl font-bold">¥{results.totalEarnings.toLocaleString()}</div>
                 </div>
                 
-                {results.daysWorked > 0 && (
-                  <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4">
-                    <div className="text-sm opacity-90 mb-1">1日平均({results.daysWorked}日稼働)</div>
-                    <div className="text-2xl font-bold">¥{results.avgPerDay.toLocaleString()}</div>
-                  </div>
-                )}
-                
-                {parseFloat(results.totalHours) > 0 && (
-                  <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4">
-                    <div className="text-sm opacity-90 mb-1">平均時給</div>
-                    <div className="text-2xl font-bold">¥{results.avgHourlyWage.toLocaleString()}</div>
+                {/* 1日平均と平均時給 */}
+                {(results.daysWorked > 0 || parseFloat(results.totalHours) > 0) && (
+                  <div className="grid grid-cols-2 gap-3">
+                    {results.daysWorked > 0 && (
+                      <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4">
+                        <div className="text-sm opacity-90 mb-1">1日平均({results.daysWorked}日稼働)</div>
+                        <div className="text-2xl font-bold">¥{results.avgPerDay.toLocaleString()}</div>
+                      </div>
+                    )}
+
+                    {parseFloat(results.totalHours) > 0 && (
+                      <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4">
+                        <div className="text-sm opacity-90 mb-1">平均時給</div>
+                        <div className="text-2xl font-bold">¥{results.avgHourlyWage.toLocaleString()}</div>
+                      </div>
+                    )}
                   </div>
                 )}
                 
