@@ -1,4 +1,36 @@
 <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>
-  <rect width='100' height='100' fill='#10b981'/>
-  <text x='50' y='70' font-size='60' text-anchor='middle'>🚴</text>
+  <!-- グラデーション背景 -->
+  <defs>
+    <linearGradient id='grad' x1='0%' y1='0%' x2='100%' y2='100%'>
+      <stop offset='0%' style='stop-color:#10b981;stop-opacity:1' />
+      <stop offset='100%' style='stop-color:#059669;stop-opacity:1' />
+    </linearGradient>
+  </defs>
+  <rect width='100' height='100' fill='url(#grad)' rx='20'/>
+
+  <!-- 電卓のディスプレイ部分（背景） -->
+  <rect x='15' y='15' width='70' height='25' rx='4' fill='#ffffff' opacity='0.3'/>
+
+  <!-- 円マーク -->
+  <text x='50' y='33' font-size='18' font-weight='bold' text-anchor='middle' fill='#ffffff'>¥</text>
+
+  <!-- バイクのシルエット -->
+  <!-- 後輪 -->
+  <circle cx='30' cy='70' r='12' fill='none' stroke='#ffffff' stroke-width='3'/>
+  <circle cx='30' cy='70' r='2' fill='#ffffff'/>
+
+  <!-- 前輪 -->
+  <circle cx='70' cy='70' r='12' fill='none' stroke='#ffffff' stroke-width='3'/>
+  <circle cx='70' cy='70' r='2' fill='#ffffff'/>
+
+  <!-- フレーム -->
+  <path d='M 30 70 L 45 55 L 55 55 L 70 70' fill='none' stroke='#ffffff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/>
+  <path d='M 45 55 L 42 48' fill='none' stroke='#ffffff' stroke-width='3' stroke-linecap='round'/>
+
+  <!-- ハンドル -->
+  <path d='M 70 70 L 75 60 L 78 58' fill='none' stroke='#ffffff' stroke-width='3' stroke-linecap='round'/>
+
+  <!-- 配達バッグ -->
+  <rect x='35' y='48' width='16' height='12' rx='2' fill='#ffffff' opacity='0.9'/>
+  <rect x='37' y='50' width='12' height='3' rx='1' fill='#10b981'/>
 </svg>
