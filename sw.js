@@ -1,7 +1,8 @@
-const CACHE_NAME = 'ubereats-simulator-v2';
+const CACHE_NAME = 'ubereats-simulator-v3';
 const urlsToCache = [
   './index.html',
-  './manifest.json'
+  './manifest.json',
+  './favicon.svg'
 ];
 
 // インストール時
