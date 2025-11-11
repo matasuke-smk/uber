@@ -294,6 +294,8 @@
         
         return {
           totalHours: totalHours.toFixed(1),
+          weekdayHours: weekdayHours.toFixed(1),
+          weekendHours: weekendHours.toFixed(1),
           totalDeliveries: Math.floor(totalDeliveries),
           weekdayDeliveries: Math.floor(weekdayDeliveries),
           weekendDeliveries: Math.floor(weekendDeliveries),
@@ -433,6 +435,10 @@
                   <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4">
                     <div className="text-sm opacity-90 mb-1">合計稼働時間</div>
                     <div className="text-2xl font-bold">{results.totalHours} 時間</div>
+                    <div className="text-xs opacity-80 mt-2">
+                      <div>月～木: {results.weekdayHours}時間</div>
+                      <div>金～日: {results.weekendHours}時間</div>
+                    </div>
                   </div>
 
                   <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4">
