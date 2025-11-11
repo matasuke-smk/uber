@@ -198,13 +198,16 @@
       const handleKeyDown = (e) => {
         if (e.key === 'Enter') {
           e.preventDefault();
-          const form = e.target.form || e.target.closest('.space-y-2, .space-y-3');
+          const form = e.target.form || e.target.closest('.space-y-2, .space-y-3, .space-y-4, .p-6');
           if (form) {
             const inputs = Array.from(form.querySelectorAll('input'));
             const index = inputs.indexOf(e.target);
             if (index >= 0 && index < inputs.length - 1) {
               inputs[index + 1].focus();
               inputs[index + 1].select();
+            } else if (index === inputs.length - 1) {
+              // 最後の項目ではキーボードを閉じる
+              e.target.blur();
             }
           }
         }
