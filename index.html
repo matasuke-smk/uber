@@ -574,7 +574,7 @@
                       <p className="text-xs text-gray-500 mb-3">※各クエストは順番に達成されます</p>
                       <div className="space-y-2">
                         {weekdayQuests.map((quest, index) => (
-                          <div key={index} className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg">
+                          <div key={index} className="flex items-center gap-1.5 p-2 bg-blue-50 rounded-lg">
                             <div className="w-7 h-7 min-w-7 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0">
                               {index + 1}
                             </div>
@@ -583,18 +583,18 @@
                               value={quest.count || ''}
                               onChange={(e) => updateWeekdayQuest(index, 'count', e.target.value === '' ? 0 : parseInt(e.target.value))}
                               onKeyDown={handleKeyDown}
-                              className="w-16 px-2 py-1.5 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm text-center"
+                              className="w-14 px-2 py-1.5 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm text-center flex-shrink-0"
                             />
-                            <span className="text-xs text-gray-600">回</span>
+                            <span className="text-xs text-gray-600 flex-shrink-0">回</span>
                             <input
                               type="number"
                               step="50"
                               value={quest.reward || ''}
                               onChange={(e) => updateWeekdayQuest(index, 'reward', e.target.value === '' ? 0 : parseInt(e.target.value))}
                               onKeyDown={handleKeyDown}
-                              className="w-24 px-2 py-1.5 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm text-center"
+                              className="flex-1 min-w-0 px-2 py-1.5 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm text-center"
                             />
-                            <span className="text-xs text-gray-600">円</span>
+                            <span className="text-xs text-gray-600 flex-shrink-0">円</span>
                           </div>
                         ))}
                       </div>
@@ -606,7 +606,7 @@
                       <p className="text-xs text-gray-500 mb-3">※各クエストは順番に達成されます</p>
                       <div className="space-y-2">
                         {weekendQuests.map((quest, index) => (
-                          <div key={index} className="flex items-center gap-2 p-2 bg-yellow-50 rounded-lg">
+                          <div key={index} className="flex items-center gap-1.5 p-2 bg-yellow-50 rounded-lg">
                             <div className="w-7 h-7 min-w-7 bg-yellow-500 text-white rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0">
                               {index + 1}
                             </div>
@@ -615,18 +615,18 @@
                               value={quest.count || ''}
                               onChange={(e) => updateWeekendQuest(index, 'count', e.target.value === '' ? 0 : parseInt(e.target.value))}
                               onKeyDown={handleKeyDown}
-                              className="w-16 px-2 py-1.5 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none text-sm text-center"
+                              className="w-14 px-2 py-1.5 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none text-sm text-center flex-shrink-0"
                             />
-                            <span className="text-xs text-gray-600">回</span>
+                            <span className="text-xs text-gray-600 flex-shrink-0">回</span>
                             <input
                               type="number"
                               step="50"
                               value={quest.reward || ''}
                               onChange={(e) => updateWeekendQuest(index, 'reward', e.target.value === '' ? 0 : parseInt(e.target.value))}
                               onKeyDown={handleKeyDown}
-                              className="w-24 px-2 py-1.5 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none text-sm text-center"
+                              className="flex-1 min-w-0 px-2 py-1.5 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none text-sm text-center"
                             />
-                            <span className="text-xs text-gray-600">円</span>
+                            <span className="text-xs text-gray-600 flex-shrink-0">円</span>
                           </div>
                         ))}
                       </div>
