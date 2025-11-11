@@ -185,13 +185,29 @@
       
       // 稼働時間更新
       const updateHours = (day, field, value) => {
-        setHours({ 
-          ...hours, 
-          [day]: { 
-            ...hours[day], 
-            [field]: parseFloat(value) || 0 
-          } 
+        setHours({
+          ...hours,
+          [day]: {
+            ...hours[day],
+            [field]: parseFloat(value) || 0
+          }
         });
+      };
+
+      // Enterキーで次の項目に移動
+      const handleKeyDown = (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const form = e.target.form || e.target.closest('.space-y-2, .space-y-3');
+          if (form) {
+            const inputs = Array.from(form.querySelectorAll('input'));
+            const index = inputs.indexOf(e.target);
+            if (index >= 0 && index < inputs.length - 1) {
+              inputs[index + 1].focus();
+              inputs[index + 1].select();
+            }
+          }
+        }
       };
       
       // 計算
@@ -337,6 +353,7 @@
                   step="1000"
                   value={targetAmount || ''}
                   onChange={(e) => setTargetAmount(parseFloat(e.target.value) || 0)}
+                  onKeyDown={handleKeyDown}
                   className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none text-lg"
                   placeholder="目標金額を入力"
                 />
@@ -362,6 +379,7 @@
                           step="0.2"
                           value={hours[day].hours || ''}
                           onChange={(e) => updateHours(day, 'hours', e.target.value)}
+                          onKeyDown={handleKeyDown}
                           className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm"
                           placeholder="時間"
                         />
@@ -372,6 +390,7 @@
                           type="number"
                           value={hours[day].deliveries || ''}
                           onChange={(e) => updateHours(day, 'deliveries', e.target.value)}
+                          onKeyDown={handleKeyDown}
                           className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm"
                           placeholder="件数"
                         />
@@ -383,6 +402,7 @@
                           step="10"
                           value={hours[day].earnings || ''}
                           onChange={(e) => updateHours(day, 'earnings', e.target.value)}
+                          onKeyDown={handleKeyDown}
                           className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm"
                           placeholder="金額"
                         />
@@ -498,6 +518,7 @@
                         step="10"
                         value={avgPrice}
                         onChange={(e) => setAvgPrice(parseFloat(e.target.value) || 0)}
+                        onKeyDown={handleKeyDown}
                         className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none text-lg"
                       />
                     </div>
@@ -511,6 +532,7 @@
                         step="0.1"
                         value={deliveriesPerHour}
                         onChange={(e) => setDeliveriesPerHour(parseFloat(e.target.value) || 0)}
+                        onKeyDown={handleKeyDown}
                         className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none text-lg"
                       />
                     </div>
@@ -556,8 +578,9 @@
                             </div>
                             <input
                               type="number"
-                              value={quest.count}
-                              onChange={(e) => updateWeekdayQuest(index, 'count', parseInt(e.target.value) || 0)}
+                              value={quest.count || ''}
+                              onChange={(e) => updateWeekdayQuest(index, 'count', e.target.value === '' ? 0 : parseInt(e.target.value))}
+                              onKeyDown={handleKeyDown}
                               className="w-16 px-2 py-1.5 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm"
                             />
                             <span className="text-xs text-gray-600">回</span>
@@ -565,7 +588,8 @@
                               type="number"
                               step="50"
                               value={quest.reward || ''}
-                              onChange={(e) => updateWeekdayQuest(index, 'reward', parseInt(e.target.value) || 0)}
+                              onChange={(e) => updateWeekdayQuest(index, 'reward', e.target.value === '' ? 0 : parseInt(e.target.value))}
+                              onKeyDown={handleKeyDown}
                               className="flex-1 px-2 py-1.5 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm"
                             />
                             <span className="text-xs text-gray-600">円</span>
@@ -586,8 +610,9 @@
                             </div>
                             <input
                               type="number"
-                              value={quest.count}
-                              onChange={(e) => updateWeekendQuest(index, 'count', parseInt(e.target.value) || 0)}
+                              value={quest.count || ''}
+                              onChange={(e) => updateWeekendQuest(index, 'count', e.target.value === '' ? 0 : parseInt(e.target.value))}
+                              onKeyDown={handleKeyDown}
                               className="w-16 px-2 py-1.5 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none text-sm"
                             />
                             <span className="text-xs text-gray-600">回</span>
@@ -595,7 +620,8 @@
                               type="number"
                               step="50"
                               value={quest.reward || ''}
-                              onChange={(e) => updateWeekendQuest(index, 'reward', parseInt(e.target.value) || 0)}
+                              onChange={(e) => updateWeekendQuest(index, 'reward', e.target.value === '' ? 0 : parseInt(e.target.value))}
+                              onKeyDown={handleKeyDown}
                               className="flex-1 px-2 py-1.5 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none text-sm"
                             />
                             <span className="text-xs text-gray-600">円</span>
