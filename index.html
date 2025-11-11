@@ -399,7 +399,7 @@
                         onChange={(e) => updateHours(day, 'deliveries', e.target.value)}
                         onKeyDown={handleKeyDown}
                         className="w-full px-2 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm text-center"
-                        placeholder="0"
+                        placeholder={hours[day].hours > 0 ? Math.floor(hours[day].hours * deliveriesPerHour).toString() : "0"}
                       />
                       <input
                         type="number"
@@ -408,7 +408,7 @@
                         onChange={(e) => updateHours(day, 'earnings', e.target.value)}
                         onKeyDown={handleKeyDown}
                         className="w-full px-2 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm text-center"
-                        placeholder="0"
+                        placeholder={hours[day].hours > 0 ? Math.floor(hours[day].hours * deliveriesPerHour * avgPrice).toString() : "0"}
                       />
                     </div>
                   </div>
