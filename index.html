@@ -125,6 +125,17 @@
         misc: '雑費'
       };
 
+      // カテゴリーごとの推奨借方科目
+      const categoryToSubjects = {
+        fuel: ['vehicle', 'fuel'],
+        maintenance: ['repair', 'vehicle'],
+        parking: ['rent', 'vehicle'],
+        phone: ['communication'],
+        insurance: ['insurance'],
+        equipment: ['supplies'],
+        other: ['misc', 'vehicle', 'supplies', 'commission']
+      };
+
       // localStorageの健全性チェックと修復
       const validateAndFixLocalStorage = () => {
         try {
@@ -2279,13 +2290,15 @@
                     {/* 新規追加ボタン */}
                     <button
                       onClick={() => {
+                        const defaultCategory = 'fuel';
+                        const defaultSubject = categoryToSubjects[defaultCategory]?.[0] || 'vehicle';
                         setEditingExpense({
                           date: formatDateToLocal(new Date()),
-                          category: 'fuel',
+                          category: defaultCategory,
                           description: '',
                           amount: 0,
                           photo: null,
-                          accountingSubject: 'vehicle',
+                          accountingSubject: defaultSubject,
                           businessPercentage: 100
                         });
                         setEditingExpenseId(null);
@@ -2380,8 +2393,8 @@
 
             {/* 経費入力モーダル */}
             {showExpenseInput && editingExpense && (
-              <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[60]">
-                <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] flex flex-col">
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-2 sm:p-4">
+                <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[95vh] flex flex-col">
                   <div className="bg-gradient-to-r from-red-500 to-pink-500 text-white p-4 flex-shrink-0">
                     <div className="flex items-center justify-between">
                       <h2 className="text-xl font-bold">
@@ -2396,7 +2409,7 @@
                     </div>
                   </div>
 
-                  <div className="p-6 space-y-4 overflow-y-auto flex-1">
+                  <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
                     {/* 日付 */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -2406,7 +2419,7 @@
                         type="date"
                         value={editingExpense.date}
                         onChange={(e) => setEditingExpense({...editingExpense, date: e.target.value})}
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none"
+                        className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none text-base"
                       />
                     </div>
 
@@ -2417,7 +2430,15 @@
                       </label>
                       <select
                         value={editingExpense.category}
-                        onChange={(e) => setEditingExpense({...editingExpense, category: e.target.value})}
+                        onChange={(e) => {
+                          const newCategory = e.target.value;
+                          const defaultSubject = categoryToSubjects[newCategory]?.[0] || 'vehicle';
+                          setEditingExpense({
+                            ...editingExpense,
+                            category: newCategory,
+                            accountingSubject: defaultSubject
+                          });
+                        }}
                         className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none"
                       >
                         {Object.entries(expenseCategories).map(([key, cat]) => (
@@ -2469,12 +2490,18 @@
                         onChange={(e) => setEditingExpense({...editingExpense, accountingSubject: e.target.value})}
                         className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none"
                       >
-                        {Object.entries(accountingSubjects).map(([key, name]) => (
-                          <option key={key} value={key}>
-                            {name}
-                          </option>
-                        ))}
+                        {(() => {
+                          const allowedSubjects = categoryToSubjects[editingExpense.category] || Object.keys(accountingSubjects);
+                          return allowedSubjects.map((key) => (
+                            <option key={key} value={key}>
+                              {accountingSubjects[key]}
+                            </option>
+                          ));
+                        })()}
                       </select>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {expenseCategories[editingExpense.category]?.name}に適した科目のみ表示
+                      </p>
                     </div>
 
                     {/* 事業使用割合 */}
