@@ -83,11 +83,47 @@
       </svg>
     );
 
+    const Receipt = () => (
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1Z"/>
+        <path d="M14 8H8"/>
+        <path d="M16 12H8"/>
+        <path d="M13 16H8"/>
+      </svg>
+    );
+
     function UberEatsSimulator() {
       // 定数定義
       const days = ['月', '火', '水', '木', '金', '土', '日'];
       const weekdays = ['月', '火', '水', '木'];
       const weekends = ['金', '土', '日'];
+
+      // 経費カテゴリー
+      const expenseCategories = {
+        fuel: { name: 'ガソリン代', emoji: '⛽' },
+        maintenance: { name: '車両整備', emoji: '🔧' },
+        parking: { name: '駐車場代', emoji: '🅿️' },
+        phone: { name: '通信費', emoji: '📱' },
+        insurance: { name: '保険料', emoji: '🛡️' },
+        equipment: { name: '装備品', emoji: '🎒' },
+        other: { name: 'その他', emoji: '📝' }
+      };
+
+      // 借方科目（勘定科目）
+      const accountingSubjects = {
+        vehicle: '車両費',
+        fuel: '燃料費',
+        repair: '修繕費',
+        rent: '地代家賃',
+        communication: '通信費',
+        insurance: '損害保険料',
+        supplies: '消耗品費',
+        travel: '旅費交通費',
+        utilities: '水道光熱費',
+        advertising: '広告宣伝費',
+        commission: '支払手数料',
+        misc: '雑費'
+      };
 
       // localStorageの健全性チェックと修復
       const validateAndFixLocalStorage = () => {
@@ -264,6 +300,13 @@
       const [isChangingDate, setIsChangingDate] = useState(false); // 日付変更モード
       const [editingDayData, setEditingDayData] = useState({ hours: 0, deliveries: 0, earnings: 0, quest: 0 });
 
+      // 経費管理関連のstate
+      const [expenses, setExpenses] = useState(() => loadFromStorage('expenses', {}));
+      const [showExpenses, setShowExpenses] = useState(false);
+      const [showExpenseInput, setShowExpenseInput] = useState(false);
+      const [editingExpense, setEditingExpense] = useState(null);
+      const [editingExpenseId, setEditingExpenseId] = useState(null);
+
       // 日付をローカルタイムゾーンでYYYY-MM-DD形式に変換
       const formatDateToLocal = (date) => {
         const year = date.getFullYear();
@@ -410,10 +453,16 @@
         }
       }, [dailyData]);
 
+      useEffect(() => {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('expenses', JSON.stringify(expenses));
+        }
+      }, [expenses]);
+
       // モーダル表示中は背景のスクロールを無効化
       useEffect(() => {
         try {
-          const isModalOpen = showBasicSettings || showQuestSettings || showCalendar || showTotalStats || showDayEdit;
+          const isModalOpen = showBasicSettings || showQuestSettings || showCalendar || showTotalStats || showDayEdit || showExpenses || showExpenseInput;
           if (typeof document !== 'undefined' && document.body) {
             if (isModalOpen) {
               document.body.style.overflow = 'hidden';
@@ -433,7 +482,7 @@
             console.error('モーダルスクロール解除エラー:', error);
           }
         };
-      }, [showBasicSettings, showQuestSettings, showCalendar, showTotalStats, showDayEdit]);
+      }, [showBasicSettings, showQuestSettings, showCalendar, showTotalStats, showDayEdit, showExpenses, showExpenseInput]);
 
       // 週の稼働時間が変更されたら、クエスト報酬を計算してカレンダーに反映
       useEffect(() => {
@@ -992,8 +1041,8 @@
                 </button>
               </div>
 
-              {/* クエストとカレンダーボタン */}
-              <div className="grid grid-cols-2 gap-2 mt-4">
+              {/* Quest, Calendar, Expense buttons */}
+              <div className="grid grid-cols-3 gap-2 mt-4">
                 <button
                   onClick={() => setShowQuestSettings(true)}
                   className="bg-yellow-500 text-white px-3 py-3 rounded-xl font-medium hover:bg-yellow-600 transition-colors text-sm"
@@ -1005,6 +1054,12 @@
                   className="bg-purple-500 text-white px-3 py-3 rounded-xl font-medium hover:bg-purple-600 transition-colors text-sm"
                 >
                   📅 カレンダー
+                </button>
+                <button
+                  onClick={() => setShowExpenses(true)}
+                  className="bg-red-500 text-white px-3 py-3 rounded-xl font-medium hover:bg-red-600 transition-colors text-sm"
+                >
+                  💸 経費
                 </button>
               </div>
             </div>
@@ -2173,9 +2228,414 @@
                 )}
               </div>
             )}
+
+            {/* 経費一覧モーダル */}
+            {showExpenses && (
+              <div className="fixed inset-0 bg-white z-50 flex flex-col overscroll-contain">
+                <div className="bg-white w-full h-full flex flex-col">
+                  <div className="bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0">
+                    <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                      <Receipt />
+                      経費管理
+                    </h2>
+                    <button
+                      onClick={() => setShowExpenses(false)}
+                      className="text-gray-500 hover:text-gray-700 text-2xl"
+                    >
+                      ×
+                    </button>
+                  </div>
+
+                  <div className="p-4 overflow-y-auto flex-1">
+                    {/* 月別集計 */}
+                    {(() => {
+                      const currentYear = new Date().getFullYear();
+                      const currentMonth = new Date().getMonth() + 1;
+
+                      const monthlyExpenses = Object.entries(expenses)
+                        .filter(([id, expense]) => {
+                          const [year, month] = expense.date.split('-');
+                          return parseInt(year) === currentYear && parseInt(month) === currentMonth;
+                        })
+                        .reduce((sum, [id, expense]) => {
+                          const percentage = expense.businessPercentage ?? 100;
+                          return sum + Math.floor(expense.amount * percentage / 100);
+                        }, 0);
+
+                      return (
+                        <div className="bg-red-50 rounded-xl p-4 border-2 border-red-200 mb-4">
+                          <div className="text-sm text-gray-600 mb-1">
+                            {currentYear}年{currentMonth}月の経費
+                          </div>
+                          <div className="text-2xl font-bold text-red-600">
+                            ¥{monthlyExpenses.toLocaleString()}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* 新規追加ボタン */}
+                    <button
+                      onClick={() => {
+                        setEditingExpense({
+                          date: formatDateToLocal(new Date()),
+                          category: 'fuel',
+                          description: '',
+                          amount: 0,
+                          photo: null,
+                          accountingSubject: 'vehicle',
+                          businessPercentage: 100
+                        });
+                        setEditingExpenseId(null);
+                        setShowExpenseInput(true);
+                      }}
+                      className="w-full bg-red-500 text-white py-3 rounded-xl font-medium hover:bg-red-600 transition-colors mb-4"
+                    >
+                      ➕ 新規経費を追加
+                    </button>
+
+                    {/* 経費リスト */}
+                    <div className="space-y-2">
+                      {Object.entries(expenses)
+                        .sort(([, a], [, b]) => new Date(b.date) - new Date(a.date))
+                        .map(([id, expense]) => (
+                          <button
+                            key={id}
+                            onClick={() => {
+                              setEditingExpense({
+                                ...expense,
+                                accountingSubject: expense.accountingSubject || 'vehicle',
+                                businessPercentage: expense.businessPercentage ?? 100
+                              });
+                              setEditingExpenseId(id);
+                              setShowExpenseInput(true);
+                            }}
+                            className="w-full bg-white rounded-lg p-3 border-2 border-gray-200 hover:border-red-300 transition-colors text-left"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <span className="text-2xl">{expenseCategories[expense.category].emoji}</span>
+                                <div>
+                                  <div className="font-medium text-gray-800">
+                                    {expense.description || expenseCategories[expense.category].name}
+                                  </div>
+                                  <div className="text-xs text-gray-500">
+                                    {new Date(expense.date + 'T00:00:00').toLocaleDateString('ja-JP')}
+                                    {expense.accountingSubject && ` • ${accountingSubjects[expense.accountingSubject] || '車両費'}`}
+                                    {expense.businessPercentage !== undefined && expense.businessPercentage !== 100 && ` • ${expense.businessPercentage}%`}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-lg font-bold text-gray-800">
+                                  ¥{expense.amount.toLocaleString()}
+                                </div>
+                                {expense.businessPercentage !== undefined && expense.businessPercentage !== 100 && (
+                                  <div className="text-xs text-gray-500">
+                                    実費: ¥{Math.floor(expense.amount * expense.businessPercentage / 100).toLocaleString()}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            {expense.photo && (
+                              <div className="mt-2 text-xs text-blue-600">
+                                📸 写真あり
+                              </div>
+                            )}
+                          </button>
+                        ))}
+                    </div>
+
+                    {Object.keys(expenses).length === 0 && (
+                      <div className="text-center text-gray-500 py-8">
+                        経費データがありません
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="p-4 border-t border-gray-200 flex-shrink-0">
+                    <button
+                      onClick={() => {
+                        const csvContent = generateExpenseCSV();
+                        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `expenses_${formatDateToLocal(new Date())}.csv`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                      }}
+                      className="w-full bg-gray-500 text-white py-3 rounded-xl font-medium hover:bg-gray-600 transition-colors"
+                    >
+                      📊 CSVエクスポート（確定申告用）
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 経費入力モーダル */}
+            {showExpenseInput && editingExpense && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[60]">
+                <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] flex flex-col">
+                  <div className="bg-gradient-to-r from-red-500 to-pink-500 text-white p-4 flex-shrink-0">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-xl font-bold">
+                        {editingExpenseId ? '経費を編集' : '新規経費'}
+                      </h2>
+                      <button
+                        onClick={() => setShowExpenseInput(false)}
+                        className="text-white hover:text-gray-200 text-2xl"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="p-6 space-y-4 overflow-y-auto flex-1">
+                    {/* 日付 */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        日付
+                      </label>
+                      <input
+                        type="date"
+                        value={editingExpense.date}
+                        onChange={(e) => setEditingExpense({...editingExpense, date: e.target.value})}
+                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none"
+                      />
+                    </div>
+
+                    {/* カテゴリー */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        カテゴリー
+                      </label>
+                      <select
+                        value={editingExpense.category}
+                        onChange={(e) => setEditingExpense({...editingExpense, category: e.target.value})}
+                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none"
+                      >
+                        {Object.entries(expenseCategories).map(([key, cat]) => (
+                          <option key={key} value={key}>
+                            {cat.emoji} {cat.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* 品目 */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        品目・説明
+                      </label>
+                      <input
+                        type="text"
+                        value={editingExpense.description}
+                        onChange={(e) => setEditingExpense({...editingExpense, description: e.target.value})}
+                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none"
+                        placeholder="例：レギュラーガソリン 30L"
+                      />
+                    </div>
+
+                    {/* 金額 */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        金額
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          value={editingExpense.amount || ''}
+                          onChange={(e) => setEditingExpense({...editingExpense, amount: parseInt(e.target.value) || 0})}
+                          className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none text-lg"
+                          placeholder="0"
+                        />
+                        <span className="text-gray-600 font-medium">円</span>
+                      </div>
+                    </div>
+
+                    {/* 借方科目 */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        借方科目（勘定科目）
+                      </label>
+                      <select
+                        value={editingExpense.accountingSubject || 'vehicle'}
+                        onChange={(e) => setEditingExpense({...editingExpense, accountingSubject: e.target.value})}
+                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none"
+                      >
+                        {Object.entries(accountingSubjects).map(([key, name]) => (
+                          <option key={key} value={key}>
+                            {name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* 事業使用割合 */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        事業使用割合
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={editingExpense.businessPercentage || 100}
+                          onChange={(e) => {
+                            const value = Math.min(100, Math.max(0, parseInt(e.target.value) || 0));
+                            setEditingExpense({...editingExpense, businessPercentage: value});
+                          }}
+                          className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none text-lg"
+                          placeholder="100"
+                        />
+                        <span className="text-gray-600 font-medium">%</span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        プライベートと共用の場合は事業使用分の割合を入力
+                      </p>
+                    </div>
+
+                    {/* 写真アップロード */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        レシート・スクショ
+                      </label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (e) => {
+                              setEditingExpense({...editingExpense, photo: e.target.result});
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none text-sm"
+                      />
+                      {editingExpense.photo && (
+                        <div className="mt-2">
+                          <img
+                            src={editingExpense.photo}
+                            alt="レシート"
+                            className="w-full rounded-lg border-2 border-gray-200"
+                            style={{ maxHeight: '200px', objectFit: 'contain' }}
+                          />
+                          <button
+                            onClick={() => setEditingExpense({...editingExpense, photo: null})}
+                            className="mt-2 text-sm text-red-600 hover:text-red-800"
+                          >
+                            画像を削除
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="p-4 border-t border-gray-200 flex-shrink-0">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          if (editingExpenseId) {
+                            // 更新
+                            setExpenses(prev => ({
+                              ...prev,
+                              [editingExpenseId]: editingExpense
+                            }));
+                          } else {
+                            // 新規作成
+                            const id = Date.now().toString();
+                            setExpenses(prev => ({
+                              ...prev,
+                              [id]: editingExpense
+                            }));
+                          }
+                          setShowExpenseInput(false);
+                        }}
+                        className="flex-1 bg-red-500 text-white py-3 rounded-xl font-medium hover:bg-red-600 transition-colors"
+                      >
+                        保存
+                      </button>
+                      {editingExpenseId && (
+                        <button
+                          onClick={() => {
+                            if (confirm('この経費を削除しますか？')) {
+                              setExpenses(prev => {
+                                const newExpenses = { ...prev };
+                                delete newExpenses[editingExpenseId];
+                                return newExpenses;
+                              });
+                              setShowExpenseInput(false);
+                            }
+                          }}
+                          className="px-6 bg-gray-500 text-white py-3 rounded-xl font-medium hover:bg-gray-600 transition-colors"
+                        >
+                          削除
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       );
+    }
+
+    // CSV生成関数
+    function generateExpenseCSV() {
+      const expenses = JSON.parse(localStorage.getItem('expenses') || '{}');
+      const expenseCategories = {
+        fuel: { name: 'ガソリン代' },
+        maintenance: { name: '車両整備' },
+        parking: { name: '駐車場代' },
+        phone: { name: '通信費' },
+        insurance: { name: '保険料' },
+        equipment: { name: '装備品' },
+        other: { name: 'その他' }
+      };
+      const accountingSubjects = {
+        vehicle: '車両費',
+        fuel: '燃料費',
+        repair: '修繕費',
+        rent: '地代家賃',
+        communication: '通信費',
+        insurance: '損害保険料',
+        supplies: '消耗品費',
+        travel: '旅費交通費',
+        utilities: '水道光熱費',
+        advertising: '広告宣伝費',
+        commission: '支払手数料',
+        misc: '雑費'
+      };
+
+      let csv = '\uFEFF'; // BOM for UTF-8
+      csv += '日付,カテゴリー,借方科目,品目,支払金額,事業割合(%),経費計上額,写真\n';
+
+      Object.entries(expenses)
+        .sort(([, a], [, b]) => new Date(a.date) - new Date(b.date))
+        .forEach(([id, expense]) => {
+          const date = expense.date;
+          const category = expenseCategories[expense.category]?.name || expense.category;
+          const subject = accountingSubjects[expense.accountingSubject] || '車両費';
+          const description = expense.description || '';
+          const amount = expense.amount || 0;
+          const percentage = expense.businessPercentage ?? 100;
+          const businessAmount = Math.floor(amount * percentage / 100);
+          const photo = expense.photo ? '有' : '無';
+
+          csv += `${date},${category},${subject},"${description}",${amount},${percentage},${businessAmount},${photo}\n`;
+        });
+
+      return csv;
     }
 
     // グローバルエラーハンドラー - エラーを画面に表示（renderの前に設定）
