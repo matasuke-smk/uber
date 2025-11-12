@@ -299,13 +299,24 @@
               }
             }
 
-            // この日にクエスト報酬があれば設定（既にデータがある日のみ）
+            // この日にクエスト報酬があれば設定
             const dateStr = getDayDate(day);
-            if (dateStr && dayQuestReward > 0 && updatedData[dateStr] && updatedData[dateStr].hours > 0) {
-              updatedData[dateStr] = {
-                ...updatedData[dateStr],
-                quest: dayQuestReward
-              };
+            if (dateStr && dayQuestReward > 0) {
+              if (updatedData[dateStr]) {
+                // 既存データがあればクエストを追加
+                updatedData[dateStr] = {
+                  ...updatedData[dateStr],
+                  quest: dayQuestReward
+                };
+              } else {
+                // データがない場合はクエストのみ作成
+                updatedData[dateStr] = {
+                  hours: 0,
+                  deliveries: 0,
+                  earnings: 0,
+                  quest: dayQuestReward
+                };
+              }
             }
           });
 
@@ -331,13 +342,24 @@
               }
             }
 
-            // この日にクエスト報酬があれば設定（既にデータがある日のみ）
+            // この日にクエスト報酬があれば設定
             const dateStr = getDayDate(day);
-            if (dateStr && dayQuestReward > 0 && updatedData[dateStr] && updatedData[dateStr].hours > 0) {
-              updatedData[dateStr] = {
-                ...updatedData[dateStr],
-                quest: dayQuestReward
-              };
+            if (dateStr && dayQuestReward > 0) {
+              if (updatedData[dateStr]) {
+                // 既存データがあればクエストを追加
+                updatedData[dateStr] = {
+                  ...updatedData[dateStr],
+                  quest: dayQuestReward
+                };
+              } else {
+                // データがない場合はクエストのみ作成
+                updatedData[dateStr] = {
+                  hours: 0,
+                  deliveries: 0,
+                  earnings: 0,
+                  quest: dayQuestReward
+                };
+              }
             }
           });
 
@@ -1031,12 +1053,12 @@
                         {generateCalendarDays().map((dayInfo, index) => {
                           const dateStr = formatDateToLocal(dayInfo.date);
                           const dayData = dailyData[dateStr];
-                          const hasData = dayData && (dayData.hours > 0 || dayData.deliveries > 0 || dayData.earnings > 0);
+                          const hasData = dayData && (dayData.hours > 0 || dayData.deliveries > 0 || dayData.earnings > 0 || dayData.quest > 0);
                           const isToday = dateStr === formatDateToLocal(new Date());
 
                           // 合計売上を計算（基本売上 + クエスト報酬）
                           const totalDailyEarnings = hasData
-                            ? (dayData.earnings || (dayData.hours * deliveriesPerHour * avgPrice)) + (dayData.quest || 0)
+                            ? (dayData.earnings || 0) + (dayData.quest || 0)
                             : 0;
 
                           return (
