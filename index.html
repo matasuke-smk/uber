@@ -596,53 +596,91 @@
 
       // データインポート
       const importData = (event) => {
-        const file = event.target.files[0];
-        if (!file) {
-          console.log('ファイルが選択されていません');
-          return;
-        }
-
-        console.log('ファイル選択:', file.name);
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          try {
-            const data = JSON.parse(e.target.result);
-            console.log('インポートデータ:', data);
-
-            // データをlocalStorageに直接保存
-            if (data.weekdayAvgPrice !== undefined) localStorage.setItem('weekdayAvgPrice', data.weekdayAvgPrice);
-            if (data.weekendAvgPrice !== undefined) localStorage.setItem('weekendAvgPrice', data.weekendAvgPrice);
-            if (data.weekdayDeliveriesPerHour !== undefined) localStorage.setItem('weekdayDeliveriesPerHour', data.weekdayDeliveriesPerHour);
-            if (data.weekendDeliveriesPerHour !== undefined) localStorage.setItem('weekendDeliveriesPerHour', data.weekendDeliveriesPerHour);
-            if (data.useAutoCalculate !== undefined) localStorage.setItem('useAutoCalculate', JSON.stringify(data.useAutoCalculate));
-            if (data.weekdayQuests) localStorage.setItem('weekdayQuests', JSON.stringify(data.weekdayQuests));
-            if (data.weekendQuests) localStorage.setItem('weekendQuests', JSON.stringify(data.weekendQuests));
-            if (data.hours) localStorage.setItem('hours', JSON.stringify(data.hours));
-            if (data.targetAmount !== undefined) localStorage.setItem('targetAmount', data.targetAmount);
-            if (data.dailyData) localStorage.setItem('dailyData', JSON.stringify(data.dailyData));
-            if (data.currentWeekStart) localStorage.setItem('currentWeekStart', data.currentWeekStart);
-            if (data.lastAccessDate) localStorage.setItem('lastAccessDate', data.lastAccessDate);
-
-            // input要素をリセット（同じファイルを再選択できるように）
-            event.target.value = '';
-
-            alert('データを復元しました！ページを再読み込みします。');
-            // ページをリロードして反映
-            window.location.reload();
-          } catch (error) {
-            console.error('インポートエラー:', error);
-            alert('データの読み込みに失敗しました: ' + error.message);
-            // input要素をリセット
-            event.target.value = '';
+        try {
+          const file = event.target.files[0];
+          if (!file) {
+            console.log('ファイルが選択されていません');
+            return;
           }
-        };
-        reader.onerror = (error) => {
-          console.error('ファイル読み込みエラー:', error);
-          alert('ファイルの読み込みに失敗しました');
-          event.target.value = '';
-        };
-        reader.readAsText(file);
+
+          console.log('ファイル選択:', file.name);
+
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            try {
+              console.log('ファイル読み込み開始');
+              const data = JSON.parse(e.target.result);
+              console.log('JSONパース成功:', data);
+
+              // データをlocalStorageに直接保存（各項目ごとにtry-catch）
+              try {
+                if (data.weekdayAvgPrice !== undefined) localStorage.setItem('weekdayAvgPrice', String(data.weekdayAvgPrice));
+                if (data.weekendAvgPrice !== undefined) localStorage.setItem('weekendAvgPrice', String(data.weekendAvgPrice));
+                if (data.weekdayDeliveriesPerHour !== undefined) localStorage.setItem('weekdayDeliveriesPerHour', String(data.weekdayDeliveriesPerHour));
+                if (data.weekendDeliveriesPerHour !== undefined) localStorage.setItem('weekendDeliveriesPerHour', String(data.weekendDeliveriesPerHour));
+                console.log('基本設定保存完了');
+              } catch (err) {
+                console.error('基本設定保存エラー:', err);
+                throw new Error('基本設定の保存に失敗しました');
+              }
+
+              try {
+                if (data.useAutoCalculate !== undefined) localStorage.setItem('useAutoCalculate', JSON.stringify(data.useAutoCalculate));
+                if (data.weekdayQuests) localStorage.setItem('weekdayQuests', JSON.stringify(data.weekdayQuests));
+                if (data.weekendQuests) localStorage.setItem('weekendQuests', JSON.stringify(data.weekendQuests));
+                console.log('クエスト設定保存完了');
+              } catch (err) {
+                console.error('クエスト設定保存エラー:', err);
+                throw new Error('クエスト設定の保存に失敗しました');
+              }
+
+              try {
+                if (data.hours) localStorage.setItem('hours', JSON.stringify(data.hours));
+                if (data.targetAmount !== undefined) localStorage.setItem('targetAmount', String(data.targetAmount));
+                console.log('週間データ保存完了');
+              } catch (err) {
+                console.error('週間データ保存エラー:', err);
+                throw new Error('週間データの保存に失敗しました');
+              }
+
+              try {
+                if (data.dailyData) localStorage.setItem('dailyData', JSON.stringify(data.dailyData));
+                if (data.currentWeekStart) localStorage.setItem('currentWeekStart', data.currentWeekStart);
+                if (data.lastAccessDate) localStorage.setItem('lastAccessDate', data.lastAccessDate);
+                console.log('カレンダーデータ保存完了');
+              } catch (err) {
+                console.error('カレンダーデータ保存エラー:', err);
+                throw new Error('カレンダーデータの保存に失敗しました');
+              }
+
+              // input要素をリセット（同じファイルを再選択できるように）
+              if (event.target) event.target.value = '';
+
+              console.log('全データ保存完了、リロード準備中');
+              alert('データを復元しました！ページを再読み込みします。');
+
+              // setTimeoutで少し遅らせてからリロード
+              setTimeout(() => {
+                console.log('ページリロード実行');
+                window.location.reload();
+              }, 100);
+            } catch (error) {
+              console.error('インポートエラー詳細:', error);
+              alert('データの読み込みに失敗しました:\n' + error.message + '\n\nコンソールで詳細を確認してください。');
+              // input要素をリセット
+              if (event.target) event.target.value = '';
+            }
+          };
+          reader.onerror = (error) => {
+            console.error('ファイル読み込みエラー:', error);
+            alert('ファイルの読み込みに失敗しました');
+            if (event.target) event.target.value = '';
+          };
+          reader.readAsText(file);
+        } catch (error) {
+          console.error('インポート処理全体エラー:', error);
+          alert('インポート処理でエラーが発生しました:\n' + error.message);
+        }
       };
 
       // 日付をタップしたときの処理
