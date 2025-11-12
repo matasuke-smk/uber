@@ -1,6 +1,6 @@
 {
-  "name": "Uber Eats 週間売上シミュレーター",
-  "short_name": "UberEats売上",
+  "name": "Uber記録",
+  "short_name": "Uber記録",
   "description": "Uber Eats配達パートナー向け週間売上シミュレーター",
   "start_url": "./index.html",
   "display": "standalone",
