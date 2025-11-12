@@ -96,8 +96,10 @@
       };
       
       // 基本設定
-      const [avgPrice, setAvgPrice] = useState(() => loadFromStorage('avgPrice', 400));
-      const [deliveriesPerHour, setDeliveriesPerHour] = useState(() => loadFromStorage('deliveriesPerHour', 4));
+      const [weekdayAvgPrice, setWeekdayAvgPrice] = useState(() => loadFromStorage('weekdayAvgPrice', loadFromStorage('avgPrice', 400)));
+      const [weekendAvgPrice, setWeekendAvgPrice] = useState(() => loadFromStorage('weekendAvgPrice', loadFromStorage('avgPrice', 400)));
+      const [weekdayDeliveriesPerHour, setWeekdayDeliveriesPerHour] = useState(() => loadFromStorage('weekdayDeliveriesPerHour', loadFromStorage('deliveriesPerHour', 4)));
+      const [weekendDeliveriesPerHour, setWeekendDeliveriesPerHour] = useState(() => loadFromStorage('weekendDeliveriesPerHour', loadFromStorage('deliveriesPerHour', 4)));
       const [useAutoCalculate, setUseAutoCalculate] = useState(() => loadFromStorage('useAutoCalculate', false));
       
       // クエスト設定 - 月～木用
@@ -202,15 +204,27 @@
       // データをlocalStorageに保存
       useEffect(() => {
         if (typeof window !== 'undefined') {
-          localStorage.setItem('avgPrice', JSON.stringify(avgPrice));
+          localStorage.setItem('weekdayAvgPrice', JSON.stringify(weekdayAvgPrice));
         }
-      }, [avgPrice]);
-      
+      }, [weekdayAvgPrice]);
+
       useEffect(() => {
         if (typeof window !== 'undefined') {
-          localStorage.setItem('deliveriesPerHour', JSON.stringify(deliveriesPerHour));
+          localStorage.setItem('weekendAvgPrice', JSON.stringify(weekendAvgPrice));
         }
-      }, [deliveriesPerHour]);
+      }, [weekendAvgPrice]);
+
+      useEffect(() => {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('weekdayDeliveriesPerHour', JSON.stringify(weekdayDeliveriesPerHour));
+        }
+      }, [weekdayDeliveriesPerHour]);
+
+      useEffect(() => {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('weekendDeliveriesPerHour', JSON.stringify(weekendDeliveriesPerHour));
+        }
+      }, [weekendDeliveriesPerHour]);
 
       useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -271,7 +285,7 @@
         if (!currentWeekStart) return;
 
         // 使用する平均値を取得
-        const { deliveriesPerHour: effectiveDeliveriesPerHour } = getEffectiveValues();
+        const effectiveValues = getEffectiveValues();
 
         setDailyData(prev => {
           const updatedData = { ...prev };
@@ -307,7 +321,7 @@
 
           weekdays.forEach(day => {
             const dayData = hours[day];
-            const dayDeliveries = dayData.deliveries > 0 ? dayData.deliveries : dayData.hours * effectiveDeliveriesPerHour;
+            const dayDeliveries = dayData.deliveries > 0 ? dayData.deliveries : dayData.hours * effectiveValues.weekdayDeliveriesPerHour;
             cumulativeWeekday += dayDeliveries;
 
             // この日に達成したクエストを確認
@@ -344,7 +358,7 @@
 
           weekends.forEach(day => {
             const dayData = hours[day];
-            const dayDeliveries = dayData.deliveries > 0 ? dayData.deliveries : dayData.hours * effectiveDeliveriesPerHour;
+            const dayDeliveries = dayData.deliveries > 0 ? dayData.deliveries : dayData.hours * effectiveValues.weekendDeliveriesPerHour;
             cumulativeWeekend += dayDeliveries;
 
             // この日に達成したクエストを確認
@@ -376,7 +390,7 @@
 
           return updatedData;
         });
-      }, [hours, weekdayQuests, weekendQuests, currentWeekStart, deliveriesPerHour, useAutoCalculate, avgPrice, dailyData]);
+      }, [hours, weekdayQuests, weekendQuests, currentWeekStart, weekdayDeliveriesPerHour, weekendDeliveriesPerHour, useAutoCalculate, weekdayAvgPrice, weekendAvgPrice, dailyData]);
 
       // 週の切り替わり検知（日曜日→月曜日）
       useEffect(() => {
@@ -589,32 +603,49 @@
         }
       };
 
-      // 履歴から平均値を計算
+      // 履歴から平均値を計算（月～木と金～日で分ける）
       const calculateFromHistory = () => {
-        const allData = Object.values(dailyData);
-        if (allData.length === 0) {
-          return { avgPrice: 400, deliveriesPerHour: 4 };
+        const allEntries = Object.entries(dailyData);
+        if (allEntries.length === 0) {
+          return {
+            weekdayAvgPrice: 400,
+            weekendAvgPrice: 400,
+            weekdayDeliveriesPerHour: 4,
+            weekendDeliveriesPerHour: 4
+          };
         }
 
-        let totalHours = 0;
-        let totalDeliveries = 0;
-        let totalEarnings = 0;
+        let weekdayHours = 0;
+        let weekdayDeliveries = 0;
+        let weekdayEarnings = 0;
 
-        allData.forEach(data => {
+        let weekendHours = 0;
+        let weekendDeliveries = 0;
+        let weekendEarnings = 0;
+
+        allEntries.forEach(([dateStr, data]) => {
           if (data.hours > 0 && data.deliveries > 0 && data.earnings > 0) {
-            totalHours += data.hours;
-            totalDeliveries += data.deliveries;
-            totalEarnings += data.earnings;
+            const date = new Date(dateStr + 'T00:00:00');
+            const dayOfWeek = date.getDay(); // 0=日, 1=月, 2=火, ..., 6=土
+
+            // 月(1)～木(4) = weekday, 金(5)～日(0,6) = weekend
+            if (dayOfWeek >= 1 && dayOfWeek <= 4) {
+              weekdayHours += data.hours;
+              weekdayDeliveries += data.deliveries;
+              weekdayEarnings += data.earnings;
+            } else {
+              weekendHours += data.hours;
+              weekendDeliveries += data.deliveries;
+              weekendEarnings += data.earnings;
+            }
           }
         });
 
-        if (totalDeliveries === 0 || totalHours === 0) {
-          return { avgPrice: 400, deliveriesPerHour: 4 };
-        }
-
         return {
-          avgPrice: Math.round(totalEarnings / totalDeliveries),
-          deliveriesPerHour: parseFloat((totalDeliveries / totalHours).toFixed(1))
+          weekdayAvgPrice: weekdayDeliveries > 0 ? Math.round(weekdayEarnings / weekdayDeliveries) : 400,
+          weekendAvgPrice: weekendDeliveries > 0 ? Math.round(weekendEarnings / weekendDeliveries) : 400,
+          weekdayDeliveriesPerHour: weekdayHours > 0 ? parseFloat((weekdayDeliveries / weekdayHours).toFixed(1)) : 4,
+          weekendDeliveriesPerHour: weekendHours > 0 ? parseFloat((weekendDeliveries / weekendHours).toFixed(1)) : 4
         };
       };
 
@@ -623,28 +654,33 @@
         if (useAutoCalculate) {
           return calculateFromHistory();
         }
-        return { avgPrice, deliveriesPerHour };
+        return {
+          weekdayAvgPrice,
+          weekendAvgPrice,
+          weekdayDeliveriesPerHour,
+          weekendDeliveriesPerHour
+        };
       };
 
       // 計算
       const calculate = () => {
         // 使用する平均値を取得
-        const { avgPrice: effectiveAvgPrice, deliveriesPerHour: effectiveDeliveriesPerHour } = getEffectiveValues();
+        const effectiveValues = getEffectiveValues();
         // 月～木の合計
         let weekdayHours = 0;
         let weekdayDeliveries = 0;
         let weekdayBasicEarnings = 0;
-        
+
         weekdays.forEach(day => {
           const dayData = hours[day];
           weekdayHours += dayData.hours;
-          
+
           // 件数：入力があればそれを使用、なければ予想
-          const dayDeliveries = dayData.deliveries > 0 ? dayData.deliveries : dayData.hours * effectiveDeliveriesPerHour;
+          const dayDeliveries = dayData.deliveries > 0 ? dayData.deliveries : dayData.hours * effectiveValues.weekdayDeliveriesPerHour;
           weekdayDeliveries += dayDeliveries;
 
           // 金額：入力があればそれを使用、なければ予想
-          const dayEarnings = dayData.earnings > 0 ? dayData.earnings : dayData.hours * effectiveDeliveriesPerHour * effectiveAvgPrice;
+          const dayEarnings = dayData.earnings > 0 ? dayData.earnings : dayData.hours * effectiveValues.weekdayDeliveriesPerHour * effectiveValues.weekdayAvgPrice;
           weekdayBasicEarnings += dayEarnings;
         });
         
@@ -668,11 +704,11 @@
           weekendHours += dayData.hours;
 
           // 件数：入力があればそれを使用、なければ予想
-          const dayDeliveries = dayData.deliveries > 0 ? dayData.deliveries : dayData.hours * effectiveDeliveriesPerHour;
+          const dayDeliveries = dayData.deliveries > 0 ? dayData.deliveries : dayData.hours * effectiveValues.weekendDeliveriesPerHour;
           weekendDeliveries += dayDeliveries;
 
           // 金額：入力があればそれを使用、なければ予想
-          const dayEarnings = dayData.earnings > 0 ? dayData.earnings : dayData.hours * effectiveDeliveriesPerHour * effectiveAvgPrice;
+          const dayEarnings = dayData.earnings > 0 ? dayData.earnings : dayData.hours * effectiveValues.weekendDeliveriesPerHour * effectiveValues.weekendAvgPrice;
           weekendBasicEarnings += dayEarnings;
         });
         
@@ -987,53 +1023,104 @@
 
                     {/* 履歴から算出した値を表示 */}
                     {useAutoCalculate && (() => {
-                      const { avgPrice: calcPrice, deliveriesPerHour: calcDeliveries } = calculateFromHistory();
+                      const calcValues = calculateFromHistory();
                       return (
-                        <div className="bg-blue-50 rounded-xl p-4 border-2 border-blue-200">
-                          <div className="text-sm font-medium text-blue-800 mb-3">📊 履歴から算出された値</div>
-                          <div className="space-y-2">
-                            <div className="flex justify-between items-center">
-                              <span className="text-sm text-gray-700">平均単価:</span>
-                              <span className="text-lg font-bold text-blue-600">¥{calcPrice}/件</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                              <span className="text-sm text-gray-700">平均配達件数:</span>
-                              <span className="text-lg font-bold text-blue-600">{calcDeliveries}件/時間</span>
+                        <>
+                          <div className="bg-blue-50 rounded-xl p-4 border-2 border-blue-200">
+                            <div className="text-sm font-medium text-blue-800 mb-3">📊 月～木（履歴から算出）</div>
+                            <div className="space-y-2">
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm text-gray-700">平均単価:</span>
+                                <span className="text-lg font-bold text-blue-600">¥{calcValues.weekdayAvgPrice}/件</span>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm text-gray-700">平均配達件数:</span>
+                                <span className="text-lg font-bold text-blue-600">{calcValues.weekdayDeliveriesPerHour}件/時間</span>
+                              </div>
                             </div>
                           </div>
-                        </div>
+                          <div className="bg-purple-50 rounded-xl p-4 border-2 border-purple-200">
+                            <div className="text-sm font-medium text-purple-800 mb-3">📊 金～日（履歴から算出）</div>
+                            <div className="space-y-2">
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm text-gray-700">平均単価:</span>
+                                <span className="text-lg font-bold text-purple-600">¥{calcValues.weekendAvgPrice}/件</span>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm text-gray-700">平均配達件数:</span>
+                                <span className="text-lg font-bold text-purple-600">{calcValues.weekendDeliveriesPerHour}件/時間</span>
+                              </div>
+                            </div>
+                          </div>
+                        </>
                       );
                     })()}
 
                     {/* 手動入力フィールド */}
                     {!useAutoCalculate && (
                       <>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            平均単価(円/件)
-                          </label>
-                          <input
-                            type="number"
-                            step="10"
-                            value={avgPrice}
-                            onChange={(e) => setAvgPrice(parseFloat(e.target.value) || 0)}
-                            onKeyDown={handleKeyDown}
-                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none text-lg"
-                          />
+                        <div className="bg-blue-50 rounded-xl p-4 border-2 border-blue-200">
+                          <div className="text-sm font-medium text-blue-800 mb-3">📝 月～木</div>
+                          <div className="space-y-3">
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">
+                                平均単価(円/件)
+                              </label>
+                              <input
+                                type="number"
+                                step="10"
+                                value={weekdayAvgPrice}
+                                onChange={(e) => setWeekdayAvgPrice(parseFloat(e.target.value) || 0)}
+                                onKeyDown={handleKeyDown}
+                                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-base"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">
+                                1時間当たりの平均配達件数
+                              </label>
+                              <input
+                                type="number"
+                                step="0.1"
+                                value={weekdayDeliveriesPerHour}
+                                onChange={(e) => setWeekdayDeliveriesPerHour(parseFloat(e.target.value) || 0)}
+                                onKeyDown={handleKeyDown}
+                                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-base"
+                              />
+                            </div>
+                          </div>
                         </div>
 
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            1時間当たりの平均配達件数
-                          </label>
-                          <input
-                            type="number"
-                            step="0.1"
-                            value={deliveriesPerHour}
-                            onChange={(e) => setDeliveriesPerHour(parseFloat(e.target.value) || 0)}
-                            onKeyDown={handleKeyDown}
-                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none text-lg"
-                          />
+                        <div className="bg-purple-50 rounded-xl p-4 border-2 border-purple-200">
+                          <div className="text-sm font-medium text-purple-800 mb-3">📝 金～日</div>
+                          <div className="space-y-3">
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">
+                                平均単価(円/件)
+                              </label>
+                              <input
+                                type="number"
+                                step="10"
+                                value={weekendAvgPrice}
+                                onChange={(e) => setWeekendAvgPrice(parseFloat(e.target.value) || 0)}
+                                onKeyDown={handleKeyDown}
+                                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none text-base"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">
+                                1時間当たりの平均配達件数
+                              </label>
+                              <input
+                                type="number"
+                                step="0.1"
+                                value={weekendDeliveriesPerHour}
+                                onChange={(e) => setWeekendDeliveriesPerHour(parseFloat(e.target.value) || 0)}
+                                onKeyDown={handleKeyDown}
+                                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none text-base"
+                              />
+                            </div>
+                          </div>
                         </div>
                       </>
                     )}
