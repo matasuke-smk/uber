@@ -259,6 +259,7 @@
       // カレンダー関連のstate
       const [currentMonth, setCurrentMonth] = useState(() => new Date());
       const [selectedDate, setSelectedDate] = useState(null);
+      const [originalSelectedDate, setOriginalSelectedDate] = useState(null); // 日付変更用
       const [showDayEdit, setShowDayEdit] = useState(false);
       const [editingDayData, setEditingDayData] = useState({ hours: 0, deliveries: 0, earnings: 0, quest: 0 });
 
@@ -734,6 +735,7 @@
       const handleDateClick = (date) => {
         const dateStr = formatDateToLocal(date);
         setSelectedDate(dateStr);
+        setOriginalSelectedDate(dateStr); // 元の日付を保存
 
         // その日のデータを取得
         const dayData = dailyData[dateStr] || { hours: 0, deliveries: 0, earnings: 0, quest: 0 };
@@ -745,13 +747,23 @@
       const saveDayData = () => {
         if (!selectedDate) return;
 
-        setDailyData(prev => ({
-          ...prev,
-          [selectedDate]: { ...editingDayData }
-        }));
+        setDailyData(prev => {
+          const newData = { ...prev };
+
+          // 日付が変更された場合、元のデータを削除
+          if (originalSelectedDate && originalSelectedDate !== selectedDate) {
+            delete newData[originalSelectedDate];
+          }
+
+          // 新しい日付にデータを保存
+          newData[selectedDate] = { ...editingDayData };
+
+          return newData;
+        });
 
         setShowDayEdit(false);
         setSelectedDate(null);
+        setOriginalSelectedDate(null);
       };
 
       // 日付データの削除
@@ -764,6 +776,7 @@
 
         setShowDayEdit(false);
         setSelectedDate(null);
+        setOriginalSelectedDate(null);
       };
 
       // カレンダーの月を変更
@@ -1912,6 +1925,22 @@
                   </div>
 
                   <div className="p-6 space-y-4 overflow-y-auto flex-1">
+                    {/* 日付変更 */}
+                    <div className="bg-yellow-50 rounded-xl p-4 border border-yellow-200">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        📅 日付
+                      </label>
+                      <input
+                        type="date"
+                        value={selectedDate}
+                        onChange={(e) => setSelectedDate(e.target.value)}
+                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none text-lg"
+                      />
+                      <div className="text-xs text-gray-600 mt-2">
+                        ※日付を変更すると、このデータが新しい日付に移動します
+                      </div>
+                    </div>
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         稼働時間
