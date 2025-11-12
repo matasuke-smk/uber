@@ -27,7 +27,7 @@
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useEffect } = React;
+    const { useState, useEffect, useRef } = React;
 
     // Lucide icons as simple SVG components
     const Calculator = () => (
@@ -102,7 +102,10 @@
         }
         return defaultValue;
       };
-      
+
+      // ファイル選択のref
+      const fileInputRef = useRef(null);
+
       // 基本設定
       const [weekdayAvgPrice, setWeekdayAvgPrice] = useState(() => loadFromStorage('weekdayAvgPrice', 400));
       const [weekendAvgPrice, setWeekendAvgPrice] = useState(() => loadFromStorage('weekendAvgPrice', 400));
@@ -587,12 +590,18 @@
       // データインポート
       const importData = (event) => {
         const file = event.target.files[0];
-        if (!file) return;
+        if (!file) {
+          console.log('ファイルが選択されていません');
+          return;
+        }
+
+        console.log('ファイル選択:', file.name);
 
         const reader = new FileReader();
         reader.onload = (e) => {
           try {
             const data = JSON.parse(e.target.result);
+            console.log('インポートデータ:', data);
 
             // データをlocalStorageに直接保存
             if (data.weekdayAvgPrice !== undefined) localStorage.setItem('weekdayAvgPrice', data.weekdayAvgPrice);
@@ -608,12 +617,23 @@
             if (data.currentWeekStart) localStorage.setItem('currentWeekStart', data.currentWeekStart);
             if (data.lastAccessDate) localStorage.setItem('lastAccessDate', data.lastAccessDate);
 
+            // input要素をリセット（同じファイルを再選択できるように）
+            event.target.value = '';
+
             alert('データを復元しました！ページを再読み込みします。');
             // ページをリロードして反映
             window.location.reload();
           } catch (error) {
+            console.error('インポートエラー:', error);
             alert('データの読み込みに失敗しました: ' + error.message);
+            // input要素をリセット
+            event.target.value = '';
           }
+        };
+        reader.onerror = (error) => {
+          console.error('ファイル読み込みエラー:', error);
+          alert('ファイルの読み込みに失敗しました');
+          event.target.value = '';
         };
         reader.readAsText(file);
       };
@@ -1189,21 +1209,19 @@
                         >
                           📤 データをエクスポート
                         </button>
-                        <label className="block">
-                          <input
-                            type="file"
-                            accept=".json"
-                            onChange={importData}
-                            className="hidden"
-                            id="import-file"
-                          />
-                          <div
-                            onClick={() => document.getElementById('import-file').click()}
-                            className="w-full bg-green-500 text-white py-2 px-4 rounded-lg font-medium hover:bg-green-600 transition-colors text-sm cursor-pointer text-center"
-                          >
-                            📥 データをインポート
-                          </div>
-                        </label>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept=".json"
+                          onChange={importData}
+                          className="hidden"
+                        />
+                        <button
+                          onClick={() => fileInputRef.current?.click()}
+                          className="w-full bg-green-500 text-white py-2 px-4 rounded-lg font-medium hover:bg-green-600 transition-colors text-sm"
+                        >
+                          📥 データをインポート
+                        </button>
                         <p className="text-xs text-gray-500 mt-2">
                           ※エクスポートしたJSONファイルを保存しておくと、データを復元できます
                         </p>
