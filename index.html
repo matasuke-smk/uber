@@ -299,24 +299,17 @@
               }
             }
 
-            // この日にクエスト報酬があり、かつ稼働時間がある場合に設定
+            // この日にクエスト報酬があり、かつ全てのデータが入力されている場合に設定
             const dateStr = getDayDate(day);
-            if (dateStr && dayQuestReward > 0 && dayData.hours > 0) {
-              if (updatedData[dateStr]) {
-                // 既存データがあればクエストを追加
-                updatedData[dateStr] = {
-                  ...updatedData[dateStr],
-                  quest: dayQuestReward
-                };
-              } else {
-                // 時間だけ入力されている場合はクエストのみ記録
-                updatedData[dateStr] = {
-                  hours: 0,
-                  deliveries: 0,
-                  earnings: 0,
-                  quest: dayQuestReward
-                };
-              }
+            if (dateStr && dayQuestReward > 0 && updatedData[dateStr] &&
+                updatedData[dateStr].hours > 0 &&
+                updatedData[dateStr].deliveries > 0 &&
+                updatedData[dateStr].earnings > 0) {
+              // 既存データがあり、全てのフィールドが入力されていればクエストを追加
+              updatedData[dateStr] = {
+                ...updatedData[dateStr],
+                quest: dayQuestReward
+              };
             }
           });
 
@@ -342,24 +335,17 @@
               }
             }
 
-            // この日にクエスト報酬があり、かつ稼働時間がある場合に設定
+            // この日にクエスト報酬があり、かつ全てのデータが入力されている場合に設定
             const dateStr = getDayDate(day);
-            if (dateStr && dayQuestReward > 0 && dayData.hours > 0) {
-              if (updatedData[dateStr]) {
-                // 既存データがあればクエストを追加
-                updatedData[dateStr] = {
-                  ...updatedData[dateStr],
-                  quest: dayQuestReward
-                };
-              } else {
-                // 時間だけ入力されている場合はクエストのみ記録
-                updatedData[dateStr] = {
-                  hours: 0,
-                  deliveries: 0,
-                  earnings: 0,
-                  quest: dayQuestReward
-                };
-              }
+            if (dateStr && dayQuestReward > 0 && updatedData[dateStr] &&
+                updatedData[dateStr].hours > 0 &&
+                updatedData[dateStr].deliveries > 0 &&
+                updatedData[dateStr].earnings > 0) {
+              // 既存データがあり、全てのフィールドが入力されていればクエストを追加
+              updatedData[dateStr] = {
+                ...updatedData[dateStr],
+                quest: dayQuestReward
+              };
             }
           });
 
@@ -485,21 +471,9 @@
                 quest: newData[dateStr]?.quest || 0
               };
             } else {
-              // 不完全な入力の場合は、カレンダーから削除（クエストは残す）
+              // 不完全な入力の場合は、カレンダーから完全に削除
               if (newData[dateStr]) {
-                const questValue = newData[dateStr].quest || 0;
-                if (questValue > 0) {
-                  // クエストがある場合はクエストだけ残す
-                  newData[dateStr] = {
-                    hours: 0,
-                    deliveries: 0,
-                    earnings: 0,
-                    quest: questValue
-                  };
-                } else {
-                  // クエストもない場合は完全に削除
-                  delete newData[dateStr];
-                }
+                delete newData[dateStr];
               }
             }
 
