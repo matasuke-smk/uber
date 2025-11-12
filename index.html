@@ -661,10 +661,28 @@
               // input要素をリセット
               if (event.target) event.target.value = '';
 
-              alert('ステップ13: 全データ保存完了。OKを押すとページをリロードします。');
+              alert('ステップ13: 全データ保存完了。stateを更新します。');
 
-              // リロード実行
-              window.location.reload();
+              // stateを直接更新（リロードの代わり）
+              try {
+                if (data.weekdayAvgPrice !== undefined) setWeekdayAvgPrice(data.weekdayAvgPrice);
+                if (data.weekendAvgPrice !== undefined) setWeekendAvgPrice(data.weekendAvgPrice);
+                if (data.weekdayDeliveriesPerHour !== undefined) setWeekdayDeliveriesPerHour(data.weekdayDeliveriesPerHour);
+                if (data.weekendDeliveriesPerHour !== undefined) setWeekendDeliveriesPerHour(data.weekendDeliveriesPerHour);
+                if (data.useAutoCalculate !== undefined) setUseAutoCalculate(data.useAutoCalculate);
+                if (data.weekdayQuests) setWeekdayQuests(data.weekdayQuests);
+                if (data.weekendQuests) setWeekendQuests(data.weekendQuests);
+                if (data.hours) setHours(data.hours);
+                if (data.targetAmount !== undefined) setTargetAmount(data.targetAmount);
+                if (data.dailyData) setDailyData(data.dailyData);
+                if (data.currentWeekStart) setCurrentWeekStart(data.currentWeekStart);
+                if (data.lastAccessDate) setLastAccessDate(data.lastAccessDate);
+
+                alert('データの復元が完了しました！');
+              } catch (updateErr) {
+                alert('state更新エラー: ' + updateErr.message);
+                throw updateErr;
+              }
             } catch (error) {
               alert('インポートエラー:\n' + error.message + '\n' + error.stack);
               if (event.target) event.target.value = '';
