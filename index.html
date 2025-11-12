@@ -1136,50 +1136,141 @@
                     <div className="text-center">金額</div>
                   </div>
                 </div>
-                {days.map(day => (
-                  <div key={day} className="flex items-center gap-2">
-                    <div className="font-medium text-gray-700 w-8">{day}</div>
-                    <div className="grid grid-cols-3 gap-2 flex-1">
-                      <input
-                        type="number"
-                        step="0.2"
-                        value={hours[day].hours || ''}
-                        onChange={(e) => updateHours(day, 'hours', e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        className="w-full px-2 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm text-center"
-                        placeholder="0"
-                      />
-                      <input
-                        type="number"
-                        value={hours[day].deliveries || ''}
-                        onChange={(e) => updateHours(day, 'deliveries', e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        className="w-full px-2 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm text-center"
-                        placeholder={hours[day].hours > 0 ? (() => {
-                          const effectiveValues = getEffectiveValues();
-                          const isWeekday = weekdays.includes(day);
-                          const deliveries = isWeekday ? effectiveValues.weekdayDeliveriesPerHour : effectiveValues.weekendDeliveriesPerHour;
-                          return Math.floor(hours[day].hours * deliveries).toString();
-                        })() : "0"}
-                      />
-                      <input
-                        type="number"
-                        step="10"
-                        value={hours[day].earnings || ''}
-                        onChange={(e) => updateHours(day, 'earnings', e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        className="w-full px-2 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm text-center"
-                        placeholder={hours[day].hours > 0 ? (() => {
-                          const effectiveValues = getEffectiveValues();
-                          const isWeekday = weekdays.includes(day);
-                          const price = isWeekday ? effectiveValues.weekdayAvgPrice : effectiveValues.weekendAvgPrice;
-                          const deliveries = isWeekday ? effectiveValues.weekdayDeliveriesPerHour : effectiveValues.weekendDeliveriesPerHour;
-                          return Math.floor(hours[day].hours * deliveries * price).toString();
-                        })() : "0"}
-                      />
+                {days.map((day, index) => {
+                  // この日までの累積配達件数とクエスト報酬を計算
+                  const effectiveValues = getEffectiveValues();
+                  const isWeekday = weekdays.includes(day);
+
+                  // この日までの累積を計算（平日と休日で分ける）
+                  let cumulativeDeliveries = 0;
+                  let dayQuestReward = 0;
+
+                  if (hours[day].hours > 0) {
+                    // 平日（月～木）のクエスト計算
+                    if (isWeekday) {
+                      let cumulative = 0;
+                      let questIndex = 0;
+                      let cumulativeThreshold = 0;
+
+                      for (let i = 0; i < days.length; i++) {
+                        const d = days[i];
+                        if (!weekdays.includes(d)) continue; // 平日のみ
+
+                        const dayData = hours[d];
+                        const dayDeliveries = dayData.deliveries > 0 ? dayData.deliveries : dayData.hours * effectiveValues.weekdayDeliveriesPerHour;
+                        cumulative += dayDeliveries;
+
+                        // この日でクエストが達成されるか確認
+                        if (d === day) {
+                          while (questIndex < weekdayQuests.length) {
+                            const nextThreshold = cumulativeThreshold + weekdayQuests[questIndex].count;
+                            if (cumulative >= nextThreshold) {
+                              dayQuestReward += weekdayQuests[questIndex].reward;
+                              cumulativeThreshold = nextThreshold;
+                              questIndex++;
+                            } else {
+                              break;
+                            }
+                          }
+                          break;
+                        }
+
+                        // 前の日までのクエスト達成を記録
+                        while (questIndex < weekdayQuests.length) {
+                          const nextThreshold = cumulativeThreshold + weekdayQuests[questIndex].count;
+                          if (cumulative >= nextThreshold) {
+                            cumulativeThreshold = nextThreshold;
+                            questIndex++;
+                          } else {
+                            break;
+                          }
+                        }
+                      }
+                    } else {
+                      // 休日（金～日）のクエスト計算
+                      let cumulative = 0;
+                      let questIndex = 0;
+                      let cumulativeThreshold = 0;
+
+                      for (let i = 0; i < days.length; i++) {
+                        const d = days[i];
+                        if (weekdays.includes(d)) continue; // 休日のみ
+
+                        const dayData = hours[d];
+                        const dayDeliveries = dayData.deliveries > 0 ? dayData.deliveries : dayData.hours * effectiveValues.weekendDeliveriesPerHour;
+                        cumulative += dayDeliveries;
+
+                        // この日でクエストが達成されるか確認
+                        if (d === day) {
+                          while (questIndex < weekendQuests.length) {
+                            const nextThreshold = cumulativeThreshold + weekendQuests[questIndex].count;
+                            if (cumulative >= nextThreshold) {
+                              dayQuestReward += weekendQuests[questIndex].reward;
+                              cumulativeThreshold = nextThreshold;
+                              questIndex++;
+                            } else {
+                              break;
+                            }
+                          }
+                          break;
+                        }
+
+                        // 前の日までのクエスト達成を記録
+                        while (questIndex < weekendQuests.length) {
+                          const nextThreshold = cumulativeThreshold + weekendQuests[questIndex].count;
+                          if (cumulative >= nextThreshold) {
+                            cumulativeThreshold = nextThreshold;
+                            questIndex++;
+                          } else {
+                            break;
+                          }
+                        }
+                      }
+                    }
+                  }
+
+                  return (
+                    <div key={day} className="flex items-center gap-2">
+                      <div className="font-medium text-gray-700 w-8">{day}</div>
+                      <div className="grid grid-cols-3 gap-2 flex-1">
+                        <input
+                          type="number"
+                          step="0.2"
+                          value={hours[day].hours || ''}
+                          onChange={(e) => updateHours(day, 'hours', e.target.value)}
+                          onKeyDown={handleKeyDown}
+                          className="w-full px-2 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm text-center"
+                          placeholder="0"
+                        />
+                        <input
+                          type="number"
+                          value={hours[day].deliveries || ''}
+                          onChange={(e) => updateHours(day, 'deliveries', e.target.value)}
+                          onKeyDown={handleKeyDown}
+                          className="w-full px-2 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm text-center"
+                          placeholder={hours[day].hours > 0 ? (() => {
+                            const deliveries = isWeekday ? effectiveValues.weekdayDeliveriesPerHour : effectiveValues.weekendDeliveriesPerHour;
+                            return Math.floor(hours[day].hours * deliveries).toString();
+                          })() : "0"}
+                        />
+                        <input
+                          type="number"
+                          step="10"
+                          value={hours[day].earnings || ''}
+                          onChange={(e) => updateHours(day, 'earnings', e.target.value)}
+                          onKeyDown={handleKeyDown}
+                          className="w-full px-2 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm text-center"
+                          placeholder={hours[day].hours > 0 ? (() => {
+                            const price = isWeekday ? effectiveValues.weekdayAvgPrice : effectiveValues.weekendAvgPrice;
+                            const deliveries = isWeekday ? effectiveValues.weekdayDeliveriesPerHour : effectiveValues.weekendDeliveriesPerHour;
+                            const basicEarnings = Math.floor(hours[day].hours * deliveries * price);
+                            return (basicEarnings + dayQuestReward).toString();
+                          })() : "0"}
+                        />
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               
               <div className="mt-4 p-3 bg-blue-50 rounded-lg">
