@@ -303,9 +303,10 @@
             // この日に達成したクエストを確認
             let dayQuestReward = 0;
             while (nextQuestIndex < weekdayQuests.length) {
-              cumulativeQuestCount += weekdayQuests[nextQuestIndex].count;
-              if (cumulativeWeekday >= cumulativeQuestCount) {
+              const nextThreshold = cumulativeQuestCount + weekdayQuests[nextQuestIndex].count;
+              if (cumulativeWeekday >= nextThreshold) {
                 dayQuestReward += weekdayQuests[nextQuestIndex].reward;
+                cumulativeQuestCount = nextThreshold;
                 nextQuestIndex++;
               } else {
                 break;
@@ -339,9 +340,10 @@
             // この日に達成したクエストを確認
             let dayQuestReward = 0;
             while (nextWeekendQuestIndex < weekendQuests.length) {
-              cumulativeWeekendQuestCount += weekendQuests[nextWeekendQuestIndex].count;
-              if (cumulativeWeekend >= cumulativeWeekendQuestCount) {
+              const nextThreshold = cumulativeWeekendQuestCount + weekendQuests[nextWeekendQuestIndex].count;
+              if (cumulativeWeekend >= nextThreshold) {
                 dayQuestReward += weekendQuests[nextWeekendQuestIndex].reward;
+                cumulativeWeekendQuestCount = nextThreshold;
                 nextWeekendQuestIndex++;
               } else {
                 break;
