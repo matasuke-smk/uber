@@ -553,21 +553,6 @@
         });
       };
 
-      // 週の入力をクリア（データはカレンダーに自動保存済み）
-      const clearCurrentWeek = () => {
-        if (window.confirm('今週の入力をクリアしますか？\n（カレンダーに保存済みのデータは残ります）')) {
-          setHours({
-            月: { hours: 0, deliveries: 0, earnings: 0 },
-            火: { hours: 0, deliveries: 0, earnings: 0 },
-            水: { hours: 0, deliveries: 0, earnings: 0 },
-            木: { hours: 0, deliveries: 0, earnings: 0 },
-            金: { hours: 0, deliveries: 0, earnings: 0 },
-            土: { hours: 0, deliveries: 0, earnings: 0 },
-            日: { hours: 0, deliveries: 0, earnings: 0 }
-          });
-        }
-      };
-
       // データエクスポート
       const exportData = () => {
         const data = {
@@ -1043,21 +1028,6 @@
                 )}
               </div>
             </div>
-
-            {/* 週の入力クリアボタン */}
-            {parseFloat(results.totalHours) > 0 && (
-              <div className="bg-white rounded-2xl shadow-lg p-4 mb-4">
-                <button
-                  onClick={clearCurrentWeek}
-                  className="w-full bg-gray-500 text-white px-4 py-3 rounded-xl font-medium hover:bg-gray-600 transition-colors flex items-center justify-center gap-2"
-                >
-                  🗑️ 今週の入力をクリア
-                </button>
-                <p className="text-xs text-gray-500 mt-2 text-center">
-                  ※データはカレンダーに自動保存されています
-                </p>
-              </div>
-            )}
 
             {/* フッター */}
             <div className="text-center text-gray-600 text-sm mt-6">
