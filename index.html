@@ -360,14 +360,26 @@
 
       // モーダル表示中は背景のスクロールを無効化
       useEffect(() => {
-        const isModalOpen = showBasicSettings || showQuestSettings || showCalendar || showTotalStats || showDayEdit;
-        if (isModalOpen) {
-          document.body.style.overflow = 'hidden';
-        } else {
-          document.body.style.overflow = '';
+        try {
+          const isModalOpen = showBasicSettings || showQuestSettings || showCalendar || showTotalStats || showDayEdit;
+          if (typeof document !== 'undefined' && document.body) {
+            if (isModalOpen) {
+              document.body.style.overflow = 'hidden';
+            } else {
+              document.body.style.overflow = '';
+            }
+          }
+        } catch (error) {
+          console.error('モーダルスクロール制御エラー:', error);
         }
         return () => {
-          document.body.style.overflow = '';
+          try {
+            if (typeof document !== 'undefined' && document.body) {
+              document.body.style.overflow = '';
+            }
+          } catch (error) {
+            console.error('モーダルスクロール解除エラー:', error);
+          }
         };
       }, [showBasicSettings, showQuestSettings, showCalendar, showTotalStats, showDayEdit]);
 
@@ -1103,33 +1115,36 @@
 
                   <div className="p-6">
                     {(() => {
-                      const allEntries = Object.entries(dailyData);
-                      if (allEntries.length === 0) {
+                      try {
+                        const allEntries = Object.entries(dailyData || {});
+                        if (allEntries.length === 0) {
+                          return (
+                            <div className="text-center text-gray-500 py-8">
+                              データがありません
+                            </div>
+                          );
+                        }
+
+                        let totalHours = 0;
+                        let totalDeliveries = 0;
+                        let totalEarnings = 0;
+                        let totalQuest = 0;
+
+                        allEntries.forEach(([, data]) => {
+                          if (data) {
+                            totalHours += data.hours || 0;
+                            totalDeliveries += data.deliveries || 0;
+                            totalEarnings += data.earnings || 0;
+                            totalQuest += data.quest || 0;
+                          }
+                        });
+
+                        const totalSales = totalEarnings + totalQuest;
+                        const avgPricePerDelivery = totalDeliveries > 0 ? totalEarnings / totalDeliveries : 0;
+                        const deliveriesPerHour = totalHours > 0 ? totalDeliveries / totalHours : 0;
+                        const earningsPerHour = totalHours > 0 ? totalSales / totalHours : 0;
+
                         return (
-                          <div className="text-center text-gray-500 py-8">
-                            データがありません
-                          </div>
-                        );
-                      }
-
-                      let totalHours = 0;
-                      let totalDeliveries = 0;
-                      let totalEarnings = 0;
-                      let totalQuest = 0;
-
-                      allEntries.forEach(([, data]) => {
-                        totalHours += data.hours || 0;
-                        totalDeliveries += data.deliveries || 0;
-                        totalEarnings += data.earnings || 0;
-                        totalQuest += data.quest || 0;
-                      });
-
-                      const totalSales = totalEarnings + totalQuest;
-                      const avgPricePerDelivery = totalDeliveries > 0 ? totalEarnings / totalDeliveries : 0;
-                      const deliveriesPerHour = totalHours > 0 ? totalDeliveries / totalHours : 0;
-                      const earningsPerHour = totalHours > 0 ? totalSales / totalHours : 0;
-
-                      return (
                         <div className="space-y-4">
                           {/* 期間 */}
                           <div className="bg-gray-50 rounded-xl p-4">
@@ -1190,6 +1205,15 @@
                           </div>
                         </div>
                       );
+                      } catch (error) {
+                        console.error('全期間集計エラー:', error);
+                        return (
+                          <div className="text-center text-red-500 py-8">
+                            <div className="font-bold mb-2">エラーが発生しました</div>
+                            <div className="text-sm">{error.message}</div>
+                          </div>
+                        );
+                      }
                     })()}
                   </div>
 
