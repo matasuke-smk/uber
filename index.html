@@ -2402,9 +2402,9 @@
 
             {/* 経費入力モーダル */}
             {showExpenseInput && editingExpense && (
-              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-2 sm:p-4">
-                <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[95vh] flex flex-col">
-                  <div className="bg-gradient-to-r from-red-500 to-pink-500 text-white p-4 flex-shrink-0">
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] overflow-y-auto py-4">
+                <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 my-auto flex flex-col max-h-[calc(100vh-2rem)]">
+                  <div className="bg-gradient-to-r from-red-500 to-pink-500 text-white p-4 rounded-t-2xl flex-shrink-0">
                     <div className="flex items-center justify-between">
                       <h2 className="text-xl font-bold">
                         {editingExpenseId ? '経費を編集' : '新規経費'}
@@ -2418,7 +2418,7 @@
                     </div>
                   </div>
 
-                  <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
+                  <div className="p-4 space-y-4 overflow-y-auto flex-1">
                     {/* 日付 */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -2428,7 +2428,7 @@
                         type="date"
                         value={editingExpense.date}
                         onChange={(e) => setEditingExpense({...editingExpense, date: e.target.value})}
-                        className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none text-base"
+                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none"
                       />
                     </div>
 
@@ -2438,15 +2438,18 @@
                         カテゴリー
                       </label>
                       <select
+                        key={`category-${editingExpense.category}`}
                         value={editingExpense.category}
                         onChange={(e) => {
                           const newCategory = e.target.value;
                           const defaultSubject = categoryToSubjects[newCategory]?.[0] || 'vehicle';
-                          setEditingExpense({
-                            ...editingExpense,
-                            category: newCategory,
-                            accountingSubject: defaultSubject
-                          });
+                          setTimeout(() => {
+                            setEditingExpense({
+                              ...editingExpense,
+                              category: newCategory,
+                              accountingSubject: defaultSubject
+                            });
+                          }, 0);
                         }}
                         className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none"
                       >
@@ -2495,8 +2498,14 @@
                         借方科目（勘定科目）
                       </label>
                       <select
+                        key={`subject-${editingExpense.accountingSubject}-${editingExpense.category}`}
                         value={editingExpense.accountingSubject || 'vehicle'}
-                        onChange={(e) => setEditingExpense({...editingExpense, accountingSubject: e.target.value})}
+                        onChange={(e) => {
+                          const newSubject = e.target.value;
+                          setTimeout(() => {
+                            setEditingExpense({...editingExpense, accountingSubject: newSubject});
+                          }, 0);
+                        }}
                         className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none"
                       >
                         {(() => {
@@ -2611,7 +2620,7 @@
                     </div>
                   </div>
 
-                  <div className="p-4 border-t border-gray-200 flex-shrink-0">
+                  <div className="p-4 border-t border-gray-200 rounded-b-2xl flex-shrink-0 bg-white">
                     <div className="flex gap-2">
                       <button
                         onClick={() => {
