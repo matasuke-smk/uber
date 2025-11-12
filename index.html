@@ -263,65 +263,88 @@
       useEffect(() => {
         if (!currentWeekStart) return;
 
-        // 月～木の配達件数を計算
-        let weekdayDeliveries = 0;
+        // まず全ての日のクエストをリセット
+        const updatedData = { ...dailyData };
+        [...weekdays, ...weekends].forEach(day => {
+          const dateStr = getDayDate(day);
+          if (dateStr && updatedData[dateStr]) {
+            updatedData[dateStr] = {
+              ...updatedData[dateStr],
+              quest: 0
+            };
+          }
+        });
+
+        // 月～木のクエスト報酬を達成した日に配分
+        let cumulativeWeekday = 0;
+        let nextQuestIndex = 0;
+        let cumulativeQuestCount = 0;
+
         weekdays.forEach(day => {
           const dayData = hours[day];
           const dayDeliveries = dayData.deliveries > 0 ? dayData.deliveries : dayData.hours * deliveriesPerHour;
-          weekdayDeliveries += dayDeliveries;
-        });
+          cumulativeWeekday += dayDeliveries;
 
-        // 月～木のクエスト報酬を計算
-        let weekdayQuestEarnings = 0;
-        let cumulativeWeekday = 0;
-        weekdayQuests.forEach(quest => {
-          cumulativeWeekday += quest.count;
-          if (weekdayDeliveries >= cumulativeWeekday) {
-            weekdayQuestEarnings += quest.reward;
+          // この日に達成したクエストを確認
+          let dayQuestReward = 0;
+          while (nextQuestIndex < weekdayQuests.length) {
+            cumulativeQuestCount += weekdayQuests[nextQuestIndex].count;
+            if (cumulativeWeekday >= cumulativeQuestCount) {
+              dayQuestReward += weekdayQuests[nextQuestIndex].reward;
+              nextQuestIndex++;
+            } else {
+              break;
+            }
+          }
+
+          // この日にクエスト報酬があれば設定
+          if (dayQuestReward > 0) {
+            const dateStr = getDayDate(day);
+            if (dateStr) {
+              updatedData[dateStr] = {
+                ...(updatedData[dateStr] || { hours: 0, deliveries: 0, earnings: 0, quest: 0 }),
+                quest: dayQuestReward
+              };
+            }
           }
         });
 
-        // 金～日の配達件数を計算
-        let weekendDeliveries = 0;
+        // 金～日のクエスト報酬を達成した日に配分
+        let cumulativeWeekend = 0;
+        let nextWeekendQuestIndex = 0;
+        let cumulativeWeekendQuestCount = 0;
+
         weekends.forEach(day => {
           const dayData = hours[day];
           const dayDeliveries = dayData.deliveries > 0 ? dayData.deliveries : dayData.hours * deliveriesPerHour;
-          weekendDeliveries += dayDeliveries;
-        });
+          cumulativeWeekend += dayDeliveries;
 
-        // 金～日のクエスト報酬を計算
-        let weekendQuestEarnings = 0;
-        let cumulativeWeekend = 0;
-        weekendQuests.forEach(quest => {
-          cumulativeWeekend += quest.count;
-          if (weekendDeliveries >= cumulativeWeekend) {
-            weekendQuestEarnings += quest.reward;
+          // この日に達成したクエストを確認
+          let dayQuestReward = 0;
+          while (nextWeekendQuestIndex < weekendQuests.length) {
+            cumulativeWeekendQuestCount += weekendQuests[nextWeekendQuestIndex].count;
+            if (cumulativeWeekend >= cumulativeWeekendQuestCount) {
+              dayQuestReward += weekendQuests[nextWeekendQuestIndex].reward;
+              nextWeekendQuestIndex++;
+            } else {
+              break;
+            }
+          }
+
+          // この日にクエスト報酬があれば設定
+          if (dayQuestReward > 0) {
+            const dateStr = getDayDate(day);
+            if (dateStr) {
+              updatedData[dateStr] = {
+                ...(updatedData[dateStr] || { hours: 0, deliveries: 0, earnings: 0, quest: 0 }),
+                quest: dayQuestReward
+              };
+            }
           }
         });
 
-        // クエスト報酬をカレンダーに反映（木曜日と日曜日に配分）
-        const thursdayDate = getDayDate('木');
-        const sundayDate = getDayDate('日');
-
-        if (thursdayDate) {
-          setDailyData(prev => ({
-            ...prev,
-            [thursdayDate]: {
-              ...(prev[thursdayDate] || { hours: 0, deliveries: 0, earnings: 0, quest: 0 }),
-              quest: weekdayQuestEarnings
-            }
-          }));
-        }
-
-        if (sundayDate) {
-          setDailyData(prev => ({
-            ...prev,
-            [sundayDate]: {
-              ...(prev[sundayDate] || { hours: 0, deliveries: 0, earnings: 0, quest: 0 }),
-              quest: weekendQuestEarnings
-            }
-          }));
-        }
+        // 更新されたデータを一括設定
+        setDailyData(updatedData);
       }, [hours, weekdayQuests, weekendQuests, currentWeekStart, deliveriesPerHour]);
 
       // 週の切り替わり検知（日曜日→月曜日）
