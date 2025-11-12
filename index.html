@@ -516,14 +516,14 @@
       // クエスト更新 - 月～木
       const updateWeekdayQuest = (index, field, value) => {
         const newQuests = [...weekdayQuests];
-        newQuests[index][field] = value;
+        newQuests[index][field] = parseFloat(value) || 0;
         setWeekdayQuests(newQuests);
       };
-      
+
       // クエスト更新 - 金～日
       const updateWeekendQuest = (index, field, value) => {
         const newQuests = [...weekendQuests];
-        newQuests[index][field] = value;
+        newQuests[index][field] = parseFloat(value) || 0;
         setWeekendQuests(newQuests);
       };
       
@@ -1453,7 +1453,7 @@
                             <input
                               type="number"
                               value={quest.count || ''}
-                              onChange={(e) => updateWeekdayQuest(index, 'count', e.target.value === '' ? 0 : parseInt(e.target.value))}
+                              onChange={(e) => updateWeekdayQuest(index, 'count', e.target.value)}
                               onKeyDown={handleKeyDown}
                               className="w-14 px-2 py-1.5 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm text-center flex-shrink-0"
                             />
@@ -1462,7 +1462,7 @@
                               type="number"
                               step="50"
                               value={quest.reward || ''}
-                              onChange={(e) => updateWeekdayQuest(index, 'reward', e.target.value === '' ? 0 : parseInt(e.target.value))}
+                              onChange={(e) => updateWeekdayQuest(index, 'reward', e.target.value)}
                               onKeyDown={handleKeyDown}
                               className="flex-1 min-w-0 px-2 py-1.5 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm text-center"
                             />
@@ -1485,7 +1485,7 @@
                             <input
                               type="number"
                               value={quest.count || ''}
-                              onChange={(e) => updateWeekendQuest(index, 'count', e.target.value === '' ? 0 : parseInt(e.target.value))}
+                              onChange={(e) => updateWeekendQuest(index, 'count', e.target.value)}
                               onKeyDown={handleKeyDown}
                               className="w-14 px-2 py-1.5 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none text-sm text-center flex-shrink-0"
                             />
@@ -1494,7 +1494,7 @@
                               type="number"
                               step="50"
                               value={quest.reward || ''}
-                              onChange={(e) => updateWeekendQuest(index, 'reward', e.target.value === '' ? 0 : parseInt(e.target.value))}
+                              onChange={(e) => updateWeekendQuest(index, 'reward', e.target.value)}
                               onKeyDown={handleKeyDown}
                               className="flex-1 min-w-0 px-2 py-1.5 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none text-sm text-center"
                             />
