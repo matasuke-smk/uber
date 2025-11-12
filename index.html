@@ -867,7 +867,13 @@
                         onChange={(e) => updateHours(day, 'earnings', e.target.value)}
                         onKeyDown={handleKeyDown}
                         className="w-full px-2 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm text-center"
-                        placeholder={hours[day].hours > 0 ? Math.floor(hours[day].hours * deliveriesPerHour * avgPrice).toString() : "0"}
+                        placeholder={hours[day].hours > 0 ? (() => {
+                          const effectiveValues = getEffectiveValues();
+                          const isWeekday = weekdays.includes(day);
+                          const price = isWeekday ? effectiveValues.weekdayAvgPrice : effectiveValues.weekendAvgPrice;
+                          const deliveries = isWeekday ? effectiveValues.weekdayDeliveriesPerHour : effectiveValues.weekendDeliveriesPerHour;
+                          return Math.floor(hours[day].hours * deliveries * price).toString();
+                        })() : "0"}
                       />
                     </div>
                   </div>
@@ -1232,13 +1238,24 @@
                       if (monthData.length === 0) return null;
 
                       const totalHours = monthData.reduce((sum, [, data]) => sum + (data.hours || 0), 0);
-                      const totalDeliveries = monthData.reduce((sum, [, data]) => {
+                      const totalDeliveries = monthData.reduce((sum, [dateStr, data]) => {
                         // 配達件数が入力されていない場合は稼働時間から自動計算
-                        return sum + (data.deliveries || (data.hours * deliveriesPerHour));
+                        const effectiveValues = getEffectiveValues();
+                        const date = new Date(dateStr + 'T00:00:00');
+                        const dayOfWeek = date.getDay();
+                        const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 4;
+                        const deliveries = isWeekday ? effectiveValues.weekdayDeliveriesPerHour : effectiveValues.weekendDeliveriesPerHour;
+                        return sum + (data.deliveries || (data.hours * deliveries));
                       }, 0);
-                      const totalEarnings = monthData.reduce((sum, [, data]) => {
+                      const totalEarnings = monthData.reduce((sum, [dateStr, data]) => {
                         // 基本売上が入力されていない場合は稼働時間から自動計算
-                        return sum + (data.earnings || (data.hours * deliveriesPerHour * avgPrice));
+                        const effectiveValues = getEffectiveValues();
+                        const date = new Date(dateStr + 'T00:00:00');
+                        const dayOfWeek = date.getDay();
+                        const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 4;
+                        const price = isWeekday ? effectiveValues.weekdayAvgPrice : effectiveValues.weekendAvgPrice;
+                        const deliveries = isWeekday ? effectiveValues.weekdayDeliveriesPerHour : effectiveValues.weekendDeliveriesPerHour;
+                        return sum + (data.earnings || (data.hours * deliveries * price));
                       }, 0);
                       const totalQuest = monthData.reduce((sum, [, data]) => sum + (data.quest || 0), 0);
 
@@ -1444,7 +1461,14 @@
                           onChange={(e) => setEditingDayData({...editingDayData, deliveries: parseInt(e.target.value) || 0})}
                           onKeyDown={handleKeyDown}
                           className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none text-lg"
-                          placeholder={editingDayData.hours > 0 ? Math.floor(editingDayData.hours * deliveriesPerHour).toString() : "0"}
+                          placeholder={editingDayData.hours > 0 ? (() => {
+                            const effectiveValues = getEffectiveValues();
+                            const date = new Date(selectedDate + 'T00:00:00');
+                            const dayOfWeek = date.getDay();
+                            const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 4;
+                            const deliveries = isWeekday ? effectiveValues.weekdayDeliveriesPerHour : effectiveValues.weekendDeliveriesPerHour;
+                            return Math.floor(editingDayData.hours * deliveries).toString();
+                          })() : "0"}
                         />
                         <span className="text-gray-600 font-medium">件</span>
                       </div>
@@ -1462,7 +1486,15 @@
                           onChange={(e) => setEditingDayData({...editingDayData, earnings: parseInt(e.target.value) || 0})}
                           onKeyDown={handleKeyDown}
                           className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none text-lg"
-                          placeholder={editingDayData.hours > 0 ? Math.floor(editingDayData.hours * deliveriesPerHour * avgPrice).toString() : "0"}
+                          placeholder={editingDayData.hours > 0 ? (() => {
+                            const effectiveValues = getEffectiveValues();
+                            const date = new Date(selectedDate + 'T00:00:00');
+                            const dayOfWeek = date.getDay();
+                            const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 4;
+                            const price = isWeekday ? effectiveValues.weekdayAvgPrice : effectiveValues.weekendAvgPrice;
+                            const deliveries = isWeekday ? effectiveValues.weekdayDeliveriesPerHour : effectiveValues.weekendDeliveriesPerHour;
+                            return Math.floor(editingDayData.hours * deliveries * price).toString();
+                          })() : "0"}
                         />
                         <span className="text-gray-600 font-medium">円</span>
                       </div>
@@ -1490,10 +1522,18 @@
                     <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-4 border border-purple-200">
                       <div className="text-sm text-gray-600 mb-1">この日の合計</div>
                       <div className="text-2xl font-bold text-purple-600">
-                        ¥{(
-                          (editingDayData.earnings || (editingDayData.hours * deliveriesPerHour * avgPrice)) +
-                          (editingDayData.quest || 0)
-                        ).toLocaleString()}
+                        ¥{(() => {
+                          const effectiveValues = getEffectiveValues();
+                          const date = new Date(selectedDate + 'T00:00:00');
+                          const dayOfWeek = date.getDay();
+                          const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 4;
+                          const price = isWeekday ? effectiveValues.weekdayAvgPrice : effectiveValues.weekendAvgPrice;
+                          const deliveries = isWeekday ? effectiveValues.weekdayDeliveriesPerHour : effectiveValues.weekendDeliveriesPerHour;
+                          return (
+                            (editingDayData.earnings || (editingDayData.hours * deliveries * price)) +
+                            (editingDayData.quest || 0)
+                          ).toLocaleString();
+                        })()}
                       </div>
                     </div>
 
