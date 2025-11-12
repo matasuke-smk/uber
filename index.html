@@ -2508,22 +2508,22 @@
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           金額
                         </label>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1">
                           <input
                             type="number"
                             value={editingExpense.amount || ''}
                             onChange={(e) => setEditingExpense({...editingExpense, amount: parseInt(e.target.value) || 0})}
-                            className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none text-lg"
+                            className="w-full px-3 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none"
                             placeholder="0"
                           />
-                          <span className="text-gray-600 font-medium">円</span>
+                          <span className="text-gray-600 font-medium text-sm whitespace-nowrap ml-1">円</span>
                         </div>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           事業割合
                         </label>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1">
                           <input
                             type="number"
                             min="0"
@@ -2533,10 +2533,10 @@
                               const value = Math.min(100, Math.max(0, parseInt(e.target.value) || 0));
                               setEditingExpense({...editingExpense, businessPercentage: value});
                             }}
-                            className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none text-lg"
+                            className="w-full px-3 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none"
                             placeholder="100"
                           />
-                          <span className="text-gray-600 font-medium">%</span>
+                          <span className="text-gray-600 font-medium text-sm whitespace-nowrap ml-1">%</span>
                         </div>
                       </div>
                     </div>
