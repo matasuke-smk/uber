@@ -594,21 +594,23 @@
           try {
             const data = JSON.parse(e.target.result);
 
-            // データを復元
-            if (data.weekdayAvgPrice !== undefined) setWeekdayAvgPrice(data.weekdayAvgPrice);
-            if (data.weekendAvgPrice !== undefined) setWeekendAvgPrice(data.weekendAvgPrice);
-            if (data.weekdayDeliveriesPerHour !== undefined) setWeekdayDeliveriesPerHour(data.weekdayDeliveriesPerHour);
-            if (data.weekendDeliveriesPerHour !== undefined) setWeekendDeliveriesPerHour(data.weekendDeliveriesPerHour);
-            if (data.useAutoCalculate !== undefined) setUseAutoCalculate(data.useAutoCalculate);
-            if (data.weekdayQuests) setWeekdayQuests(data.weekdayQuests);
-            if (data.weekendQuests) setWeekendQuests(data.weekendQuests);
-            if (data.hours) setHours(data.hours);
-            if (data.targetAmount !== undefined) setTargetAmount(data.targetAmount);
-            if (data.dailyData) setDailyData(data.dailyData);
-            if (data.currentWeekStart) setCurrentWeekStart(data.currentWeekStart);
-            if (data.lastAccessDate) setLastAccessDate(data.lastAccessDate);
+            // データをlocalStorageに直接保存
+            if (data.weekdayAvgPrice !== undefined) localStorage.setItem('weekdayAvgPrice', data.weekdayAvgPrice);
+            if (data.weekendAvgPrice !== undefined) localStorage.setItem('weekendAvgPrice', data.weekendAvgPrice);
+            if (data.weekdayDeliveriesPerHour !== undefined) localStorage.setItem('weekdayDeliveriesPerHour', data.weekdayDeliveriesPerHour);
+            if (data.weekendDeliveriesPerHour !== undefined) localStorage.setItem('weekendDeliveriesPerHour', data.weekendDeliveriesPerHour);
+            if (data.useAutoCalculate !== undefined) localStorage.setItem('useAutoCalculate', JSON.stringify(data.useAutoCalculate));
+            if (data.weekdayQuests) localStorage.setItem('weekdayQuests', JSON.stringify(data.weekdayQuests));
+            if (data.weekendQuests) localStorage.setItem('weekendQuests', JSON.stringify(data.weekendQuests));
+            if (data.hours) localStorage.setItem('hours', JSON.stringify(data.hours));
+            if (data.targetAmount !== undefined) localStorage.setItem('targetAmount', data.targetAmount);
+            if (data.dailyData) localStorage.setItem('dailyData', JSON.stringify(data.dailyData));
+            if (data.currentWeekStart) localStorage.setItem('currentWeekStart', data.currentWeekStart);
+            if (data.lastAccessDate) localStorage.setItem('lastAccessDate', data.lastAccessDate);
 
-            alert('データを復元しました！');
+            alert('データを復元しました！ページを再読み込みします。');
+            // ページをリロードして反映
+            window.location.reload();
           } catch (error) {
             alert('データの読み込みに失敗しました: ' + error.message);
           }
