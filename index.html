@@ -2417,6 +2417,14 @@
                         value={editingExpense.date}
                         onChange={(e) => setEditingExpense({...editingExpense, date: e.target.value})}
                         className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none"
+                        style={{
+                          WebkitAppearance: 'none',
+                          MozAppearance: 'none',
+                          appearance: 'none',
+                          minHeight: '3rem',
+                          lineHeight: '1.5',
+                          fontSize: '16px'
+                        }}
                       />
                     </div>
 
