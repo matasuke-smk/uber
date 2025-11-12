@@ -1309,9 +1309,50 @@
 
                           const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
 
+                          // 月曜日始まりに並び替え: [月1, 火2, 水3, 木4, 金5, 土6, 日0]
+                          const sortedDayData = [1, 2, 3, 4, 5, 6, 0].map(dow => dayOfWeekData[dow]);
+
+                          // グラフ用の最大値を計算
+                          const maxHourlyWage = Math.max(...sortedDayData.map(d => {
+                            if (d.count === 0) return 0;
+                            return d.hours > 0 ? (d.earnings + d.quest) / d.hours : 0;
+                          }));
+
                           return (
-                            <div className="space-y-3">
-                              {dayOfWeekData.map(dayData => {
+                            <div className="space-y-4">
+                              {/* 平均時給グラフ */}
+                              <div className="bg-gradient-to-br from-green-50 to-blue-50 rounded-xl p-4 border border-green-200">
+                                <div className="text-sm font-medium text-gray-700 mb-3">📊 平均時給グラフ</div>
+                                <div className="space-y-2">
+                                  {sortedDayData.map((dayData, idx) => {
+                                    if (dayData.count === 0) return null;
+                                    const avgHourlyWage = dayData.hours > 0 ? (dayData.earnings + dayData.quest) / dayData.hours : 0;
+                                    const widthPercent = maxHourlyWage > 0 ? (avgHourlyWage / maxHourlyWage) * 100 : 0;
+
+                                    return (
+                                      <div key={dayData.dow} className="flex items-center gap-2">
+                                        <div className="text-xs font-medium text-gray-700 w-6">{dayNames[dayData.dow]}</div>
+                                        <div className="flex-1 bg-white rounded-full h-6 overflow-hidden">
+                                          <div
+                                            className="bg-gradient-to-r from-green-500 to-blue-500 h-full rounded-full flex items-center justify-end pr-2 transition-all duration-300"
+                                            style={{ width: `${widthPercent}%` }}
+                                          >
+                                            {widthPercent > 20 && (
+                                              <span className="text-xs font-bold text-white">¥{Math.floor(avgHourlyWage).toLocaleString()}</span>
+                                            )}
+                                          </div>
+                                        </div>
+                                        {widthPercent <= 20 && (
+                                          <span className="text-xs font-bold text-gray-700 w-16">¥{Math.floor(avgHourlyWage).toLocaleString()}</span>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+
+                              {/* 曜日別詳細 */}
+                              {sortedDayData.map(dayData => {
                                 if (dayData.count === 0) return null;
 
                                 const avgHours = dayData.hours / dayData.count;
