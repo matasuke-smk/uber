@@ -881,12 +881,17 @@
                           const hasData = dayData && (dayData.hours > 0 || dayData.deliveries > 0 || dayData.earnings > 0);
                           const isToday = dateStr === new Date().toISOString().split('T')[0];
 
+                          // 合計売上を計算（基本売上 + クエスト報酬）
+                          const totalDailyEarnings = hasData
+                            ? (dayData.earnings || (dayData.hours * deliveriesPerHour * avgPrice)) + (dayData.quest || 0)
+                            : 0;
+
                           return (
                             <button
                               key={index}
                               onClick={() => handleDateClick(dayInfo.date)}
                               className={`
-                                aspect-square p-1 rounded-lg text-sm relative
+                                aspect-square p-1 rounded-lg text-sm relative flex flex-col items-center justify-center
                                 ${!dayInfo.isCurrentMonth ? 'text-gray-300' : 'text-gray-800'}
                                 ${isToday ? 'ring-2 ring-blue-500' : ''}
                                 ${hasData ? 'bg-purple-100 hover:bg-purple-200' : 'hover:bg-gray-100'}
@@ -895,8 +900,8 @@
                             >
                               <div className="font-medium">{dayInfo.date.getDate()}</div>
                               {hasData && (
-                                <div className="text-[8px] text-purple-600 font-bold mt-0.5">
-                                  ¥{Math.floor(dayData.earnings || (dayData.hours * deliveriesPerHour * avgPrice)).toLocaleString()}
+                                <div className="text-[9px] text-purple-600 font-bold leading-tight">
+                                  ¥{Math.floor(totalDailyEarnings).toLocaleString()}
                                 </div>
                               )}
                             </button>
