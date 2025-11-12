@@ -201,6 +201,65 @@
         return `${year}-${month}-${day}`;
       };
 
+      // 履歴から平均値を計算（月～木と金～日で分ける）
+      const calculateFromHistory = () => {
+        const allEntries = Object.entries(dailyData);
+        if (allEntries.length === 0) {
+          return {
+            weekdayAvgPrice: 400,
+            weekendAvgPrice: 400,
+            weekdayDeliveriesPerHour: 4,
+            weekendDeliveriesPerHour: 4
+          };
+        }
+
+        let weekdayHours = 0;
+        let weekdayDeliveries = 0;
+        let weekdayEarnings = 0;
+
+        let weekendHours = 0;
+        let weekendDeliveries = 0;
+        let weekendEarnings = 0;
+
+        allEntries.forEach(([dateStr, data]) => {
+          if (data.hours > 0 && data.deliveries > 0 && data.earnings > 0) {
+            const date = new Date(dateStr + 'T00:00:00');
+            const dayOfWeek = date.getDay(); // 0=日, 1=月, 2=火, ..., 6=土
+
+            // 月(1)～木(4) = weekday, 金(5)～日(0,6) = weekend
+            if (dayOfWeek >= 1 && dayOfWeek <= 4) {
+              weekdayHours += data.hours;
+              weekdayDeliveries += data.deliveries;
+              weekdayEarnings += data.earnings;
+            } else {
+              weekendHours += data.hours;
+              weekendDeliveries += data.deliveries;
+              weekendEarnings += data.earnings;
+            }
+          }
+        });
+
+        return {
+          weekdayAvgPrice: weekdayDeliveries > 0 ? Math.round(weekdayEarnings / weekdayDeliveries) : 400,
+          weekendAvgPrice: weekendDeliveries > 0 ? Math.round(weekendEarnings / weekendDeliveries) : 400,
+          weekdayDeliveriesPerHour: weekdayHours > 0 ? parseFloat((weekdayDeliveries / weekdayHours).toFixed(1)) : 4,
+          weekendDeliveriesPerHour: weekendHours > 0 ? parseFloat((weekendDeliveries / weekendHours).toFixed(1)) : 4
+        };
+      };
+
+      // 使用する平均値を取得（自動算出 or 手動入力）
+      const getEffectiveValues = () => {
+        if (useAutoCalculate) {
+          return calculateFromHistory();
+        }
+        return {
+          weekdayAvgPrice,
+          weekendAvgPrice,
+          weekdayDeliveriesPerHour,
+          weekendDeliveriesPerHour
+        };
+      };
+
       // データをlocalStorageに保存
       useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -601,65 +660,6 @@
             }
           }
         }
-      };
-
-      // 履歴から平均値を計算（月～木と金～日で分ける）
-      const calculateFromHistory = () => {
-        const allEntries = Object.entries(dailyData);
-        if (allEntries.length === 0) {
-          return {
-            weekdayAvgPrice: 400,
-            weekendAvgPrice: 400,
-            weekdayDeliveriesPerHour: 4,
-            weekendDeliveriesPerHour: 4
-          };
-        }
-
-        let weekdayHours = 0;
-        let weekdayDeliveries = 0;
-        let weekdayEarnings = 0;
-
-        let weekendHours = 0;
-        let weekendDeliveries = 0;
-        let weekendEarnings = 0;
-
-        allEntries.forEach(([dateStr, data]) => {
-          if (data.hours > 0 && data.deliveries > 0 && data.earnings > 0) {
-            const date = new Date(dateStr + 'T00:00:00');
-            const dayOfWeek = date.getDay(); // 0=日, 1=月, 2=火, ..., 6=土
-
-            // 月(1)～木(4) = weekday, 金(5)～日(0,6) = weekend
-            if (dayOfWeek >= 1 && dayOfWeek <= 4) {
-              weekdayHours += data.hours;
-              weekdayDeliveries += data.deliveries;
-              weekdayEarnings += data.earnings;
-            } else {
-              weekendHours += data.hours;
-              weekendDeliveries += data.deliveries;
-              weekendEarnings += data.earnings;
-            }
-          }
-        });
-
-        return {
-          weekdayAvgPrice: weekdayDeliveries > 0 ? Math.round(weekdayEarnings / weekdayDeliveries) : 400,
-          weekendAvgPrice: weekendDeliveries > 0 ? Math.round(weekendEarnings / weekendDeliveries) : 400,
-          weekdayDeliveriesPerHour: weekdayHours > 0 ? parseFloat((weekdayDeliveries / weekdayHours).toFixed(1)) : 4,
-          weekendDeliveriesPerHour: weekendHours > 0 ? parseFloat((weekendDeliveries / weekendHours).toFixed(1)) : 4
-        };
-      };
-
-      // 使用する平均値を取得（自動算出 or 手動入力）
-      const getEffectiveValues = () => {
-        if (useAutoCalculate) {
-          return calculateFromHistory();
-        }
-        return {
-          weekdayAvgPrice,
-          weekendAvgPrice,
-          weekdayDeliveriesPerHour,
-          weekendDeliveriesPerHour
-        };
       };
 
       // 計算
