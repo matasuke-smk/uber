@@ -1141,14 +1141,14 @@
                   const effectiveValues = getEffectiveValues();
                   const isWeekday = weekdays.includes(day);
 
-                  // この日までの累積を計算（平日と休日で分ける）
-                  let cumulativeDeliveries = 0;
+                  // この日に新たに達成したクエスト報酬のみを計算
                   let dayQuestReward = 0;
 
                   if (hours[day].hours > 0) {
                     // 平日（月～木）のクエスト計算
                     if (isWeekday) {
-                      let cumulative = 0;
+                      let cumulativeBefore = 0; // 前日までの累積
+                      let cumulativeAfter = 0;  // この日までの累積
                       let questIndex = 0;
                       let cumulativeThreshold = 0;
 
@@ -1158,13 +1158,27 @@
 
                         const dayData = hours[d];
                         const dayDeliveries = dayData.deliveries > 0 ? dayData.deliveries : dayData.hours * effectiveValues.weekdayDeliveriesPerHour;
-                        cumulative += dayDeliveries;
 
-                        // この日でクエストが達成されるか確認
                         if (d === day) {
+                          // この日の前までの累積を保存
+                          cumulativeBefore = cumulativeAfter;
+                          cumulativeAfter += dayDeliveries;
+
+                          // 前日までに達成していたクエストをスキップ
                           while (questIndex < weekdayQuests.length) {
                             const nextThreshold = cumulativeThreshold + weekdayQuests[questIndex].count;
-                            if (cumulative >= nextThreshold) {
+                            if (cumulativeBefore >= nextThreshold) {
+                              cumulativeThreshold = nextThreshold;
+                              questIndex++;
+                            } else {
+                              break;
+                            }
+                          }
+
+                          // この日に新たに達成したクエストのみを加算
+                          while (questIndex < weekdayQuests.length) {
+                            const nextThreshold = cumulativeThreshold + weekdayQuests[questIndex].count;
+                            if (cumulativeAfter >= nextThreshold) {
                               dayQuestReward += weekdayQuests[questIndex].reward;
                               cumulativeThreshold = nextThreshold;
                               questIndex++;
@@ -1175,20 +1189,12 @@
                           break;
                         }
 
-                        // 前の日までのクエスト達成を記録
-                        while (questIndex < weekdayQuests.length) {
-                          const nextThreshold = cumulativeThreshold + weekdayQuests[questIndex].count;
-                          if (cumulative >= nextThreshold) {
-                            cumulativeThreshold = nextThreshold;
-                            questIndex++;
-                          } else {
-                            break;
-                          }
-                        }
+                        cumulativeAfter += dayDeliveries;
                       }
                     } else {
                       // 休日（金～日）のクエスト計算
-                      let cumulative = 0;
+                      let cumulativeBefore = 0; // 前日までの累積
+                      let cumulativeAfter = 0;  // この日までの累積
                       let questIndex = 0;
                       let cumulativeThreshold = 0;
 
@@ -1198,13 +1204,27 @@
 
                         const dayData = hours[d];
                         const dayDeliveries = dayData.deliveries > 0 ? dayData.deliveries : dayData.hours * effectiveValues.weekendDeliveriesPerHour;
-                        cumulative += dayDeliveries;
 
-                        // この日でクエストが達成されるか確認
                         if (d === day) {
+                          // この日の前までの累積を保存
+                          cumulativeBefore = cumulativeAfter;
+                          cumulativeAfter += dayDeliveries;
+
+                          // 前日までに達成していたクエストをスキップ
                           while (questIndex < weekendQuests.length) {
                             const nextThreshold = cumulativeThreshold + weekendQuests[questIndex].count;
-                            if (cumulative >= nextThreshold) {
+                            if (cumulativeBefore >= nextThreshold) {
+                              cumulativeThreshold = nextThreshold;
+                              questIndex++;
+                            } else {
+                              break;
+                            }
+                          }
+
+                          // この日に新たに達成したクエストのみを加算
+                          while (questIndex < weekendQuests.length) {
+                            const nextThreshold = cumulativeThreshold + weekendQuests[questIndex].count;
+                            if (cumulativeAfter >= nextThreshold) {
                               dayQuestReward += weekendQuests[questIndex].reward;
                               cumulativeThreshold = nextThreshold;
                               questIndex++;
@@ -1215,16 +1235,7 @@
                           break;
                         }
 
-                        // 前の日までのクエスト達成を記録
-                        while (questIndex < weekendQuests.length) {
-                          const nextThreshold = cumulativeThreshold + weekendQuests[questIndex].count;
-                          if (cumulative >= nextThreshold) {
-                            cumulativeThreshold = nextThreshold;
-                            questIndex++;
-                          } else {
-                            break;
-                          }
-                        }
+                        cumulativeAfter += dayDeliveries;
                       }
                     }
                   }
