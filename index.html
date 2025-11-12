@@ -1146,8 +1146,8 @@
 
             {/* 全期間集計モーダル */}
             {showTotalStats && (
-              <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-                <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] flex flex-col">
+              <div className="fixed inset-0 bg-white z-50 flex flex-col">
+                <div className="bg-white w-full h-full flex flex-col">
                   <div className="bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0">
                     <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                       <Calculator />
@@ -1284,8 +1284,8 @@
 
             {/* 基本設定モーダル */}
             {showBasicSettings && (
-              <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-                <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] flex flex-col">
+              <div className="fixed inset-0 bg-white z-50 flex flex-col">
+                <div className="bg-white w-full h-full flex flex-col">
                   <div className="bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0">
                     <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                       <Settings />
@@ -1469,8 +1469,8 @@
             
             {/* 履歴カレンダーモーダル */}
             {showCalendar && (
-              <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-                <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col">
+              <div className="fixed inset-0 bg-white z-50 flex flex-col">
+                <div className="bg-white w-full h-full flex flex-col">
                   <div className="bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0">
                     <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                       <Calendar />
@@ -1646,8 +1646,8 @@
 
             {/* クエスト設定モーダル */}
             {showQuestSettings && (
-              <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-                <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] flex flex-col">
+              <div className="fixed inset-0 bg-white z-50 flex flex-col">
+                <div className="bg-white w-full h-full flex flex-col">
                   <div className="bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0">
                     <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                       <Award />
@@ -1741,9 +1741,9 @@
 
             {/* 日付編集モーダル */}
             {showDayEdit && selectedDate && (
-              <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[60]">
-                <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] flex flex-col">
-                  <div className="bg-gradient-to-r from-purple-500 to-blue-500 text-white p-4 rounded-t-2xl flex-shrink-0">
+              <div className="fixed inset-0 bg-white z-[60] flex flex-col">
+                <div className="bg-white w-full h-full flex flex-col">
+                  <div className="bg-gradient-to-r from-purple-500 to-blue-500 text-white p-4 flex-shrink-0">
                     <div className="flex items-center justify-between">
                       <h2 className="text-xl font-bold">
                         {new Date(selectedDate + 'T00:00:00').toLocaleDateString('ja-JP', {
