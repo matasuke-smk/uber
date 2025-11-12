@@ -126,6 +126,7 @@
       const [showQuestSettings, setShowQuestSettings] = useState(false);
       const [showCalendar, setShowCalendar] = useState(false);
       const [showTotalStats, setShowTotalStats] = useState(false);
+      const [totalStatsTab, setTotalStatsTab] = useState('summary'); // 'summary' or 'daily'
 
       // 古いlocalStorageキーをクリーンアップ（一度だけ実行）
       try {
@@ -1162,6 +1163,30 @@
                     </button>
                   </div>
 
+                  {/* タブ */}
+                  <div className="flex border-b border-gray-200 flex-shrink-0">
+                    <button
+                      onClick={() => setTotalStatsTab('summary')}
+                      className={`flex-1 py-3 text-sm font-medium transition-colors ${
+                        totalStatsTab === 'summary'
+                          ? 'text-green-600 border-b-2 border-green-600 bg-green-50'
+                          : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                      }`}
+                    >
+                      総合計
+                    </button>
+                    <button
+                      onClick={() => setTotalStatsTab('daily')}
+                      className={`flex-1 py-3 text-sm font-medium transition-colors ${
+                        totalStatsTab === 'daily'
+                          ? 'text-green-600 border-b-2 border-green-600 bg-green-50'
+                          : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                      }`}
+                    >
+                      曜日別平均
+                    </button>
+                  </div>
+
                   <div className="p-6 overflow-y-auto flex-1">
                     {(() => {
                       try {
@@ -1174,26 +1199,28 @@
                           );
                         }
 
-                        let totalHours = 0;
-                        let totalDeliveries = 0;
-                        let totalEarnings = 0;
-                        let totalQuest = 0;
+                        // 総合計タブ
+                        if (totalStatsTab === 'summary') {
+                          let totalHours = 0;
+                          let totalDeliveries = 0;
+                          let totalEarnings = 0;
+                          let totalQuest = 0;
 
-                        allEntries.forEach(([, data]) => {
-                          if (data) {
-                            totalHours += data.hours || 0;
-                            totalDeliveries += data.deliveries || 0;
-                            totalEarnings += data.earnings || 0;
-                            totalQuest += data.quest || 0;
-                          }
-                        });
+                          allEntries.forEach(([, data]) => {
+                            if (data) {
+                              totalHours += data.hours || 0;
+                              totalDeliveries += data.deliveries || 0;
+                              totalEarnings += data.earnings || 0;
+                              totalQuest += data.quest || 0;
+                            }
+                          });
 
-                        const totalSales = totalEarnings + totalQuest;
-                        const avgPricePerDelivery = totalDeliveries > 0 ? totalEarnings / totalDeliveries : 0;
-                        const deliveriesPerHour = totalHours > 0 ? totalDeliveries / totalHours : 0;
-                        const earningsPerHour = totalHours > 0 ? totalSales / totalHours : 0;
+                          const totalSales = totalEarnings + totalQuest;
+                          const avgPricePerDelivery = totalDeliveries > 0 ? totalEarnings / totalDeliveries : 0;
+                          const deliveriesPerHour = totalHours > 0 ? totalDeliveries / totalHours : 0;
+                          const earningsPerHour = totalHours > 0 ? totalSales / totalHours : 0;
 
-                        return (
+                          return (
                         <div className="space-y-4">
                           {/* 期間 */}
                           <div className="bg-gray-50 rounded-xl p-4">
@@ -1253,7 +1280,89 @@
                             </div>
                           </div>
                         </div>
-                      );
+                          );
+                        }
+
+                        // 曜日別平均タブ
+                        if (totalStatsTab === 'daily') {
+                          // 曜日ごとのデータを集計
+                          const dayOfWeekData = [0, 1, 2, 3, 4, 5, 6].map(dow => ({
+                            dow,
+                            hours: 0,
+                            deliveries: 0,
+                            earnings: 0,
+                            quest: 0,
+                            count: 0
+                          }));
+
+                          allEntries.forEach(([dateStr, data]) => {
+                            if (data) {
+                              const date = new Date(dateStr + 'T00:00:00');
+                              const dow = date.getDay(); // 0=日, 1=月, ..., 6=土
+                              dayOfWeekData[dow].hours += data.hours || 0;
+                              dayOfWeekData[dow].deliveries += data.deliveries || 0;
+                              dayOfWeekData[dow].earnings += data.earnings || 0;
+                              dayOfWeekData[dow].quest += data.quest || 0;
+                              dayOfWeekData[dow].count += 1;
+                            }
+                          });
+
+                          const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+
+                          return (
+                            <div className="space-y-3">
+                              {dayOfWeekData.map(dayData => {
+                                if (dayData.count === 0) return null;
+
+                                const avgHours = dayData.hours / dayData.count;
+                                const avgDeliveries = dayData.deliveries / dayData.count;
+                                const avgEarnings = dayData.earnings / dayData.count;
+                                const avgQuest = dayData.quest / dayData.count;
+                                const avgTotal = avgEarnings + avgQuest;
+                                const avgPrice = dayData.deliveries > 0 ? dayData.earnings / dayData.deliveries : 0;
+                                const avgDeliveriesPerHour = dayData.hours > 0 ? dayData.deliveries / dayData.hours : 0;
+                                const avgHourlyWage = dayData.hours > 0 ? (dayData.earnings + dayData.quest) / dayData.hours : 0;
+
+                                return (
+                                  <div key={dayData.dow} className="bg-gray-50 rounded-xl p-4">
+                                    <div className="font-bold text-gray-800 mb-3 flex items-center justify-between">
+                                      <span>{dayNames[dayData.dow]}曜日</span>
+                                      <span className="text-xs text-gray-500">{dayData.count}日分</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3 text-sm">
+                                      <div>
+                                        <div className="text-gray-600">平均稼働時間</div>
+                                        <div className="font-bold text-gray-800">{avgHours.toFixed(1)}時間</div>
+                                      </div>
+                                      <div>
+                                        <div className="text-gray-600">平均配達件数</div>
+                                        <div className="font-bold text-gray-800">{avgDeliveries.toFixed(1)}件</div>
+                                      </div>
+                                      <div>
+                                        <div className="text-gray-600">平均単価</div>
+                                        <div className="font-bold text-gray-800">¥{Math.floor(avgPrice).toLocaleString()}/件</div>
+                                      </div>
+                                      <div>
+                                        <div className="text-gray-600">平均時給</div>
+                                        <div className="font-bold text-green-600">¥{Math.floor(avgHourlyWage).toLocaleString()}/h</div>
+                                      </div>
+                                      <div>
+                                        <div className="text-gray-600">時間配達件数</div>
+                                        <div className="font-bold text-gray-800">{avgDeliveriesPerHour.toFixed(1)}件/h</div>
+                                      </div>
+                                      <div>
+                                        <div className="text-gray-600">平均売上</div>
+                                        <div className="font-bold text-gray-800">¥{Math.floor(avgTotal).toLocaleString()}</div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          );
+                        }
+
+                        return null;
                       } catch (error) {
                         console.error('全期間集計エラー:', error);
                         return (
