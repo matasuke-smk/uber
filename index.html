@@ -319,6 +319,7 @@
       const [editingExpenseId, setEditingExpenseId] = useState(null);
       const [showImagePreview, setShowImagePreview] = useState(false);
       const [previewImage, setPreviewImage] = useState(null);
+      const [swipedExpenseId, setSwipedExpenseId] = useState(null);
 
       // 日付をローカルタイムゾーンでYYYY-MM-DD形式に変換
       const formatDateToLocal = (date) => {
@@ -2329,36 +2330,88 @@
                       {Object.entries(expenses)
                         .sort(([, a], [, b]) => new Date(b.date) - new Date(a.date))
                         .map(([id, expense]) => (
-                          <button
+                          <div
                             key={id}
-                            onClick={() => {
-                              setEditingExpense({
-                                ...expense,
-                                accountingSubject: expense.accountingSubject || 'vehicle',
-                                businessPercentage: expense.businessPercentage ?? 100
-                              });
-                              setEditingExpenseId(id);
-                              setShowExpenseInput(true);
+                            className="relative overflow-hidden"
+                            onTouchStart={(e) => {
+                              const touch = e.touches[0];
+                              e.currentTarget.dataset.startX = touch.clientX;
+                              e.currentTarget.dataset.startY = touch.clientY;
                             }}
-                            className="w-full bg-white rounded-lg p-3 border-2 border-gray-200 hover:border-red-300 transition-colors text-left"
+                            onTouchMove={(e) => {
+                              const touch = e.touches[0];
+                              const startX = parseFloat(e.currentTarget.dataset.startX);
+                              const startY = parseFloat(e.currentTarget.dataset.startY);
+                              const deltaX = touch.clientX - startX;
+                              const deltaY = touch.clientY - startY;
+
+                              // 横方向のスワイプの方が大きい場合のみ処理
+                              if (Math.abs(deltaX) > Math.abs(deltaY) && deltaX < -30) {
+                                setSwipedExpenseId(id);
+                              } else if (deltaX > 10) {
+                                setSwipedExpenseId(null);
+                              }
+                            }}
+                            onTouchEnd={() => {
+                              // タッチ終了時の処理
+                            }}
                           >
-                            <div className="flex items-center gap-3">
-                              <div className="text-sm text-gray-500 whitespace-nowrap">
-                                {new Date(expense.date + 'T00:00:00').toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' })}
-                              </div>
-                              <div className="flex-1 min-w-0 font-medium text-gray-800 truncate">
-                                {expense.description || expenseCategories[expense.category].name}
-                              </div>
-                              <div className="flex items-center gap-2">
-                                {expense.photo && (
-                                  <span className="text-gray-400 text-lg">📷</span>
-                                )}
-                                <div className="text-lg font-bold text-gray-800 whitespace-nowrap">
-                                  ¥{expense.amount.toLocaleString()}
+                            <div className="flex items-center">
+                              <button
+                                onClick={() => {
+                                  if (swipedExpenseId === id) {
+                                    setSwipedExpenseId(null);
+                                  } else {
+                                    setEditingExpense({
+                                      ...expense,
+                                      accountingSubject: expense.accountingSubject || 'vehicle',
+                                      businessPercentage: expense.businessPercentage ?? 100
+                                    });
+                                    setEditingExpenseId(id);
+                                    setShowExpenseInput(true);
+                                  }
+                                }}
+                                className={`w-full bg-white rounded-lg p-3 border-2 border-gray-200 hover:border-red-300 transition-all text-left ${
+                                  swipedExpenseId === id ? '-translate-x-20' : ''
+                                }`}
+                                style={{ transition: 'transform 0.3s ease' }}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className="text-sm text-gray-500 whitespace-nowrap">
+                                    {new Date(expense.date + 'T00:00:00').toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' })}
+                                  </div>
+                                  <div className="flex-1 min-w-0 font-medium text-gray-800 truncate">
+                                    {expense.description || expenseCategories[expense.category].name}
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    {expense.photo && (
+                                      <span className="text-gray-400 text-lg">📷</span>
+                                    )}
+                                    <div className="text-lg font-bold text-gray-800 whitespace-nowrap">
+                                      ¥{expense.amount.toLocaleString()}
+                                    </div>
+                                  </div>
                                 </div>
-                              </div>
+                              </button>
+                              {swipedExpenseId === id && (
+                                <button
+                                  onClick={() => {
+                                    if (confirm('この経費を削除しますか？')) {
+                                      setExpenses(prev => {
+                                        const newExpenses = { ...prev };
+                                        delete newExpenses[id];
+                                        return newExpenses;
+                                      });
+                                      setSwipedExpenseId(null);
+                                    }
+                                  }}
+                                  className="absolute right-0 top-0 bottom-0 w-20 bg-red-500 text-white font-medium flex items-center justify-center rounded-r-lg"
+                                >
+                                  削除
+                                </button>
+                              )}
                             </div>
-                          </button>
+                          </div>
                         ))}
                     </div>
 
@@ -2619,13 +2672,13 @@
                   </div>
 
                   <div className="p-4 border-t border-gray-200 flex-shrink-0">
-                    <button
-                      onClick={() => setShowExpenseInput(false)}
-                      className="w-full bg-gray-500 text-white py-3 rounded-xl font-medium hover:bg-gray-600 transition-colors mb-3"
-                    >
-                      閉じる
-                    </button>
                     <div className="flex gap-2">
+                      <button
+                        onClick={() => setShowExpenseInput(false)}
+                        className="flex-1 bg-gray-500 text-white py-3 rounded-xl font-medium hover:bg-gray-600 transition-colors"
+                      >
+                        閉じる
+                      </button>
                       <button
                         onClick={() => {
                           try {
@@ -2656,23 +2709,6 @@
                       >
                         保存
                       </button>
-                      {editingExpenseId && (
-                        <button
-                          onClick={() => {
-                            if (confirm('この経費を削除しますか？')) {
-                              setExpenses(prev => {
-                                const newExpenses = { ...prev };
-                                delete newExpenses[editingExpenseId];
-                                return newExpenses;
-                              });
-                              setShowExpenseInput(false);
-                            }
-                          }}
-                          className="px-6 bg-gray-500 text-white py-3 rounded-xl font-medium hover:bg-gray-600 transition-colors"
-                        >
-                          削除
-                        </button>
-                      )}
                     </div>
                   </div>
                 </div>
