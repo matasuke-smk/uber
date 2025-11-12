@@ -261,10 +261,14 @@
 
       // 週の稼働時間が変更されたら、クエスト報酬を計算してカレンダーに反映
       useEffect(() => {
-        if (!currentWeekStart) return;
+        if (!currentWeekStart) {
+          console.log('Quest sync: currentWeekStart is not set');
+          return;
+        }
 
         setDailyData(prev => {
           const updatedData = { ...prev };
+          console.log('Quest sync: Starting calculation', { currentWeekStart });
 
           // まず全ての日のクエストをリセット
           [...weekdays, ...weekends].forEach(day => {
@@ -301,6 +305,12 @@
 
             // この日にクエスト報酬があれば設定
             const dateStr = getDayDate(day);
+            console.log(`Quest sync: ${day} (${dateStr})`, {
+              deliveries: dayDeliveries,
+              cumulative: cumulativeWeekday,
+              questReward: dayQuestReward
+            });
+
             if (dateStr) {
               updatedData[dateStr] = {
                 ...(updatedData[dateStr] || { hours: 0, deliveries: 0, earnings: 0, quest: 0 }),
@@ -333,6 +343,12 @@
 
             // この日にクエスト報酬があれば設定
             const dateStr = getDayDate(day);
+            console.log(`Quest sync: ${day} (${dateStr})`, {
+              deliveries: dayDeliveries,
+              cumulative: cumulativeWeekend,
+              questReward: dayQuestReward
+            });
+
             if (dateStr) {
               updatedData[dateStr] = {
                 ...(updatedData[dateStr] || { hours: 0, deliveries: 0, earnings: 0, quest: 0 }),
@@ -341,6 +357,7 @@
             }
           });
 
+          console.log('Quest sync: Updated data', updatedData);
           return updatedData;
         });
       }, [hours, weekdayQuests, weekendQuests, currentWeekStart, deliveriesPerHour]);
