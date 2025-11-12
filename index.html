@@ -1403,13 +1403,17 @@
 
                           allEntries.forEach(([dateStr, data]) => {
                             if (data) {
-                              const date = new Date(dateStr + 'T00:00:00');
-                              const dow = date.getDay(); // 0=日, 1=月, ..., 6=土
-                              dayOfWeekData[dow].hours += data.hours || 0;
-                              dayOfWeekData[dow].deliveries += data.deliveries || 0;
-                              dayOfWeekData[dow].earnings += data.earnings || 0;
-                              dayOfWeekData[dow].quest += data.quest || 0;
-                              dayOfWeekData[dow].count += 1;
+                              // 時間、件数、金額の全てが入力されている日のみを集計
+                              const hasCompleteData = (data.hours > 0) && (data.deliveries > 0) && (data.earnings > 0);
+                              if (hasCompleteData) {
+                                const date = new Date(dateStr + 'T00:00:00');
+                                const dow = date.getDay(); // 0=日, 1=月, ..., 6=土
+                                dayOfWeekData[dow].hours += data.hours || 0;
+                                dayOfWeekData[dow].deliveries += data.deliveries || 0;
+                                dayOfWeekData[dow].earnings += data.earnings || 0;
+                                dayOfWeekData[dow].quest += data.quest || 0;
+                                dayOfWeekData[dow].count += 1;
+                              }
                             }
                           });
 
