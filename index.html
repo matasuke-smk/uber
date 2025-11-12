@@ -66,6 +66,15 @@
       </svg>
     );
 
+    const Calendar = () => (
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+        <line x1="16" y1="2" x2="16" y2="6"/>
+        <line x1="8" y1="2" x2="8" y2="6"/>
+        <line x1="3" y1="10" x2="21" y2="10"/>
+      </svg>
+    );
+
     function UberEatsSimulator() {
       // 定数定義
       const days = ['月', '火', '水', '木', '金', '土', '日'];
@@ -75,6 +84,7 @@
       // モーダル状態
       const [showBasicSettings, setShowBasicSettings] = useState(false);
       const [showQuestSettings, setShowQuestSettings] = useState(false);
+      const [showCalendar, setShowCalendar] = useState(false);
       
       // localStorageから初期値を読み込む
       const loadFromStorage = (key, defaultValue) => {
@@ -131,6 +141,15 @@
       
       // 目標金額
       const [targetAmount, setTargetAmount] = useState(() => loadFromStorage('targetAmount', 0));
+
+      // 過去の売上データ（日付キー: YYYY-MM-DD形式）
+      const [historicalData, setHistoricalData] = useState(() => loadFromStorage('historicalData', {}));
+
+      // 最後にアクセスした日付
+      const [lastAccessDate, setLastAccessDate] = useState(() => loadFromStorage('lastAccessDate', null));
+
+      // 現在の週の開始日（月曜日）
+      const [currentWeekStart, setCurrentWeekStart] = useState(() => loadFromStorage('currentWeekStart', null));
       
       // データをlocalStorageに保存
       useEffect(() => {
@@ -168,7 +187,95 @@
           localStorage.setItem('targetAmount', JSON.stringify(targetAmount));
         }
       }, [targetAmount]);
-      
+
+      useEffect(() => {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('historicalData', JSON.stringify(historicalData));
+        }
+      }, [historicalData]);
+
+      useEffect(() => {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('lastAccessDate', JSON.stringify(lastAccessDate));
+        }
+      }, [lastAccessDate]);
+
+      useEffect(() => {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('currentWeekStart', JSON.stringify(currentWeekStart));
+        }
+      }, [currentWeekStart]);
+
+      // 週の切り替わり検知（日曜日→月曜日）
+      useEffect(() => {
+        const checkWeekTransition = () => {
+          const today = new Date();
+          const todayStr = today.toISOString().split('T')[0];
+          const dayOfWeek = today.getDay(); // 0=日曜, 1=月曜, ...
+
+          // 今日の月曜日の日付を計算
+          const getMondayOfWeek = (date) => {
+            const d = new Date(date);
+            const day = d.getDay();
+            const diff = day === 0 ? -6 : 1 - day; // 日曜の場合は前日の月曜、それ以外は今週の月曜
+            d.setDate(d.getDate() + diff);
+            return d.toISOString().split('T')[0];
+          };
+
+          const mondayStr = getMondayOfWeek(today);
+
+          // 初回アクセスの場合
+          if (!lastAccessDate) {
+            setLastAccessDate(todayStr);
+            setCurrentWeekStart(mondayStr);
+            return;
+          }
+
+          const lastAccess = new Date(lastAccessDate);
+          const lastDayOfWeek = lastAccess.getDay();
+
+          // 日曜日から月曜日に変わった場合
+          if (lastDayOfWeek === 0 && dayOfWeek === 1) {
+            // 前週のデータを保存
+            const lastMonday = getMondayOfWeek(lastAccess);
+            const weekData = {
+              weekStart: lastMonday,
+              hours: { ...hours },
+              totalEarnings: calculate().totalEarnings,
+              totalHours: calculate().totalHours,
+              totalDeliveries: calculate().totalDeliveries
+            };
+
+            // 履歴データに追加
+            setHistoricalData(prev => ({
+              ...prev,
+              [lastMonday]: weekData
+            }));
+
+            // 稼働時間データをクリア
+            setHours({
+              月: { hours: 0, deliveries: 0, earnings: 0 },
+              火: { hours: 0, deliveries: 0, earnings: 0 },
+              水: { hours: 0, deliveries: 0, earnings: 0 },
+              木: { hours: 0, deliveries: 0, earnings: 0 },
+              金: { hours: 0, deliveries: 0, earnings: 0 },
+              土: { hours: 0, deliveries: 0, earnings: 0 },
+              日: { hours: 0, deliveries: 0, earnings: 0 }
+            });
+          }
+
+          // 週が変わった場合（月曜日でなくても週の開始日を更新）
+          if (currentWeekStart !== mondayStr) {
+            setCurrentWeekStart(mondayStr);
+          }
+
+          // 最終アクセス日を更新
+          setLastAccessDate(todayStr);
+        };
+
+        checkWeekTransition();
+      }, []); // 起動時に1回だけ実行
+
       // クエスト更新 - 月～木
       const updateWeekdayQuest = (index, field, value) => {
         const newQuests = [...weekdayQuests];
@@ -192,6 +299,38 @@
             [field]: parseFloat(value) || 0
           }
         });
+      };
+
+      // 週のデータを手動で保存
+      const saveCurrentWeek = () => {
+        if (!currentWeekStart) return;
+
+        const results = calculate();
+        const weekData = {
+          weekStart: currentWeekStart,
+          hours: { ...hours },
+          totalEarnings: results.totalEarnings,
+          totalHours: parseFloat(results.totalHours),
+          totalDeliveries: results.totalDeliveries
+        };
+
+        setHistoricalData(prev => ({
+          ...prev,
+          [currentWeekStart]: weekData
+        }));
+
+        // データをクリア
+        setHours({
+          月: { hours: 0, deliveries: 0, earnings: 0 },
+          火: { hours: 0, deliveries: 0, earnings: 0 },
+          水: { hours: 0, deliveries: 0, earnings: 0 },
+          木: { hours: 0, deliveries: 0, earnings: 0 },
+          金: { hours: 0, deliveries: 0, earnings: 0 },
+          土: { hours: 0, deliveries: 0, earnings: 0 },
+          日: { hours: 0, deliveries: 0, earnings: 0 }
+        });
+
+        alert('今週のデータを保存しました！');
       };
 
       // Enterキーで次の項目に移動
@@ -329,18 +468,24 @@
               </div>
               
               {/* 設定ボタン */}
-              <div className="flex gap-2 mt-4">
+              <div className="grid grid-cols-3 gap-2 mt-4">
                 <button
                   onClick={() => setShowBasicSettings(true)}
-                  className="flex-1 bg-blue-500 text-white px-4 py-3 rounded-xl font-medium hover:bg-blue-600 transition-colors"
+                  className="bg-blue-500 text-white px-3 py-3 rounded-xl font-medium hover:bg-blue-600 transition-colors text-sm"
                 >
                   ⚙️ 基本設定
                 </button>
                 <button
                   onClick={() => setShowQuestSettings(true)}
-                  className="flex-1 bg-yellow-500 text-white px-4 py-3 rounded-xl font-medium hover:bg-yellow-600 transition-colors"
+                  className="bg-yellow-500 text-white px-3 py-3 rounded-xl font-medium hover:bg-yellow-600 transition-colors text-sm"
                 >
                   🏆 クエスト設定
+                </button>
+                <button
+                  onClick={() => setShowCalendar(true)}
+                  className="bg-purple-500 text-white px-3 py-3 rounded-xl font-medium hover:bg-purple-600 transition-colors text-sm"
+                >
+                  📅 履歴
                 </button>
               </div>
             </div>
@@ -426,7 +571,7 @@
             </div>
             
             {/* 結果表示 */}
-            <div className="bg-gradient-to-br from-green-500 to-blue-500 rounded-2xl shadow-xl p-6 text-white">
+            <div className="bg-gradient-to-br from-green-500 to-blue-500 rounded-2xl shadow-xl p-6 text-white mb-4">
               <h2 className="text-xl font-bold mb-6">週間売上予測</h2>
               
               <div className="space-y-4">
@@ -504,7 +649,22 @@
                 )}
               </div>
             </div>
-            
+
+            {/* 手動保存ボタン */}
+            {parseFloat(results.totalHours) > 0 && (
+              <div className="bg-white rounded-2xl shadow-lg p-4 mb-4">
+                <button
+                  onClick={saveCurrentWeek}
+                  className="w-full bg-purple-500 text-white px-4 py-3 rounded-xl font-medium hover:bg-purple-600 transition-colors flex items-center justify-center gap-2"
+                >
+                  💾 今週のデータを保存してクリア
+                </button>
+                <p className="text-xs text-gray-500 mt-2 text-center">
+                  ※保存後、入力データはクリアされます
+                </p>
+              </div>
+            )}
+
             {/* フッター */}
             <div className="text-center text-gray-600 text-sm mt-6">
               ※実際の売上は配達エリアや時間帯により変動します
@@ -567,6 +727,115 @@
               </div>
             )}
             
+            {/* 履歴カレンダーモーダル */}
+            {showCalendar && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+                <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                  <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
+                    <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                      <Calendar />
+                      過去の売上履歴
+                    </h2>
+                    <button
+                      onClick={() => setShowCalendar(false)}
+                      className="text-gray-500 hover:text-gray-700 text-2xl"
+                    >
+                      ×
+                    </button>
+                  </div>
+
+                  <div className="p-6">
+                    {Object.keys(historicalData).length === 0 ? (
+                      <div className="text-center py-12 text-gray-500">
+                        <Calendar />
+                        <p className="mt-4">まだ履歴データがありません</p>
+                        <p className="text-sm mt-2">日曜日から月曜日に切り替わると<br/>自動的に週のデータが保存されます</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {Object.entries(historicalData)
+                          .sort((a, b) => new Date(b[0]) - new Date(a[0]))
+                          .map(([weekStart, data]) => {
+                            const startDate = new Date(weekStart);
+                            const endDate = new Date(startDate);
+                            endDate.setDate(endDate.getDate() + 6);
+
+                            const formatDate = (date) => {
+                              const month = date.getMonth() + 1;
+                              const day = date.getDate();
+                              return `${month}/${day}`;
+                            };
+
+                            return (
+                              <div key={weekStart} className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-4 border border-purple-200">
+                                <div className="flex items-center justify-between mb-3">
+                                  <h3 className="font-bold text-gray-800">
+                                    {formatDate(startDate)} - {formatDate(endDate)}
+                                  </h3>
+                                  <div className="text-2xl font-bold text-purple-600">
+                                    ¥{parseInt(data.totalEarnings).toLocaleString()}
+                                  </div>
+                                </div>
+
+                                <div className="grid grid-cols-3 gap-3 text-sm">
+                                  <div className="bg-white/60 rounded-lg p-2">
+                                    <div className="text-gray-600 text-xs">稼働時間</div>
+                                    <div className="font-bold">{parseFloat(data.totalHours).toFixed(1)}時間</div>
+                                  </div>
+                                  <div className="bg-white/60 rounded-lg p-2">
+                                    <div className="text-gray-600 text-xs">配達件数</div>
+                                    <div className="font-bold">{parseInt(data.totalDeliveries)}件</div>
+                                  </div>
+                                  <div className="bg-white/60 rounded-lg p-2">
+                                    <div className="text-gray-600 text-xs">平均時給</div>
+                                    <div className="font-bold">
+                                      ¥{data.totalHours > 0 ? Math.floor(data.totalEarnings / data.totalHours).toLocaleString() : '0'}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* 各曜日の詳細 */}
+                                <details className="mt-3">
+                                  <summary className="cursor-pointer text-sm text-purple-600 hover:text-purple-700 font-medium">
+                                    詳細を表示
+                                  </summary>
+                                  <div className="mt-3 space-y-2">
+                                    {days.map(day => {
+                                      const dayData = data.hours[day];
+                                      if (!dayData || dayData.hours === 0) return null;
+
+                                      return (
+                                        <div key={day} className="flex items-center justify-between bg-white/80 rounded-lg p-2 text-sm">
+                                          <span className="font-medium text-gray-700 w-8">{day}</span>
+                                          <div className="flex gap-3 text-xs">
+                                            <span>{dayData.hours}時間</span>
+                                            <span>{dayData.deliveries || Math.floor(dayData.hours * deliveriesPerHour)}件</span>
+                                            <span className="font-bold">¥{(dayData.earnings || Math.floor(dayData.hours * deliveriesPerHour * avgPrice)).toLocaleString()}</span>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </details>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="p-4 border-t border-gray-200">
+                    <button
+                      onClick={() => setShowCalendar(false)}
+                      className="w-full bg-purple-500 text-white py-3 rounded-xl font-medium hover:bg-purple-600 transition-colors"
+                    >
+                      閉じる
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* クエスト設定モーダル */}
             {showQuestSettings && (
               <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
