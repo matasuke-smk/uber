@@ -127,7 +127,7 @@
 
       // カテゴリーごとの推奨借方科目
       const categoryToSubjects = {
-        fuel: ['vehicle', 'fuel'],
+        fuel: ['fuel', 'vehicle'],
         maintenance: ['repair', 'vehicle'],
         parking: ['rent', 'vehicle'],
         phone: ['communication'],
@@ -2674,12 +2674,6 @@
                   <div className="p-4 border-t border-gray-200 flex-shrink-0">
                     <div className="flex gap-2">
                       <button
-                        onClick={() => setShowExpenseInput(false)}
-                        className="flex-1 bg-gray-500 text-white py-3 rounded-xl font-medium hover:bg-gray-600 transition-colors"
-                      >
-                        閉じる
-                      </button>
-                      <button
                         onClick={() => {
                           try {
                             if (editingExpenseId) {
@@ -2705,9 +2699,15 @@
                             }
                           }
                         }}
-                        className="flex-1 bg-red-500 text-white py-3 rounded-xl font-medium hover:bg-red-600 transition-colors"
+                        className="flex-[2] bg-red-500 text-white py-3 rounded-xl font-medium hover:bg-red-600 transition-colors"
                       >
                         保存
+                      </button>
+                      <button
+                        onClick={() => setShowExpenseInput(false)}
+                        className="flex-1 bg-gray-500 text-white py-3 rounded-xl font-medium hover:bg-gray-600 transition-colors"
+                      >
+                        閉じる
                       </button>
                     </div>
                   </div>
