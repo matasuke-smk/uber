@@ -1300,6 +1300,11 @@
                       {/* 日付グリッド */}
                       <div className="grid grid-cols-7 gap-1">
                         {generateCalendarDays().map((dayInfo, index) => {
+                          // 当月以外は空セルを表示
+                          if (!dayInfo.isCurrentMonth) {
+                            return <div key={index} className="aspect-square"></div>;
+                          }
+
                           const dateStr = formatDateToLocal(dayInfo.date);
                           const dayData = dailyData[dateStr];
                           const hasData = dayData && (dayData.hours > 0 || dayData.deliveries > 0 || dayData.earnings > 0 || dayData.quest > 0);
@@ -1315,8 +1320,7 @@
                               key={index}
                               onClick={() => handleDateClick(dayInfo.date)}
                               className={`
-                                aspect-square p-1 rounded-lg text-sm relative flex flex-col items-center justify-center
-                                ${!dayInfo.isCurrentMonth ? 'text-gray-300' : 'text-gray-800'}
+                                aspect-square p-1 rounded-lg text-sm relative flex flex-col items-center justify-center text-gray-800
                                 ${isToday ? 'ring-2 ring-blue-500' : ''}
                                 ${hasData ? 'bg-purple-100 hover:bg-purple-200' : 'hover:bg-gray-100'}
                                 transition-colors
