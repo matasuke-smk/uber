@@ -746,9 +746,7 @@
           }
 
           setSelectedDate(dateStr);
-          setShowCalendar(false);
           setIsChangingDate(false);
-          setShowDayEdit(true);
           return;
         }
 
@@ -1926,11 +1924,7 @@
                   <div className="bg-gradient-to-r from-purple-500 to-blue-500 text-white p-4 flex-shrink-0">
                     <div className="flex items-center justify-between">
                       <button
-                        onClick={() => {
-                          setShowDayEdit(false);
-                          setIsChangingDate(true);
-                          setShowCalendar(true);
-                        }}
+                        onClick={() => setIsChangingDate(true)}
                         className="text-xl font-bold hover:opacity-80 transition-opacity text-left"
                       >
                         {new Date(selectedDate + 'T00:00:00').toLocaleDateString('ja-JP', {
@@ -2077,6 +2071,107 @@
                     </div>
                   </div>
                 </div>
+
+                {/* 日付変更用カレンダーポップアップ */}
+                {isChangingDate && (
+                  <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[70]">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[80vh] flex flex-col">
+                      <div className="bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0">
+                        <h3 className="text-lg font-bold text-gray-800">日付を選択</h3>
+                        <button
+                          onClick={() => setIsChangingDate(false)}
+                          className="text-gray-500 hover:text-gray-700 text-2xl"
+                        >
+                          ×
+                        </button>
+                      </div>
+
+                      <div className="p-4 overflow-y-auto flex-1">
+                        {/* 月切り替え */}
+                        <div className="flex items-center justify-between mb-4">
+                          <button
+                            onClick={() => changeMonth(-1)}
+                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                          >
+                            ← 前月
+                          </button>
+                          <h4 className="text-base font-bold">
+                            {currentMonth.getFullYear()}年 {currentMonth.getMonth() + 1}月
+                          </h4>
+                          <button
+                            onClick={() => changeMonth(1)}
+                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                          >
+                            次月 →
+                          </button>
+                        </div>
+
+                        {/* カレンダーグリッド */}
+                        <div>
+                          {/* 曜日ヘッダー（月曜始まり） */}
+                          <div className="grid grid-cols-7 gap-1 mb-2">
+                            {['月', '火', '水', '木', '金', '土', '日'].map(day => (
+                              <div key={day} className="text-center text-xs font-medium text-gray-600 py-2">
+                                {day}
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* 日付グリッド */}
+                          <div className="grid grid-cols-7 gap-1">
+                            {(() => {
+                              const year = currentMonth.getFullYear();
+                              const month = currentMonth.getMonth();
+                              const firstDay = new Date(year, month, 1);
+                              const lastDay = new Date(year, month + 1, 0);
+                              const daysInMonth = lastDay.getDate();
+
+                              let firstDayOfWeek = firstDay.getDay();
+                              firstDayOfWeek = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
+
+                              const calendarDays = [];
+
+                              for (let i = 0; i < firstDayOfWeek; i++) {
+                                calendarDays.push({ date: null, isCurrentMonth: false });
+                              }
+
+                              for (let day = 1; day <= daysInMonth; day++) {
+                                const date = new Date(year, month, day);
+                                calendarDays.push({ date, isCurrentMonth: true });
+                              }
+
+                              return calendarDays.map((dayInfo, index) => {
+                                if (!dayInfo.isCurrentMonth) {
+                                  return <div key={`empty-${index}`} className="aspect-square"></div>;
+                                }
+
+                                const dateStr = formatDateToLocal(dayInfo.date);
+                                const dayData = dailyData[dateStr];
+                                const hasData = dayData && (dayData.hours > 0 || dayData.deliveries > 0 || dayData.earnings > 0 || dayData.quest > 0);
+                                const isToday = dateStr === formatDateToLocal(new Date());
+
+                                return (
+                                  <button
+                                    key={index}
+                                    onClick={() => handleDateClick(dayInfo.date)}
+                                    className={`
+                                      aspect-square p-1 rounded-lg text-sm relative flex flex-col items-center justify-center text-gray-800
+                                      ${isToday ? 'ring-2 ring-blue-500' : ''}
+                                      ${hasData ? 'bg-purple-100 hover:bg-purple-200' : 'hover:bg-gray-100'}
+                                      transition-colors
+                                    `}
+                                  >
+                                    <div className="font-medium">{dayInfo.date.getDate()}</div>
+                                  </button>
+                                );
+                              });
+                            })()}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
