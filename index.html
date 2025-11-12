@@ -12,7 +12,7 @@
   <script crossorigin="anonymous" src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin="anonymous" src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script crossorigin="anonymous" src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script crossorigin="anonymous" src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body {
       margin: 0;
@@ -27,12 +27,7 @@
   <div id="root"></div>
 
   <script type="text/babel">
-    // 読み込み状態を表示
-    document.getElementById('root').innerHTML = '<div style="padding:20px;font-family:sans-serif;">読み込み中...</div>';
-    console.log('Step 1: Loading started');
-
     const { useState, useEffect } = React;
-    console.log('Step 2: React hooks loaded');
 
     // Lucide icons as simple SVG components
     const Calculator = () => (
@@ -79,10 +74,8 @@
         <line x1="3" y1="10" x2="21" y2="10"/>
       </svg>
     );
-    console.log('Step 3: Icon components defined');
 
     function UberEatsSimulator() {
-      console.log('Step 4: UberEatsSimulator function started');
       // 定数定義
       const days = ['月', '火', '水', '木', '金', '土', '日'];
       const weekdays = ['月', '火', '水', '木'];
@@ -93,6 +86,14 @@
       const [showQuestSettings, setShowQuestSettings] = useState(false);
       const [showCalendar, setShowCalendar] = useState(false);
       
+      // 古いlocalStorageキーをクリーンアップ（一度だけ実行）
+      if (typeof window !== 'undefined' && !localStorage.getItem('cleanupDone_v2')) {
+        // 古いキーを削除
+        localStorage.removeItem('avgPrice');
+        localStorage.removeItem('deliveriesPerHour');
+        localStorage.setItem('cleanupDone_v2', 'true');
+      }
+
       // localStorageから初期値を読み込む
       const loadFromStorage = (key, defaultValue) => {
         if (typeof window !== 'undefined') {
@@ -103,10 +104,10 @@
       };
       
       // 基本設定
-      const [weekdayAvgPrice, setWeekdayAvgPrice] = useState(() => loadFromStorage('weekdayAvgPrice', loadFromStorage('avgPrice', 400)));
-      const [weekendAvgPrice, setWeekendAvgPrice] = useState(() => loadFromStorage('weekendAvgPrice', loadFromStorage('avgPrice', 400)));
-      const [weekdayDeliveriesPerHour, setWeekdayDeliveriesPerHour] = useState(() => loadFromStorage('weekdayDeliveriesPerHour', loadFromStorage('deliveriesPerHour', 4)));
-      const [weekendDeliveriesPerHour, setWeekendDeliveriesPerHour] = useState(() => loadFromStorage('weekendDeliveriesPerHour', loadFromStorage('deliveriesPerHour', 4)));
+      const [weekdayAvgPrice, setWeekdayAvgPrice] = useState(() => loadFromStorage('weekdayAvgPrice', 400));
+      const [weekendAvgPrice, setWeekendAvgPrice] = useState(() => loadFromStorage('weekendAvgPrice', 400));
+      const [weekdayDeliveriesPerHour, setWeekdayDeliveriesPerHour] = useState(() => loadFromStorage('weekdayDeliveriesPerHour', 4));
+      const [weekendDeliveriesPerHour, setWeekendDeliveriesPerHour] = useState(() => loadFromStorage('weekendDeliveriesPerHour', 4));
       const [useAutoCalculate, setUseAutoCalculate] = useState(() => loadFromStorage('useAutoCalculate', false));
       
       // クエスト設定 - 月～木用
@@ -1601,15 +1602,10 @@
       document.body.appendChild(errorDiv);
     });
 
-    console.log('Step 5: About to render app');
-
     // Render the app
     try {
-      console.log('Step 6: Creating React root');
       const root = ReactDOM.createRoot(document.getElementById('root'));
-      console.log('Step 7: Rendering component');
       root.render(<UberEatsSimulator />);
-      console.log('Step 8: Render complete');
     } catch (error) {
       const errorDiv = document.createElement('div');
       errorDiv.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:white;z-index:99999;padding:20px;overflow:auto;font-family:monospace;font-size:14px;';
