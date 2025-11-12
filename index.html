@@ -145,11 +145,20 @@
       // 過去の売上データ（日付キー: YYYY-MM-DD形式）
       const [historicalData, setHistoricalData] = useState(() => loadFromStorage('historicalData', {}));
 
+      // 日単位のデータ（日付キー: YYYY-MM-DD形式）
+      const [dailyData, setDailyData] = useState(() => loadFromStorage('dailyData', {}));
+
       // 最後にアクセスした日付
       const [lastAccessDate, setLastAccessDate] = useState(() => loadFromStorage('lastAccessDate', null));
 
       // 現在の週の開始日（月曜日）
       const [currentWeekStart, setCurrentWeekStart] = useState(() => loadFromStorage('currentWeekStart', null));
+
+      // カレンダー関連のstate
+      const [currentMonth, setCurrentMonth] = useState(() => new Date());
+      const [selectedDate, setSelectedDate] = useState(null);
+      const [showDayEdit, setShowDayEdit] = useState(false);
+      const [editingDayData, setEditingDayData] = useState({ hours: 0, deliveries: 0, earnings: 0, quest: 0 });
       
       // データをlocalStorageに保存
       useEffect(() => {
@@ -205,6 +214,12 @@
           localStorage.setItem('currentWeekStart', JSON.stringify(currentWeekStart));
         }
       }, [currentWeekStart]);
+
+      useEffect(() => {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('dailyData', JSON.stringify(dailyData));
+        }
+      }, [dailyData]);
 
       // 週の切り替わり検知（日曜日→月曜日）
       useEffect(() => {
@@ -331,6 +346,89 @@
         });
 
         alert('今週のデータを保存しました！');
+      };
+
+      // 日付をタップしたときの処理
+      const handleDateClick = (date) => {
+        const dateStr = date.toISOString().split('T')[0];
+        setSelectedDate(dateStr);
+
+        // その日のデータを取得
+        const dayData = dailyData[dateStr] || { hours: 0, deliveries: 0, earnings: 0, quest: 0 };
+        setEditingDayData(dayData);
+        setShowDayEdit(true);
+      };
+
+      // 日付データの保存
+      const saveDayData = () => {
+        if (!selectedDate) return;
+
+        setDailyData(prev => ({
+          ...prev,
+          [selectedDate]: { ...editingDayData }
+        }));
+
+        setShowDayEdit(false);
+        setSelectedDate(null);
+      };
+
+      // 日付データの削除
+      const deleteDayData = () => {
+        if (!selectedDate) return;
+
+        const newData = { ...dailyData };
+        delete newData[selectedDate];
+        setDailyData(newData);
+
+        setShowDayEdit(false);
+        setSelectedDate(null);
+      };
+
+      // カレンダーの月を変更
+      const changeMonth = (offset) => {
+        const newMonth = new Date(currentMonth);
+        newMonth.setMonth(newMonth.getMonth() + offset);
+        setCurrentMonth(newMonth);
+      };
+
+      // カレンダーの日付配列を生成
+      const generateCalendarDays = () => {
+        const year = currentMonth.getFullYear();
+        const month = currentMonth.getMonth();
+
+        // 月の最初の日
+        const firstDay = new Date(year, month, 1);
+        // 月の最後の日
+        const lastDay = new Date(year, month + 1, 0);
+
+        // 最初の日の曜日（0=日曜, 1=月曜, ...）
+        let firstDayOfWeek = firstDay.getDay();
+        // 月曜始まりに調整（日曜=6, 月曜=0）
+        firstDayOfWeek = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
+
+        const days = [];
+
+        // 前月の日付で埋める
+        const prevMonthLastDay = new Date(year, month, 0).getDate();
+        for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+          const date = new Date(year, month - 1, prevMonthLastDay - i);
+          days.push({ date, isCurrentMonth: false });
+        }
+
+        // 当月の日付
+        for (let i = 1; i <= lastDay.getDate(); i++) {
+          const date = new Date(year, month, i);
+          days.push({ date, isCurrentMonth: true });
+        }
+
+        // 次月の日付で埋める（6週分=42日まで）
+        const remainingDays = 42 - days.length;
+        for (let i = 1; i <= remainingDays; i++) {
+          const date = new Date(year, month + 1, i);
+          days.push({ date, isCurrentMonth: false });
+        }
+
+        return days;
       };
 
       // Enterキーで次の項目に移動
@@ -745,83 +843,115 @@
                   </div>
 
                   <div className="p-6">
-                    {Object.keys(historicalData).length === 0 ? (
-                      <div className="text-center py-12 text-gray-500">
-                        <Calendar />
-                        <p className="mt-4">まだ履歴データがありません</p>
-                        <p className="text-sm mt-2">日曜日から月曜日に切り替わると<br/>自動的に週のデータが保存されます</p>
+                    {/* 月切り替え */}
+                    <div className="flex items-center justify-between mb-4">
+                      <button
+                        onClick={() => changeMonth(-1)}
+                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                      >
+                        ← 前月
+                      </button>
+                      <h3 className="text-lg font-bold">
+                        {currentMonth.getFullYear()}年 {currentMonth.getMonth() + 1}月
+                      </h3>
+                      <button
+                        onClick={() => changeMonth(1)}
+                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                      >
+                        次月 →
+                      </button>
+                    </div>
+
+                    {/* カレンダーグリッド */}
+                    <div className="mb-4">
+                      {/* 曜日ヘッダー（月曜始まり） */}
+                      <div className="grid grid-cols-7 gap-1 mb-2">
+                        {['月', '火', '水', '木', '金', '土', '日'].map(day => (
+                          <div key={day} className="text-center text-xs font-medium text-gray-600 py-2">
+                            {day}
+                          </div>
+                        ))}
                       </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {Object.entries(historicalData)
-                          .sort((a, b) => new Date(b[0]) - new Date(a[0]))
-                          .map(([weekStart, data]) => {
-                            const startDate = new Date(weekStart);
-                            const endDate = new Date(startDate);
-                            endDate.setDate(endDate.getDate() + 6);
 
-                            const formatDate = (date) => {
-                              const month = date.getMonth() + 1;
-                              const day = date.getDate();
-                              return `${month}/${day}`;
-                            };
+                      {/* 日付グリッド */}
+                      <div className="grid grid-cols-7 gap-1">
+                        {generateCalendarDays().map((dayInfo, index) => {
+                          const dateStr = dayInfo.date.toISOString().split('T')[0];
+                          const dayData = dailyData[dateStr];
+                          const hasData = dayData && (dayData.hours > 0 || dayData.deliveries > 0 || dayData.earnings > 0);
+                          const isToday = dateStr === new Date().toISOString().split('T')[0];
 
-                            return (
-                              <div key={weekStart} className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-4 border border-purple-200">
-                                <div className="flex items-center justify-between mb-3">
-                                  <h3 className="font-bold text-gray-800">
-                                    {formatDate(startDate)} - {formatDate(endDate)}
-                                  </h3>
-                                  <div className="text-2xl font-bold text-purple-600">
-                                    ¥{parseInt(data.totalEarnings).toLocaleString()}
-                                  </div>
+                          return (
+                            <button
+                              key={index}
+                              onClick={() => handleDateClick(dayInfo.date)}
+                              className={`
+                                aspect-square p-1 rounded-lg text-sm relative
+                                ${!dayInfo.isCurrentMonth ? 'text-gray-300' : 'text-gray-800'}
+                                ${isToday ? 'ring-2 ring-blue-500' : ''}
+                                ${hasData ? 'bg-purple-100 hover:bg-purple-200' : 'hover:bg-gray-100'}
+                                transition-colors
+                              `}
+                            >
+                              <div className="font-medium">{dayInfo.date.getDate()}</div>
+                              {hasData && (
+                                <div className="text-[8px] text-purple-600 font-bold mt-0.5">
+                                  ¥{Math.floor(dayData.earnings || (dayData.hours * deliveriesPerHour * avgPrice)).toLocaleString()}
                                 </div>
-
-                                <div className="grid grid-cols-3 gap-3 text-sm">
-                                  <div className="bg-white/60 rounded-lg p-2">
-                                    <div className="text-gray-600 text-xs">稼働時間</div>
-                                    <div className="font-bold">{parseFloat(data.totalHours).toFixed(1)}時間</div>
-                                  </div>
-                                  <div className="bg-white/60 rounded-lg p-2">
-                                    <div className="text-gray-600 text-xs">配達件数</div>
-                                    <div className="font-bold">{parseInt(data.totalDeliveries)}件</div>
-                                  </div>
-                                  <div className="bg-white/60 rounded-lg p-2">
-                                    <div className="text-gray-600 text-xs">平均時給</div>
-                                    <div className="font-bold">
-                                      ¥{data.totalHours > 0 ? Math.floor(data.totalEarnings / data.totalHours).toLocaleString() : '0'}
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* 各曜日の詳細 */}
-                                <details className="mt-3">
-                                  <summary className="cursor-pointer text-sm text-purple-600 hover:text-purple-700 font-medium">
-                                    詳細を表示
-                                  </summary>
-                                  <div className="mt-3 space-y-2">
-                                    {days.map(day => {
-                                      const dayData = data.hours[day];
-                                      if (!dayData || dayData.hours === 0) return null;
-
-                                      return (
-                                        <div key={day} className="flex items-center justify-between bg-white/80 rounded-lg p-2 text-sm">
-                                          <span className="font-medium text-gray-700 w-8">{day}</span>
-                                          <div className="flex gap-3 text-xs">
-                                            <span>{dayData.hours}時間</span>
-                                            <span>{dayData.deliveries || Math.floor(dayData.hours * deliveriesPerHour)}件</span>
-                                            <span className="font-bold">¥{(dayData.earnings || Math.floor(dayData.hours * deliveriesPerHour * avgPrice)).toLocaleString()}</span>
-                                          </div>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                </details>
-                              </div>
-                            );
-                          })}
+                              )}
+                            </button>
+                          );
+                        })}
                       </div>
-                    )}
+                    </div>
+
+                    {/* 月間集計 */}
+                    {(() => {
+                      const monthData = Object.entries(dailyData).filter(([dateStr]) => {
+                        const date = new Date(dateStr);
+                        return date.getFullYear() === currentMonth.getFullYear() &&
+                               date.getMonth() === currentMonth.getMonth();
+                      });
+
+                      if (monthData.length === 0) return null;
+
+                      const totalHours = monthData.reduce((sum, [, data]) => sum + (data.hours || 0), 0);
+                      const totalDeliveries = monthData.reduce((sum, [, data]) => sum + (data.deliveries || 0), 0);
+                      const totalEarnings = monthData.reduce((sum, [, data]) => {
+                        return sum + (data.earnings || (data.hours * deliveriesPerHour * avgPrice));
+                      }, 0);
+                      const totalQuest = monthData.reduce((sum, [, data]) => sum + (data.quest || 0), 0);
+
+                      return (
+                        <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-4 border border-purple-200">
+                          <h4 className="font-bold text-gray-800 mb-3">月間集計</h4>
+                          <div className="grid grid-cols-2 gap-3 text-sm">
+                            <div className="bg-white/60 rounded-lg p-2">
+                              <div className="text-gray-600 text-xs">稼働時間</div>
+                              <div className="font-bold">{totalHours.toFixed(1)}時間</div>
+                            </div>
+                            <div className="bg-white/60 rounded-lg p-2">
+                              <div className="text-gray-600 text-xs">配達件数</div>
+                              <div className="font-bold">{Math.floor(totalDeliveries)}件</div>
+                            </div>
+                            <div className="bg-white/60 rounded-lg p-2">
+                              <div className="text-gray-600 text-xs">基本売上</div>
+                              <div className="font-bold">¥{Math.floor(totalEarnings).toLocaleString()}</div>
+                            </div>
+                            <div className="bg-white/60 rounded-lg p-2">
+                              <div className="text-gray-600 text-xs">クエスト</div>
+                              <div className="font-bold">¥{Math.floor(totalQuest).toLocaleString()}</div>
+                            </div>
+                          </div>
+                          <div className="mt-3 bg-white/80 rounded-lg p-3 border border-purple-300">
+                            <div className="text-gray-600 text-sm">合計売上</div>
+                            <div className="text-2xl font-bold text-purple-600">
+                              ¥{Math.floor(totalEarnings + totalQuest).toLocaleString()}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   <div className="p-4 border-t border-gray-200">
@@ -924,6 +1054,133 @@
                     >
                       完了
                     </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 日付編集モーダル */}
+            {showDayEdit && selectedDate && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[60]">
+                <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full">
+                  <div className="bg-gradient-to-r from-purple-500 to-blue-500 text-white p-4 rounded-t-2xl">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-xl font-bold">
+                        {new Date(selectedDate + 'T00:00:00').toLocaleDateString('ja-JP', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          weekday: 'short'
+                        })}
+                      </h2>
+                      <button
+                        onClick={() => setShowDayEdit(false)}
+                        className="text-white hover:text-gray-200 text-2xl"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="p-6 space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        稼働時間
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          step="0.5"
+                          value={editingDayData.hours || ''}
+                          onChange={(e) => setEditingDayData({...editingDayData, hours: parseFloat(e.target.value) || 0})}
+                          onKeyDown={handleKeyDown}
+                          className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none text-lg"
+                          placeholder="0"
+                        />
+                        <span className="text-gray-600 font-medium">時間</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        配達件数
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          value={editingDayData.deliveries || ''}
+                          onChange={(e) => setEditingDayData({...editingDayData, deliveries: parseInt(e.target.value) || 0})}
+                          onKeyDown={handleKeyDown}
+                          className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none text-lg"
+                          placeholder={editingDayData.hours > 0 ? Math.floor(editingDayData.hours * deliveriesPerHour).toString() : "0"}
+                        />
+                        <span className="text-gray-600 font-medium">件</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        基本売上
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          step="100"
+                          value={editingDayData.earnings || ''}
+                          onChange={(e) => setEditingDayData({...editingDayData, earnings: parseInt(e.target.value) || 0})}
+                          onKeyDown={handleKeyDown}
+                          className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none text-lg"
+                          placeholder={editingDayData.hours > 0 ? Math.floor(editingDayData.hours * deliveriesPerHour * avgPrice).toString() : "0"}
+                        />
+                        <span className="text-gray-600 font-medium">円</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        クエスト報酬
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          step="100"
+                          value={editingDayData.quest || ''}
+                          onChange={(e) => setEditingDayData({...editingDayData, quest: parseInt(e.target.value) || 0})}
+                          onKeyDown={handleKeyDown}
+                          className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none text-lg"
+                          placeholder="0"
+                        />
+                        <span className="text-gray-600 font-medium">円</span>
+                      </div>
+                    </div>
+
+                    {/* 合計表示 */}
+                    <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-4 border border-purple-200">
+                      <div className="text-sm text-gray-600 mb-1">この日の合計</div>
+                      <div className="text-2xl font-bold text-purple-600">
+                        ¥{(
+                          (editingDayData.earnings || (editingDayData.hours * deliveriesPerHour * avgPrice)) +
+                          (editingDayData.quest || 0)
+                        ).toLocaleString()}
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={saveDayData}
+                        className="flex-1 bg-purple-500 text-white py-3 rounded-xl font-medium hover:bg-purple-600 transition-colors"
+                      >
+                        保存
+                      </button>
+                      {dailyData[selectedDate] && (
+                        <button
+                          onClick={deleteDayData}
+                          className="px-6 bg-red-500 text-white py-3 rounded-xl font-medium hover:bg-red-600 transition-colors"
+                        >
+                          削除
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
