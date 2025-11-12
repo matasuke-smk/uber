@@ -1562,6 +1562,38 @@
       );
     }
 
+    // グローバルエラーハンドラー - エラーを画面に表示（renderの前に設定）
+    window.onerror = function(msg, url, lineNo, columnNo, error) {
+      const errorDiv = document.createElement('div');
+      errorDiv.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:white;z-index:99999;padding:20px;overflow:auto;font-family:monospace;font-size:14px;';
+      errorDiv.innerHTML = `
+        <h1 style="color:red;">エラーが発生しました</h1>
+        <p><strong>メッセージ:</strong> ${msg}</p>
+        <p><strong>行:</strong> ${lineNo}</p>
+        <p><strong>列:</strong> ${columnNo}</p>
+        <p><strong>エラー:</strong> ${error?.stack || error}</p>
+        <button onclick="localStorage.clear();location.reload();" style="padding:10px 20px;font-size:16px;margin-top:20px;">
+          localStorageをクリアして再読み込み
+        </button>
+      `;
+      document.body.appendChild(errorDiv);
+      return false;
+    };
+
+    // Promise rejection のエラーもキャッチ
+    window.addEventListener('unhandledrejection', function(event) {
+      const errorDiv = document.createElement('div');
+      errorDiv.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:white;z-index:99999;padding:20px;overflow:auto;font-family:monospace;font-size:14px;';
+      errorDiv.innerHTML = `
+        <h1 style="color:red;">Promise エラーが発生しました</h1>
+        <p><strong>理由:</strong> ${event.reason}</p>
+        <button onclick="localStorage.clear();location.reload();" style="padding:10px 20px;font-size:16px;margin-top:20px;">
+          localStorageをクリアして再読み込み
+        </button>
+      `;
+      document.body.appendChild(errorDiv);
+    });
+
     // Render the app
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<UberEatsSimulator />);
