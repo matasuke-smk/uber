@@ -98,6 +98,7 @@
       // 基本設定
       const [avgPrice, setAvgPrice] = useState(() => loadFromStorage('avgPrice', 400));
       const [deliveriesPerHour, setDeliveriesPerHour] = useState(() => loadFromStorage('deliveriesPerHour', 4));
+      const [useAutoCalculate, setUseAutoCalculate] = useState(() => loadFromStorage('useAutoCalculate', false));
       
       // クエスト設定 - 月～木用
       const [weekdayQuests, setWeekdayQuests] = useState(() => loadFromStorage('weekdayQuests', [
@@ -210,6 +211,12 @@
           localStorage.setItem('deliveriesPerHour', JSON.stringify(deliveriesPerHour));
         }
       }, [deliveriesPerHour]);
+
+      useEffect(() => {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('useAutoCalculate', JSON.stringify(useAutoCalculate));
+        }
+      }, [useAutoCalculate]);
       
       useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -263,6 +270,9 @@
       useEffect(() => {
         if (!currentWeekStart) return;
 
+        // 使用する平均値を取得
+        const { deliveriesPerHour: effectiveDeliveriesPerHour } = getEffectiveValues();
+
         setDailyData(prev => {
           const updatedData = { ...prev };
 
@@ -297,7 +307,7 @@
 
           weekdays.forEach(day => {
             const dayData = hours[day];
-            const dayDeliveries = dayData.deliveries > 0 ? dayData.deliveries : dayData.hours * deliveriesPerHour;
+            const dayDeliveries = dayData.deliveries > 0 ? dayData.deliveries : dayData.hours * effectiveDeliveriesPerHour;
             cumulativeWeekday += dayDeliveries;
 
             // この日に達成したクエストを確認
@@ -334,7 +344,7 @@
 
           weekends.forEach(day => {
             const dayData = hours[day];
-            const dayDeliveries = dayData.deliveries > 0 ? dayData.deliveries : dayData.hours * deliveriesPerHour;
+            const dayDeliveries = dayData.deliveries > 0 ? dayData.deliveries : dayData.hours * effectiveDeliveriesPerHour;
             cumulativeWeekend += dayDeliveries;
 
             // この日に達成したクエストを確認
@@ -366,7 +376,7 @@
 
           return updatedData;
         });
-      }, [hours, weekdayQuests, weekendQuests, currentWeekStart, deliveriesPerHour]);
+      }, [hours, weekdayQuests, weekendQuests, currentWeekStart, deliveriesPerHour, useAutoCalculate, avgPrice, dailyData]);
 
       // 週の切り替わり検知（日曜日→月曜日）
       useEffect(() => {
@@ -578,9 +588,48 @@
           }
         }
       };
-      
+
+      // 履歴から平均値を計算
+      const calculateFromHistory = () => {
+        const allData = Object.values(dailyData);
+        if (allData.length === 0) {
+          return { avgPrice: 400, deliveriesPerHour: 4 };
+        }
+
+        let totalHours = 0;
+        let totalDeliveries = 0;
+        let totalEarnings = 0;
+
+        allData.forEach(data => {
+          if (data.hours > 0 && data.deliveries > 0 && data.earnings > 0) {
+            totalHours += data.hours;
+            totalDeliveries += data.deliveries;
+            totalEarnings += data.earnings;
+          }
+        });
+
+        if (totalDeliveries === 0 || totalHours === 0) {
+          return { avgPrice: 400, deliveriesPerHour: 4 };
+        }
+
+        return {
+          avgPrice: Math.round(totalEarnings / totalDeliveries),
+          deliveriesPerHour: parseFloat((totalDeliveries / totalHours).toFixed(1))
+        };
+      };
+
+      // 使用する平均値を取得（自動算出 or 手動入力）
+      const getEffectiveValues = () => {
+        if (useAutoCalculate) {
+          return calculateFromHistory();
+        }
+        return { avgPrice, deliveriesPerHour };
+      };
+
       // 計算
       const calculate = () => {
+        // 使用する平均値を取得
+        const { avgPrice: effectiveAvgPrice, deliveriesPerHour: effectiveDeliveriesPerHour } = getEffectiveValues();
         // 月～木の合計
         let weekdayHours = 0;
         let weekdayDeliveries = 0;
@@ -591,11 +640,11 @@
           weekdayHours += dayData.hours;
           
           // 件数：入力があればそれを使用、なければ予想
-          const dayDeliveries = dayData.deliveries > 0 ? dayData.deliveries : dayData.hours * deliveriesPerHour;
+          const dayDeliveries = dayData.deliveries > 0 ? dayData.deliveries : dayData.hours * effectiveDeliveriesPerHour;
           weekdayDeliveries += dayDeliveries;
-          
+
           // 金額：入力があればそれを使用、なければ予想
-          const dayEarnings = dayData.earnings > 0 ? dayData.earnings : dayData.hours * deliveriesPerHour * avgPrice;
+          const dayEarnings = dayData.earnings > 0 ? dayData.earnings : dayData.hours * effectiveDeliveriesPerHour * effectiveAvgPrice;
           weekdayBasicEarnings += dayEarnings;
         });
         
@@ -617,13 +666,13 @@
         weekends.forEach(day => {
           const dayData = hours[day];
           weekendHours += dayData.hours;
-          
+
           // 件数：入力があればそれを使用、なければ予想
-          const dayDeliveries = dayData.deliveries > 0 ? dayData.deliveries : dayData.hours * deliveriesPerHour;
+          const dayDeliveries = dayData.deliveries > 0 ? dayData.deliveries : dayData.hours * effectiveDeliveriesPerHour;
           weekendDeliveries += dayDeliveries;
-          
+
           // 金額：入力があればそれを使用、なければ予想
-          const dayEarnings = dayData.earnings > 0 ? dayData.earnings : dayData.hours * deliveriesPerHour * avgPrice;
+          const dayEarnings = dayData.earnings > 0 ? dayData.earnings : dayData.hours * effectiveDeliveriesPerHour * effectiveAvgPrice;
           weekendBasicEarnings += dayEarnings;
         });
         
@@ -915,34 +964,80 @@
                   </div>
                   
                   <div className="p-6 space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        平均単価(円/件)
+                    {/* トグルスイッチ */}
+                    <div className="bg-gray-50 rounded-xl p-4 border-2 border-gray-200">
+                      <label className="flex items-center justify-between cursor-pointer">
+                        <div>
+                          <div className="text-sm font-medium text-gray-700">算出方法</div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {useAutoCalculate ? '履歴から自動算出' : '手動入力'}
+                          </div>
+                        </div>
+                        <div className="relative">
+                          <input
+                            type="checkbox"
+                            checked={useAutoCalculate}
+                            onChange={(e) => setUseAutoCalculate(e.target.checked)}
+                            className="sr-only peer"
+                          />
+                          <div className="w-14 h-7 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-green-500"></div>
+                        </div>
                       </label>
-                      <input
-                        type="number"
-                        step="10"
-                        value={avgPrice}
-                        onChange={(e) => setAvgPrice(parseFloat(e.target.value) || 0)}
-                        onKeyDown={handleKeyDown}
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none text-lg"
-                      />
                     </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        1時間当たりの平均配達件数
-                      </label>
-                      <input
-                        type="number"
-                        step="0.1"
-                        value={deliveriesPerHour}
-                        onChange={(e) => setDeliveriesPerHour(parseFloat(e.target.value) || 0)}
-                        onKeyDown={handleKeyDown}
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none text-lg"
-                      />
-                    </div>
-                    
+
+                    {/* 履歴から算出した値を表示 */}
+                    {useAutoCalculate && (() => {
+                      const { avgPrice: calcPrice, deliveriesPerHour: calcDeliveries } = calculateFromHistory();
+                      return (
+                        <div className="bg-blue-50 rounded-xl p-4 border-2 border-blue-200">
+                          <div className="text-sm font-medium text-blue-800 mb-3">📊 履歴から算出された値</div>
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-gray-700">平均単価:</span>
+                              <span className="text-lg font-bold text-blue-600">¥{calcPrice}/件</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-gray-700">平均配達件数:</span>
+                              <span className="text-lg font-bold text-blue-600">{calcDeliveries}件/時間</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* 手動入力フィールド */}
+                    {!useAutoCalculate && (
+                      <>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            平均単価(円/件)
+                          </label>
+                          <input
+                            type="number"
+                            step="10"
+                            value={avgPrice}
+                            onChange={(e) => setAvgPrice(parseFloat(e.target.value) || 0)}
+                            onKeyDown={handleKeyDown}
+                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none text-lg"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            1時間当たりの平均配達件数
+                          </label>
+                          <input
+                            type="number"
+                            step="0.1"
+                            value={deliveriesPerHour}
+                            onChange={(e) => setDeliveriesPerHour(parseFloat(e.target.value) || 0)}
+                            onKeyDown={handleKeyDown}
+                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none text-lg"
+                          />
+                        </div>
+                      </>
+                    )}
+
                     <button
                       onClick={() => setShowBasicSettings(false)}
                       className="w-full bg-green-500 text-white py-3 rounded-xl font-medium hover:bg-green-600 transition-colors"
