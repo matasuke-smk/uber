@@ -568,6 +568,69 @@
         }
       };
 
+      // データエクスポート
+      const exportData = () => {
+        const data = {
+          version: 2,
+          exportDate: new Date().toISOString(),
+          weekdayAvgPrice,
+          weekendAvgPrice,
+          weekdayDeliveriesPerHour,
+          weekendDeliveriesPerHour,
+          useAutoCalculate,
+          weekdayQuests,
+          weekendQuests,
+          hours,
+          targetAmount,
+          dailyData,
+          currentWeekStart,
+          lastAccessDate
+        };
+
+        const jsonStr = JSON.stringify(data, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `ubereats-backup-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      };
+
+      // データインポート
+      const importData = (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const data = JSON.parse(e.target.result);
+
+            // データを復元
+            if (data.weekdayAvgPrice !== undefined) setWeekdayAvgPrice(data.weekdayAvgPrice);
+            if (data.weekendAvgPrice !== undefined) setWeekendAvgPrice(data.weekendAvgPrice);
+            if (data.weekdayDeliveriesPerHour !== undefined) setWeekdayDeliveriesPerHour(data.weekdayDeliveriesPerHour);
+            if (data.weekendDeliveriesPerHour !== undefined) setWeekendDeliveriesPerHour(data.weekendDeliveriesPerHour);
+            if (data.useAutoCalculate !== undefined) setUseAutoCalculate(data.useAutoCalculate);
+            if (data.weekdayQuests) setWeekdayQuests(data.weekdayQuests);
+            if (data.weekendQuests) setWeekendQuests(data.weekendQuests);
+            if (data.hours) setHours(data.hours);
+            if (data.targetAmount !== undefined) setTargetAmount(data.targetAmount);
+            if (data.dailyData) setDailyData(data.dailyData);
+            if (data.currentWeekStart) setCurrentWeekStart(data.currentWeekStart);
+            if (data.lastAccessDate) setLastAccessDate(data.lastAccessDate);
+
+            alert('データを復元しました！');
+          } catch (error) {
+            alert('データの読み込みに失敗しました: ' + error.message);
+          }
+        };
+        reader.readAsText(file);
+      };
+
       // 日付をタップしたときの処理
       const handleDateClick = (date) => {
         const dateStr = formatDateToLocal(date);
@@ -1139,11 +1202,42 @@
                       </>
                     )}
 
+                    {/* データのバックアップ・復元 */}
+                    <div className="bg-gray-50 rounded-xl p-4 border-2 border-gray-200">
+                      <div className="text-sm font-medium text-gray-700 mb-3">💾 データのバックアップ・復元</div>
+                      <div className="space-y-2">
+                        <button
+                          onClick={exportData}
+                          className="w-full bg-blue-500 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-600 transition-colors text-sm"
+                        >
+                          📤 データをエクスポート
+                        </button>
+                        <label className="block">
+                          <input
+                            type="file"
+                            accept=".json"
+                            onChange={importData}
+                            className="hidden"
+                            id="import-file"
+                          />
+                          <div
+                            onClick={() => document.getElementById('import-file').click()}
+                            className="w-full bg-green-500 text-white py-2 px-4 rounded-lg font-medium hover:bg-green-600 transition-colors text-sm cursor-pointer text-center"
+                          >
+                            📥 データをインポート
+                          </div>
+                        </label>
+                        <p className="text-xs text-gray-500 mt-2">
+                          ※エクスポートしたJSONファイルを保存しておくと、データを復元できます
+                        </p>
+                      </div>
+                    </div>
+
                     <button
                       onClick={() => setShowBasicSettings(false)}
-                      className="w-full bg-green-500 text-white py-3 rounded-xl font-medium hover:bg-green-600 transition-colors"
+                      className="w-full bg-gray-500 text-white py-3 rounded-xl font-medium hover:bg-gray-600 transition-colors"
                     >
-                      完了
+                      閉じる
                     </button>
                   </div>
                 </div>
