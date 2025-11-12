@@ -1708,7 +1708,7 @@
                     {/* 月間集計 */}
                     {(() => {
                       const monthData = Object.entries(dailyData).filter(([dateStr]) => {
-                        const date = new Date(dateStr);
+                        const date = new Date(dateStr + 'T00:00:00');
                         return date.getFullYear() === currentMonth.getFullYear() &&
                                date.getMonth() === currentMonth.getMonth();
                       });
