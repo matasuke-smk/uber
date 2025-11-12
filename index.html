@@ -965,8 +965,8 @@
           const dayDeliveries = dayData.deliveries > 0 ? dayData.deliveries : dayData.hours * effectiveValues.weekdayDeliveriesPerHour;
           weekdayDeliveries += dayDeliveries;
 
-          // 金額：入力があればそれを使用、なければ予想（クエスト報酬も含む）
-          const dayEarnings = dayData.earnings > 0 ? dayData.earnings : dayData.hours * (effectiveValues.weekdayDeliveriesPerHour * effectiveValues.weekdayAvgPrice + effectiveValues.weekdayQuestPerHour);
+          // 金額：入力があればそれを使用、なければ予想（基本報酬のみ、クエストは別途計算）
+          const dayEarnings = dayData.earnings > 0 ? dayData.earnings : dayData.hours * effectiveValues.weekdayDeliveriesPerHour * effectiveValues.weekdayAvgPrice;
           weekdayBasicEarnings += dayEarnings;
         });
         
@@ -993,8 +993,8 @@
           const dayDeliveries = dayData.deliveries > 0 ? dayData.deliveries : dayData.hours * effectiveValues.weekendDeliveriesPerHour;
           weekendDeliveries += dayDeliveries;
 
-          // 金額：入力があればそれを使用、なければ予想（クエスト報酬も含む）
-          const dayEarnings = dayData.earnings > 0 ? dayData.earnings : dayData.hours * (effectiveValues.weekendDeliveriesPerHour * effectiveValues.weekendAvgPrice + effectiveValues.weekendQuestPerHour);
+          // 金額：入力があればそれを使用、なければ予想（基本報酬のみ、クエストは別途計算）
+          const dayEarnings = dayData.earnings > 0 ? dayData.earnings : dayData.hours * effectiveValues.weekendDeliveriesPerHour * effectiveValues.weekendAvgPrice;
           weekendBasicEarnings += dayEarnings;
         });
         
@@ -2329,20 +2329,9 @@
                   </div>
 
                   <div className="p-4 overflow-y-auto flex-1">
-                    {/* 月別・年間集計 */}
+                    {/* 年間集計 */}
                     {(() => {
                       const currentYear = new Date().getFullYear();
-                      const currentMonth = new Date().getMonth() + 1;
-
-                      const monthlyExpenses = Object.entries(expenses)
-                        .filter(([id, expense]) => {
-                          const [year, month] = expense.date.split('-');
-                          return parseInt(year) === currentYear && parseInt(month) === currentMonth;
-                        })
-                        .reduce((sum, [id, expense]) => {
-                          const percentage = expense.businessPercentage ?? 100;
-                          return sum + Math.floor(expense.amount * percentage / 100);
-                        }, 0);
 
                       const yearlyExpenses = Object.entries(expenses)
                         .filter(([id, expense]) => {
@@ -2355,22 +2344,12 @@
                         }, 0);
 
                       return (
-                        <div className="grid grid-cols-2 gap-3 mb-4">
-                          <div className="bg-red-50 rounded-xl p-4 border-2 border-red-200">
-                            <div className="text-sm text-gray-600 mb-1">
-                              {currentMonth}月の経費
-                            </div>
-                            <div className="text-2xl font-bold text-red-600">
-                              ¥{monthlyExpenses.toLocaleString()}
-                            </div>
+                        <div className="bg-orange-50 rounded-xl p-4 border-2 border-orange-200 mb-4">
+                          <div className="text-sm text-gray-600 mb-1">
+                            {currentYear}年の経費
                           </div>
-                          <div className="bg-orange-50 rounded-xl p-4 border-2 border-orange-200">
-                            <div className="text-sm text-gray-600 mb-1">
-                              {currentYear}年の経費
-                            </div>
-                            <div className="text-2xl font-bold text-orange-600">
-                              ¥{yearlyExpenses.toLocaleString()}
-                            </div>
+                          <div className="text-2xl font-bold text-orange-600">
+                            ¥{yearlyExpenses.toLocaleString()}
                           </div>
                         </div>
                       );
