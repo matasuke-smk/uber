@@ -299,9 +299,9 @@
               }
             }
 
-            // この日にクエスト報酬があれば設定
+            // この日にクエスト報酬があり、かつ稼働時間がある場合に設定
             const dateStr = getDayDate(day);
-            if (dateStr && dayQuestReward > 0) {
+            if (dateStr && dayQuestReward > 0 && dayData.hours > 0) {
               if (updatedData[dateStr]) {
                 // 既存データがあればクエストを追加
                 updatedData[dateStr] = {
@@ -309,7 +309,7 @@
                   quest: dayQuestReward
                 };
               } else {
-                // データがない場合はクエストのみ作成
+                // 時間だけ入力されている場合はクエストのみ記録
                 updatedData[dateStr] = {
                   hours: 0,
                   deliveries: 0,
@@ -342,9 +342,9 @@
               }
             }
 
-            // この日にクエスト報酬があれば設定
+            // この日にクエスト報酬があり、かつ稼働時間がある場合に設定
             const dateStr = getDayDate(day);
-            if (dateStr && dayQuestReward > 0) {
+            if (dateStr && dayQuestReward > 0 && dayData.hours > 0) {
               if (updatedData[dateStr]) {
                 // 既存データがあればクエストを追加
                 updatedData[dateStr] = {
@@ -352,7 +352,7 @@
                   quest: dayQuestReward
                 };
               } else {
-                // データがない場合はクエストのみ作成
+                // 時間だけ入力されている場合はクエストのみ記録
                 updatedData[dateStr] = {
                   hours: 0,
                   deliveries: 0,
