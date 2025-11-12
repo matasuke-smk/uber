@@ -929,7 +929,12 @@
                         onChange={(e) => updateHours(day, 'deliveries', e.target.value)}
                         onKeyDown={handleKeyDown}
                         className="w-full px-2 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm text-center"
-                        placeholder={hours[day].hours > 0 ? Math.floor(hours[day].hours * deliveriesPerHour).toString() : "0"}
+                        placeholder={hours[day].hours > 0 ? (() => {
+                          const effectiveValues = getEffectiveValues();
+                          const isWeekday = weekdays.includes(day);
+                          const deliveries = isWeekday ? effectiveValues.weekdayDeliveriesPerHour : effectiveValues.weekendDeliveriesPerHour;
+                          return Math.floor(hours[day].hours * deliveries).toString();
+                        })() : "0"}
                       />
                       <input
                         type="number"
