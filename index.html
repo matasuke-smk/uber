@@ -92,6 +92,7 @@
       const [showBasicSettings, setShowBasicSettings] = useState(false);
       const [showQuestSettings, setShowQuestSettings] = useState(false);
       const [showCalendar, setShowCalendar] = useState(false);
+      const [showTotalStats, setShowTotalStats] = useState(false);
       
       // 古いlocalStorageキーをクリーンアップ（一度だけ実行）
       if (typeof window !== 'undefined' && !localStorage.getItem('cleanupDone_v2')) {
@@ -356,6 +357,19 @@
           localStorage.setItem('dailyData', JSON.stringify(dailyData));
         }
       }, [dailyData]);
+
+      // モーダル表示中は背景のスクロールを無効化
+      useEffect(() => {
+        const isModalOpen = showBasicSettings || showQuestSettings || showCalendar || showTotalStats || showDayEdit;
+        if (isModalOpen) {
+          document.body.style.overflow = 'hidden';
+        } else {
+          document.body.style.overflow = '';
+        }
+        return () => {
+          document.body.style.overflow = '';
+        };
+      }, [showBasicSettings, showQuestSettings, showCalendar, showTotalStats, showDayEdit]);
 
       // 週の稼働時間が変更されたら、クエスト報酬を計算してカレンダーに反映
       useEffect(() => {
@@ -863,9 +877,12 @@
             <div className="bg-white rounded-2xl shadow-lg p-6 mb-4">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-3">
-                  <div className="bg-green-500 p-3 rounded-xl">
+                  <button
+                    onClick={() => setShowTotalStats(true)}
+                    className="bg-green-500 p-3 rounded-xl hover:bg-green-600 transition-colors"
+                  >
                     <Calculator />
-                  </div>
+                  </button>
                   <div>
                     <h1 className="text-2xl font-bold text-gray-800">Uber Eats</h1>
                     <p className="text-sm text-gray-600">週間売上シミュレーター</p>
@@ -1067,11 +1084,132 @@
               </div>
             </div>
 
+            {/* 全期間集計モーダル */}
+            {showTotalStats && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+                <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+                  <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between z-10">
+                    <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                      <Calculator />
+                      全期間集計
+                    </h2>
+                    <button
+                      onClick={() => setShowTotalStats(false)}
+                      className="text-gray-500 hover:text-gray-700 text-2xl"
+                    >
+                      ×
+                    </button>
+                  </div>
+
+                  <div className="p-6">
+                    {(() => {
+                      const allEntries = Object.entries(dailyData);
+                      if (allEntries.length === 0) {
+                        return (
+                          <div className="text-center text-gray-500 py-8">
+                            データがありません
+                          </div>
+                        );
+                      }
+
+                      let totalHours = 0;
+                      let totalDeliveries = 0;
+                      let totalEarnings = 0;
+                      let totalQuest = 0;
+
+                      allEntries.forEach(([, data]) => {
+                        totalHours += data.hours || 0;
+                        totalDeliveries += data.deliveries || 0;
+                        totalEarnings += data.earnings || 0;
+                        totalQuest += data.quest || 0;
+                      });
+
+                      const totalSales = totalEarnings + totalQuest;
+                      const avgPricePerDelivery = totalDeliveries > 0 ? totalEarnings / totalDeliveries : 0;
+                      const deliveriesPerHour = totalHours > 0 ? totalDeliveries / totalHours : 0;
+                      const earningsPerHour = totalHours > 0 ? totalSales / totalHours : 0;
+
+                      return (
+                        <div className="space-y-4">
+                          {/* 期間 */}
+                          <div className="bg-gray-50 rounded-xl p-4">
+                            <div className="text-sm text-gray-600 mb-1">データ期間</div>
+                            <div className="text-lg font-bold text-gray-800">
+                              {allEntries.length}日間
+                            </div>
+                          </div>
+
+                          {/* 合計売上 */}
+                          <div className="bg-green-50 rounded-xl p-4 border-2 border-green-200">
+                            <div className="text-sm text-gray-600 mb-1">合計売上</div>
+                            <div className="text-2xl font-bold text-green-600">
+                              ¥{Math.floor(totalSales).toLocaleString()}
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1">
+                              基本売上: ¥{Math.floor(totalEarnings).toLocaleString()} + クエスト: ¥{Math.floor(totalQuest).toLocaleString()}
+                            </div>
+                          </div>
+
+                          {/* 稼働時間 */}
+                          <div className="bg-blue-50 rounded-xl p-4">
+                            <div className="text-sm text-gray-600 mb-1">総稼働時間</div>
+                            <div className="text-xl font-bold text-blue-600">
+                              {totalHours.toFixed(1)}時間
+                            </div>
+                          </div>
+
+                          {/* 配達件数 */}
+                          <div className="bg-purple-50 rounded-xl p-4">
+                            <div className="text-sm text-gray-600 mb-1">総配達件数</div>
+                            <div className="text-xl font-bold text-purple-600">
+                              {totalDeliveries}件
+                            </div>
+                          </div>
+
+                          {/* 平均値 */}
+                          <div className="bg-gray-50 rounded-xl p-4 space-y-2">
+                            <div className="text-sm font-medium text-gray-700 mb-2">📊 平均値</div>
+                            <div className="grid grid-cols-2 gap-3 text-sm">
+                              <div>
+                                <div className="text-gray-600">平均単価</div>
+                                <div className="font-bold text-gray-800">¥{Math.floor(avgPricePerDelivery).toLocaleString()}/件</div>
+                              </div>
+                              <div>
+                                <div className="text-gray-600">時給換算</div>
+                                <div className="font-bold text-gray-800">¥{Math.floor(earningsPerHour).toLocaleString()}/h</div>
+                              </div>
+                              <div>
+                                <div className="text-gray-600">配達件数</div>
+                                <div className="font-bold text-gray-800">{deliveriesPerHour.toFixed(1)}件/h</div>
+                              </div>
+                              <div>
+                                <div className="text-gray-600">日平均売上</div>
+                                <div className="font-bold text-gray-800">¥{Math.floor(totalSales / allEntries.length).toLocaleString()}/日</div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  <div className="p-4 border-t border-gray-200">
+                    <button
+                      onClick={() => setShowTotalStats(false)}
+                      className="w-full bg-green-500 text-white py-3 rounded-xl font-medium hover:bg-green-600 transition-colors"
+                    >
+                      閉じる
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* フッター */}
             <div className="text-center text-gray-600 text-sm mt-6">
               ※実際の売上は配達エリアや時間帯により変動します
             </div>
-            
+
             {/* 基本設定モーダル */}
             {showBasicSettings && (
               <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
