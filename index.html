@@ -259,6 +259,71 @@
         }
       }, [dailyData]);
 
+      // 週の稼働時間が変更されたら、クエスト報酬を計算してカレンダーに反映
+      useEffect(() => {
+        if (!currentWeekStart) return;
+
+        // 月～木の配達件数を計算
+        let weekdayDeliveries = 0;
+        weekdays.forEach(day => {
+          const dayData = hours[day];
+          const dayDeliveries = dayData.deliveries > 0 ? dayData.deliveries : dayData.hours * deliveriesPerHour;
+          weekdayDeliveries += dayDeliveries;
+        });
+
+        // 月～木のクエスト報酬を計算
+        let weekdayQuestEarnings = 0;
+        let cumulativeWeekday = 0;
+        weekdayQuests.forEach(quest => {
+          cumulativeWeekday += quest.count;
+          if (weekdayDeliveries >= cumulativeWeekday) {
+            weekdayQuestEarnings += quest.reward;
+          }
+        });
+
+        // 金～日の配達件数を計算
+        let weekendDeliveries = 0;
+        weekends.forEach(day => {
+          const dayData = hours[day];
+          const dayDeliveries = dayData.deliveries > 0 ? dayData.deliveries : dayData.hours * deliveriesPerHour;
+          weekendDeliveries += dayDeliveries;
+        });
+
+        // 金～日のクエスト報酬を計算
+        let weekendQuestEarnings = 0;
+        let cumulativeWeekend = 0;
+        weekendQuests.forEach(quest => {
+          cumulativeWeekend += quest.count;
+          if (weekendDeliveries >= cumulativeWeekend) {
+            weekendQuestEarnings += quest.reward;
+          }
+        });
+
+        // クエスト報酬をカレンダーに反映（木曜日と日曜日に配分）
+        const thursdayDate = getDayDate('木');
+        const sundayDate = getDayDate('日');
+
+        if (thursdayDate) {
+          setDailyData(prev => ({
+            ...prev,
+            [thursdayDate]: {
+              ...(prev[thursdayDate] || { hours: 0, deliveries: 0, earnings: 0, quest: 0 }),
+              quest: weekdayQuestEarnings
+            }
+          }));
+        }
+
+        if (sundayDate) {
+          setDailyData(prev => ({
+            ...prev,
+            [sundayDate]: {
+              ...(prev[sundayDate] || { hours: 0, deliveries: 0, earnings: 0, quest: 0 }),
+              quest: weekendQuestEarnings
+            }
+          }));
+        }
+      }, [hours, weekdayQuests, weekendQuests, currentWeekStart, deliveriesPerHour]);
+
       // 週の切り替わり検知（日曜日→月曜日）
       useEffect(() => {
         const checkWeekTransition = () => {
@@ -287,25 +352,9 @@
           const lastAccess = new Date(lastAccessDate);
           const lastDayOfWeek = lastAccess.getDay();
 
-          // 日曜日から月曜日に変わった場合
+          // 日曜日から月曜日に変わった場合（新しい週の開始）
           if (lastDayOfWeek === 0 && dayOfWeek === 1) {
-            // 前週のデータを保存
-            const lastMonday = getMondayOfWeek(lastAccess);
-            const weekData = {
-              weekStart: lastMonday,
-              hours: { ...hours },
-              totalEarnings: calculate().totalEarnings,
-              totalHours: calculate().totalHours,
-              totalDeliveries: calculate().totalDeliveries
-            };
-
-            // 履歴データに追加
-            setHistoricalData(prev => ({
-              ...prev,
-              [lastMonday]: weekData
-            }));
-
-            // 稼働時間データをクリア
+            // 週の入力をクリア（データはカレンダーに自動保存済み）
             setHours({
               月: { hours: 0, deliveries: 0, earnings: 0 },
               火: { hours: 0, deliveries: 0, earnings: 0 },
@@ -343,47 +392,58 @@
         setWeekendQuests(newQuests);
       };
       
-      // 稼働時間更新
+      // 曜日から日付を計算
+      const getDayDate = (dayName) => {
+        if (!currentWeekStart) return null;
+
+        const dayIndex = days.indexOf(dayName); // 0=月, 1=火, ..., 6=日
+        const weekStartDate = new Date(currentWeekStart + 'T00:00:00');
+        const targetDate = new Date(weekStartDate);
+        targetDate.setDate(targetDate.getDate() + dayIndex);
+
+        return formatDateToLocal(targetDate);
+      };
+
+      // 稼働時間更新（週ビューとカレンダーを同期）
       const updateHours = (day, field, value) => {
-        setHours({
+        const newValue = parseFloat(value) || 0;
+
+        // 週ビューを更新
+        const newHours = {
           ...hours,
           [day]: {
             ...hours[day],
-            [field]: parseFloat(value) || 0
+            [field]: newValue
           }
-        });
+        };
+        setHours(newHours);
+
+        // カレンダー（dailyData）にも同期
+        const dateStr = getDayDate(day);
+        if (dateStr) {
+          setDailyData(prev => ({
+            ...prev,
+            [dateStr]: {
+              ...(prev[dateStr] || { hours: 0, deliveries: 0, earnings: 0, quest: 0 }),
+              [field]: newValue
+            }
+          }));
+        }
       };
 
-      // 週のデータを手動で保存
-      const saveCurrentWeek = () => {
-        if (!currentWeekStart) return;
-
-        const results = calculate();
-        const weekData = {
-          weekStart: currentWeekStart,
-          hours: { ...hours },
-          totalEarnings: results.totalEarnings,
-          totalHours: parseFloat(results.totalHours),
-          totalDeliveries: results.totalDeliveries
-        };
-
-        setHistoricalData(prev => ({
-          ...prev,
-          [currentWeekStart]: weekData
-        }));
-
-        // データをクリア
-        setHours({
-          月: { hours: 0, deliveries: 0, earnings: 0 },
-          火: { hours: 0, deliveries: 0, earnings: 0 },
-          水: { hours: 0, deliveries: 0, earnings: 0 },
-          木: { hours: 0, deliveries: 0, earnings: 0 },
-          金: { hours: 0, deliveries: 0, earnings: 0 },
-          土: { hours: 0, deliveries: 0, earnings: 0 },
-          日: { hours: 0, deliveries: 0, earnings: 0 }
-        });
-
-        alert('今週のデータを保存しました！');
+      // 週の入力をクリア（データはカレンダーに自動保存済み）
+      const clearCurrentWeek = () => {
+        if (window.confirm('今週の入力をクリアしますか？\n（カレンダーに保存済みのデータは残ります）')) {
+          setHours({
+            月: { hours: 0, deliveries: 0, earnings: 0 },
+            火: { hours: 0, deliveries: 0, earnings: 0 },
+            水: { hours: 0, deliveries: 0, earnings: 0 },
+            木: { hours: 0, deliveries: 0, earnings: 0 },
+            金: { hours: 0, deliveries: 0, earnings: 0 },
+            土: { hours: 0, deliveries: 0, earnings: 0 },
+            日: { hours: 0, deliveries: 0, earnings: 0 }
+          });
+        }
       };
 
       // 日付をタップしたときの処理
@@ -786,17 +846,17 @@
               </div>
             </div>
 
-            {/* 手動保存ボタン */}
+            {/* 週の入力クリアボタン */}
             {parseFloat(results.totalHours) > 0 && (
               <div className="bg-white rounded-2xl shadow-lg p-4 mb-4">
                 <button
-                  onClick={saveCurrentWeek}
-                  className="w-full bg-purple-500 text-white px-4 py-3 rounded-xl font-medium hover:bg-purple-600 transition-colors flex items-center justify-center gap-2"
+                  onClick={clearCurrentWeek}
+                  className="w-full bg-gray-500 text-white px-4 py-3 rounded-xl font-medium hover:bg-gray-600 transition-colors flex items-center justify-center gap-2"
                 >
-                  💾 今週のデータを保存してクリア
+                  🗑️ 今週の入力をクリア
                 </button>
                 <p className="text-xs text-gray-500 mt-2 text-center">
-                  ※保存後、入力データはクリアされます
+                  ※データはカレンダーに自動保存されています
                 </p>
               </div>
             )}
