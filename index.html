@@ -317,6 +317,8 @@
       const [showExpenseInput, setShowExpenseInput] = useState(false);
       const [editingExpense, setEditingExpense] = useState(null);
       const [editingExpenseId, setEditingExpenseId] = useState(null);
+      const [showImagePreview, setShowImagePreview] = useState(false);
+      const [previewImage, setPreviewImage] = useState(null);
 
       // 日付をローカルタイムゾーンでYYYY-MM-DD形式に変換
       const formatDateToLocal = (date) => {
@@ -482,7 +484,7 @@
       // モーダル表示中は背景のスクロールを無効化
       useEffect(() => {
         try {
-          const isModalOpen = showBasicSettings || showQuestSettings || showCalendar || showTotalStats || showDayEdit || showExpenses || showExpenseInput;
+          const isModalOpen = showBasicSettings || showQuestSettings || showCalendar || showTotalStats || showDayEdit || showExpenses || showExpenseInput || showImagePreview;
           if (typeof document !== 'undefined' && document.body) {
             if (isModalOpen) {
               document.body.style.overflow = 'hidden';
@@ -502,7 +504,7 @@
             console.error('モーダルスクロール解除エラー:', error);
           }
         };
-      }, [showBasicSettings, showQuestSettings, showCalendar, showTotalStats, showDayEdit, showExpenses, showExpenseInput]);
+      }, [showBasicSettings, showQuestSettings, showCalendar, showTotalStats, showDayEdit, showExpenses, showExpenseInput, showImagePreview]);
 
       // 週の稼働時間が変更されたら、クエスト報酬を計算してカレンダーに反映
       useEffect(() => {
@@ -2362,8 +2364,17 @@
                               </div>
                             </div>
                             {expense.photo && (
-                              <div className="mt-2 text-xs text-blue-600">
-                                📸 写真あり
+                              <div className="mt-2">
+                                <img
+                                  src={expense.photo}
+                                  alt="レシート"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setPreviewImage(expense.photo);
+                                    setShowImagePreview(true);
+                                  }}
+                                  className="w-full h-24 object-cover rounded-lg border-2 border-gray-200 cursor-pointer hover:border-blue-400 transition-colors"
+                                />
                               </div>
                             )}
                           </button>
@@ -2606,7 +2617,11 @@
                           <img
                             src={editingExpense.photo}
                             alt="レシート"
-                            className="w-full rounded-lg border-2 border-gray-200"
+                            onClick={() => {
+                              setPreviewImage(editingExpense.photo);
+                              setShowImagePreview(true);
+                            }}
+                            className="w-full rounded-lg border-2 border-gray-200 cursor-pointer hover:border-blue-400 transition-colors"
                             style={{ maxHeight: '200px', objectFit: 'contain' }}
                           />
                           <button
@@ -2671,6 +2686,29 @@
                       )}
                     </div>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* 画像プレビューモーダル */}
+            {showImagePreview && previewImage && (
+              <div
+                className="fixed inset-0 bg-black/90 flex items-center justify-center z-[70] p-4"
+                onClick={() => setShowImagePreview(false)}
+              >
+                <div className="relative max-w-4xl w-full max-h-full flex flex-col items-center">
+                  <button
+                    onClick={() => setShowImagePreview(false)}
+                    className="absolute top-2 right-2 bg-white/90 hover:bg-white text-gray-800 rounded-full w-10 h-10 flex items-center justify-center text-2xl font-bold shadow-lg z-10"
+                  >
+                    ×
+                  </button>
+                  <img
+                    src={previewImage}
+                    alt="レシート拡大"
+                    className="max-w-full max-h-[90vh] object-contain rounded-lg"
+                    onClick={(e) => e.stopPropagation()}
+                  />
                 </div>
               </div>
             )}
