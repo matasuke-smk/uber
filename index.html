@@ -87,26 +87,74 @@
       const days = ['月', '火', '水', '木', '金', '土', '日'];
       const weekdays = ['月', '火', '水', '木'];
       const weekends = ['金', '土', '日'];
-      
+
+      // localStorageの健全性チェックと修復
+      const validateAndFixLocalStorage = () => {
+        try {
+          // 各キーを検証
+          const keysToValidate = [
+            'weekdayAvgPrice', 'weekendAvgPrice',
+            'weekdayDeliveriesPerHour', 'weekendDeliveriesPerHour',
+            'useAutoCalculate', 'weekdayQuests', 'weekendQuests',
+            'hours', 'targetAmount', 'dailyData',
+            'currentWeekStart', 'lastAccessDate'
+          ];
+
+          keysToValidate.forEach(key => {
+            try {
+              const value = localStorage.getItem(key);
+              if (value && value !== 'undefined' && value !== 'null') {
+                // JSON.parseを試す
+                JSON.parse(value);
+              }
+            } catch (e) {
+              console.warn(`Removing corrupted localStorage key: ${key}`);
+              localStorage.removeItem(key);
+            }
+          });
+        } catch (error) {
+          console.error('localStorage validation error:', error);
+        }
+      };
+
+      // アプリ起動時に実行
+      validateAndFixLocalStorage();
+
       // モーダル状態
       const [showBasicSettings, setShowBasicSettings] = useState(false);
       const [showQuestSettings, setShowQuestSettings] = useState(false);
       const [showCalendar, setShowCalendar] = useState(false);
       const [showTotalStats, setShowTotalStats] = useState(false);
-      
+
       // 古いlocalStorageキーをクリーンアップ（一度だけ実行）
-      if (typeof window !== 'undefined' && !localStorage.getItem('cleanupDone_v2')) {
-        // 古いキーを削除
-        localStorage.removeItem('avgPrice');
-        localStorage.removeItem('deliveriesPerHour');
-        localStorage.setItem('cleanupDone_v2', 'true');
+      try {
+        if (typeof window !== 'undefined' && typeof localStorage !== 'undefined' && !localStorage.getItem('cleanupDone_v2')) {
+          // 古いキーを削除
+          localStorage.removeItem('avgPrice');
+          localStorage.removeItem('deliveriesPerHour');
+          localStorage.setItem('cleanupDone_v2', 'true');
+        }
+      } catch (error) {
+        console.error('localStorage cleanup error:', error);
       }
 
-      // localStorageから初期値を読み込む
+      // localStorageから初期値を読み込む（安全版）
       const loadFromStorage = (key, defaultValue) => {
-        if (typeof window !== 'undefined') {
-          const saved = localStorage.getItem(key);
-          return saved ? JSON.parse(saved) : defaultValue;
+        try {
+          if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+            const saved = localStorage.getItem(key);
+            if (saved === null || saved === undefined || saved === 'undefined' || saved === 'null') {
+              return defaultValue;
+            }
+            try {
+              return JSON.parse(saved);
+            } catch (parseError) {
+              console.error(`JSON parse error for key ${key}:`, parseError);
+              return defaultValue;
+            }
+          }
+        } catch (error) {
+          console.error(`localStorage load error for key ${key}:`, error);
         }
         return defaultValue;
       };
@@ -1843,17 +1891,35 @@
 
     // グローバルエラーハンドラー - エラーを画面に表示（renderの前に設定）
     window.onerror = function(msg, url, lineNo, columnNo, error) {
+      console.error('Global error caught:', { msg, url, lineNo, columnNo, error });
+
+      // localStorageの状態を確認
+      let localStorageInfo = '';
+      try {
+        const keys = Object.keys(localStorage);
+        localStorageInfo = `<p><strong>localStorage keys:</strong> ${keys.join(', ')}</p>`;
+      } catch (e) {
+        localStorageInfo = `<p><strong>localStorage:</strong> アクセスできません</p>`;
+      }
+
       const errorDiv = document.createElement('div');
       errorDiv.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:white;z-index:99999;padding:20px;overflow:auto;font-family:monospace;font-size:14px;';
       errorDiv.innerHTML = `
         <h1 style="color:red;">エラーが発生しました</h1>
         <p><strong>メッセージ:</strong> ${msg}</p>
+        <p><strong>URL:</strong> ${url || 'unknown'}</p>
         <p><strong>行:</strong> ${lineNo}</p>
         <p><strong>列:</strong> ${columnNo}</p>
-        <p><strong>エラー:</strong> ${error?.stack || error}</p>
-        <button onclick="localStorage.clear();location.reload();" style="padding:10px 20px;font-size:16px;margin-top:20px;">
-          localStorageをクリアして再読み込み
-        </button>
+        <p><strong>エラー:</strong> ${error?.stack || error || 'null'}</p>
+        ${localStorageInfo}
+        <div style="margin-top:20px;">
+          <button onclick="localStorage.clear();location.reload();" style="padding:10px 20px;font-size:16px;margin-right:10px;">
+            localStorageをクリアして再読み込み
+          </button>
+          <button onclick="location.reload();" style="padding:10px 20px;font-size:16px;">
+            そのまま再読み込み
+          </button>
+        </div>
       `;
       document.body.appendChild(errorDiv);
       return false;
