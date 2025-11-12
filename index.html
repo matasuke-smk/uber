@@ -146,7 +146,37 @@
       const [historicalData, setHistoricalData] = useState(() => loadFromStorage('historicalData', {}));
 
       // 日単位のデータ（日付キー: YYYY-MM-DD形式）
-      const [dailyData, setDailyData] = useState(() => loadFromStorage('dailyData', {}));
+      const [dailyData, setDailyData] = useState(() => {
+        const data = loadFromStorage('dailyData', {});
+
+        // マイグレーション: 旧形式（UTC）のキーを新形式（ローカル時間）に変換
+        const migrationDone = loadFromStorage('dailyDataMigrated', false);
+        if (!migrationDone && Object.keys(data).length > 0) {
+          const migratedData = {};
+          Object.entries(data).forEach(([dateStr, value]) => {
+            // 旧形式のキー（UTC基準）を日付として解釈し、1日進める
+            // 例: "2025-01-14" → 2025-01-15（実際にユーザーが入力したかった日付）
+            const oldDate = new Date(dateStr + 'T00:00:00'); // ローカル時間として解釈
+            oldDate.setDate(oldDate.getDate() + 1); // 1日進める
+
+            const year = oldDate.getFullYear();
+            const month = String(oldDate.getMonth() + 1).padStart(2, '0');
+            const day = String(oldDate.getDate()).padStart(2, '0');
+            const newKey = `${year}-${month}-${day}`;
+
+            migratedData[newKey] = value;
+          });
+
+          // マイグレーション完了フラグを保存
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('dailyDataMigrated', JSON.stringify(true));
+          }
+
+          return migratedData;
+        }
+
+        return data;
+      });
 
       // 最後にアクセスした日付
       const [lastAccessDate, setLastAccessDate] = useState(() => loadFromStorage('lastAccessDate', null));
