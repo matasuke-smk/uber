@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ubereats-simulator-v29';
+const CACHE_NAME = 'ubereats-simulator-v30';
 const urlsToCache = [
   './index.html',
   './manifest.json',
