@@ -266,14 +266,27 @@
         setDailyData(prev => {
           const updatedData = { ...prev };
 
-          // まず全ての日のクエストをリセット
+          // まず、週のすべてのデータをupdatedDataに反映
           [...weekdays, ...weekends].forEach(day => {
+            const dayData = hours[day];
+            const hasAllFields = dayData.hours > 0 &&
+                               dayData.deliveries > 0 &&
+                               dayData.earnings > 0;
+
             const dateStr = getDayDate(day);
-            if (dateStr && updatedData[dateStr]) {
-              updatedData[dateStr] = {
-                ...updatedData[dateStr],
-                quest: 0
-              };
+            if (dateStr) {
+              if (hasAllFields) {
+                // 完全なデータがある場合は保存（クエストは後で計算）
+                updatedData[dateStr] = {
+                  hours: dayData.hours,
+                  deliveries: dayData.deliveries,
+                  earnings: dayData.earnings,
+                  quest: 0
+                };
+              } else if (updatedData[dateStr]) {
+                // 不完全なデータの場合は削除
+                delete updatedData[dateStr];
+              }
             }
           });
 
@@ -433,53 +446,18 @@
         return formatDateToLocal(targetDate);
       };
 
-      // 稼働時間更新（週ビューとカレンダーを同期）
+      // 稼働時間更新（週ビューを更新、カレンダーへの反映はuseEffectで自動実行）
       const updateHours = (day, field, value) => {
         const newValue = parseFloat(value) || 0;
 
         // 週ビューを更新
-        const newHours = {
+        setHours({
           ...hours,
           [day]: {
             ...hours[day],
             [field]: newValue
           }
-        };
-        setHours(newHours);
-
-        // カレンダー（dailyData）への同期
-        // 時間、件数、金額の全てが入力されている場合のみカレンダーに保存
-        const dateStr = getDayDate(day);
-        if (dateStr) {
-          const updatedDayData = newHours[day];
-
-          // 全てのフィールドが入力されているかチェック
-          const hasAllFields = updatedDayData.hours > 0 &&
-                               updatedDayData.deliveries > 0 &&
-                               updatedDayData.earnings > 0;
-
-          setDailyData(prev => {
-            const newData = { ...prev };
-
-            if (hasAllFields) {
-              // 全てのフィールドが入力されている場合はカレンダーに保存
-              newData[dateStr] = {
-                ...(newData[dateStr] || {}),
-                hours: updatedDayData.hours,
-                deliveries: updatedDayData.deliveries,
-                earnings: updatedDayData.earnings,
-                quest: newData[dateStr]?.quest || 0
-              };
-            } else {
-              // 不完全な入力の場合は、カレンダーから完全に削除
-              if (newData[dateStr]) {
-                delete newData[dateStr];
-              }
-            }
-
-            return newData;
-          });
-        }
+        });
       };
 
       // 週の入力をクリア（データはカレンダーに自動保存済み）
