@@ -466,7 +466,16 @@
 
       useEffect(() => {
         if (typeof window !== 'undefined') {
-          localStorage.setItem('expenses', JSON.stringify(expenses));
+          try {
+            localStorage.setItem('expenses', JSON.stringify(expenses));
+          } catch (error) {
+            if (error.name === 'QuotaExceededError' || error.code === 22) {
+              console.error('localStorage容量超過エラー:', error);
+              alert('保存容量を超えました。写真のサイズが大きすぎるか、データが多すぎます。古いデータや写真を削除してください。');
+            } else {
+              console.error('localStorage保存エラー:', error);
+            }
+          }
         }
       }, [expenses]);
 
@@ -2540,9 +2549,43 @@
                         onChange={(e) => {
                           const file = e.target.files[0];
                           if (file) {
+                            // 画像をリサイズして保存
                             const reader = new FileReader();
-                            reader.onload = (e) => {
-                              setEditingExpense({...editingExpense, photo: e.target.result});
+                            reader.onload = (event) => {
+                              const img = new Image();
+                              img.onload = () => {
+                                // リサイズの最大サイズ
+                                const MAX_WIDTH = 1200;
+                                const MAX_HEIGHT = 1200;
+
+                                let width = img.width;
+                                let height = img.height;
+
+                                // アスペクト比を保ってリサイズ
+                                if (width > height) {
+                                  if (width > MAX_WIDTH) {
+                                    height = height * (MAX_WIDTH / width);
+                                    width = MAX_WIDTH;
+                                  }
+                                } else {
+                                  if (height > MAX_HEIGHT) {
+                                    width = width * (MAX_HEIGHT / height);
+                                    height = MAX_HEIGHT;
+                                  }
+                                }
+
+                                // Canvasでリサイズ
+                                const canvas = document.createElement('canvas');
+                                canvas.width = width;
+                                canvas.height = height;
+                                const ctx = canvas.getContext('2d');
+                                ctx.drawImage(img, 0, 0, width, height);
+
+                                // JPEG形式で圧縮（品質80%）
+                                const resizedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                                setEditingExpense({...editingExpense, photo: resizedDataUrl});
+                              };
+                              img.src = event.target.result;
                             };
                             reader.readAsDataURL(file);
                           }
@@ -2572,21 +2615,29 @@
                     <div className="flex gap-2">
                       <button
                         onClick={() => {
-                          if (editingExpenseId) {
-                            // 更新
-                            setExpenses(prev => ({
-                              ...prev,
-                              [editingExpenseId]: editingExpense
-                            }));
-                          } else {
-                            // 新規作成
-                            const id = Date.now().toString();
-                            setExpenses(prev => ({
-                              ...prev,
-                              [id]: editingExpense
-                            }));
+                          try {
+                            if (editingExpenseId) {
+                              // 更新
+                              setExpenses(prev => ({
+                                ...prev,
+                                [editingExpenseId]: editingExpense
+                              }));
+                            } else {
+                              // 新規作成
+                              const id = Date.now().toString();
+                              setExpenses(prev => ({
+                                ...prev,
+                                [id]: editingExpense
+                              }));
+                            }
+                            setShowExpenseInput(false);
+                          } catch (error) {
+                            if (error.name === 'QuotaExceededError' || error.code === 22) {
+                              alert('保存容量を超えました。写真のサイズが大きすぎるか、データが多すぎます。写真を削除するか、古いデータを削除してください。');
+                            } else {
+                              alert('保存中にエラーが発生しました: ' + error.message);
+                            }
                           }
-                          setShowExpenseInput(false);
                         }}
                         className="flex-1 bg-red-500 text-white py-3 rounded-xl font-medium hover:bg-red-600 transition-colors"
                       >
