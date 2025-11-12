@@ -921,8 +921,12 @@
                       if (monthData.length === 0) return null;
 
                       const totalHours = monthData.reduce((sum, [, data]) => sum + (data.hours || 0), 0);
-                      const totalDeliveries = monthData.reduce((sum, [, data]) => sum + (data.deliveries || 0), 0);
+                      const totalDeliveries = monthData.reduce((sum, [, data]) => {
+                        // 配達件数が入力されていない場合は稼働時間から自動計算
+                        return sum + (data.deliveries || (data.hours * deliveriesPerHour));
+                      }, 0);
                       const totalEarnings = monthData.reduce((sum, [, data]) => {
+                        // 基本売上が入力されていない場合は稼働時間から自動計算
                         return sum + (data.earnings || (data.hours * deliveriesPerHour * avgPrice));
                       }, 0);
                       const totalQuest = monthData.reduce((sum, [, data]) => sum + (data.quest || 0), 0);
