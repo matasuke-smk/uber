@@ -9,10 +9,10 @@
   <link rel="manifest" href="manifest.json?v=3">
   <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
   <link rel="apple-touch-icon" href="favicon.svg?v=3">
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin="anonymous" src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin="anonymous" src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script crossorigin="anonymous" src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script crossorigin="anonymous" src="https://cdn.tailwindcss.com"></script>
   <style>
     body {
       margin: 0;
@@ -27,7 +27,12 @@
   <div id="root"></div>
 
   <script type="text/babel">
+    // 読み込み状態を表示
+    document.getElementById('root').innerHTML = '<div style="padding:20px;font-family:sans-serif;">読み込み中...</div>';
+    console.log('Step 1: Loading started');
+
     const { useState, useEffect } = React;
+    console.log('Step 2: React hooks loaded');
 
     // Lucide icons as simple SVG components
     const Calculator = () => (
@@ -74,8 +79,10 @@
         <line x1="3" y1="10" x2="21" y2="10"/>
       </svg>
     );
+    console.log('Step 3: Icon components defined');
 
     function UberEatsSimulator() {
+      console.log('Step 4: UberEatsSimulator function started');
       // 定数定義
       const days = ['月', '火', '水', '木', '金', '土', '日'];
       const weekdays = ['月', '火', '水', '木'];
@@ -1594,9 +1601,30 @@
       document.body.appendChild(errorDiv);
     });
 
+    console.log('Step 5: About to render app');
+
     // Render the app
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<UberEatsSimulator />);
+    try {
+      console.log('Step 6: Creating React root');
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      console.log('Step 7: Rendering component');
+      root.render(<UberEatsSimulator />);
+      console.log('Step 8: Render complete');
+    } catch (error) {
+      const errorDiv = document.createElement('div');
+      errorDiv.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:white;z-index:99999;padding:20px;overflow:auto;font-family:monospace;font-size:14px;';
+      errorDiv.innerHTML = `
+        <h1 style="color:red;">レンダリングエラー</h1>
+        <p><strong>メッセージ:</strong> ${error.message}</p>
+        <p><strong>スタック:</strong></p>
+        <pre style="background:#f5f5f5;padding:10px;overflow:auto;">${error.stack}</pre>
+        <button onclick="localStorage.clear();location.reload();" style="padding:10px 20px;font-size:16px;margin-top:20px;">
+          localStorageをクリアして再読み込み
+        </button>
+      `;
+      document.body.appendChild(errorDiv);
+      throw error;
+    }
 
     // Service Workerの登録
     if ('serviceWorker' in navigator) {
