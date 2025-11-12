@@ -2338,16 +2338,14 @@
                             }}
                             className="w-full bg-white rounded-lg p-3 border-2 border-gray-200 hover:border-red-300 transition-colors text-left"
                           >
-                            <div className="flex items-center justify-between">
-                              <div className="flex-1 min-w-0">
-                                <div className="text-xs text-gray-500 mb-1">
-                                  {new Date(expense.date + 'T00:00:00').toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' })}
-                                </div>
-                                <div className="font-medium text-gray-800 truncate">
-                                  {expense.description || expenseCategories[expense.category].name}
-                                </div>
+                            <div className="flex items-center gap-3">
+                              <div className="text-sm text-gray-500 whitespace-nowrap">
+                                {new Date(expense.date + 'T00:00:00').toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' })}
                               </div>
-                              <div className="flex items-center gap-2 ml-3">
+                              <div className="flex-1 min-w-0 font-medium text-gray-800 truncate">
+                                {expense.description || expenseCategories[expense.category].name}
+                              </div>
+                              <div className="flex items-center gap-2">
                                 {expense.photo && (
                                   <span className="text-gray-400 text-lg">📷</span>
                                 )}
