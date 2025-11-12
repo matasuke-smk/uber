@@ -726,7 +726,7 @@
       // データエクスポート
       const exportData = () => {
         const data = {
-          version: 2,
+          version: 3,
           exportDate: new Date().toISOString(),
           weekdayAvgPrice,
           weekendAvgPrice,
@@ -739,7 +739,8 @@
           targetAmount,
           dailyData,
           currentWeekStart,
-          lastAccessDate
+          lastAccessDate,
+          expenses
         };
 
         const jsonStr = JSON.stringify(data, null, 2);
@@ -778,6 +779,7 @@
               if (data.dailyData) localStorage.setItem('dailyData', JSON.stringify(data.dailyData));
               if (data.currentWeekStart) localStorage.setItem('currentWeekStart', data.currentWeekStart);
               if (data.lastAccessDate) localStorage.setItem('lastAccessDate', data.lastAccessDate);
+              if (data.expenses) localStorage.setItem('expenses', JSON.stringify(data.expenses));
 
               // stateを直接更新
               if (data.weekdayAvgPrice !== undefined) setWeekdayAvgPrice(data.weekdayAvgPrice);
@@ -792,6 +794,7 @@
               if (data.dailyData) setDailyData(data.dailyData);
               if (data.currentWeekStart) setCurrentWeekStart(data.currentWeekStart);
               if (data.lastAccessDate) setLastAccessDate(data.lastAccessDate);
+              if (data.expenses) setExpenses(data.expenses);
 
               // input要素をリセット
               if (event.target) event.target.value = '';
@@ -1688,12 +1691,35 @@
                       <Settings />
                       設定
                     </h2>
-                    <button
-                      onClick={() => setShowBasicSettings(false)}
-                      className="text-gray-500 hover:text-gray-700 text-2xl"
-                    >
-                      ×
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={exportData}
+                        className="bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 transition-colors text-lg"
+                        title="データをエクスポート"
+                      >
+                        📤
+                      </button>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".json"
+                        onChange={importData}
+                        className="hidden"
+                      />
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="bg-green-500 text-white p-2 rounded-lg hover:bg-green-600 transition-colors text-lg"
+                        title="データをインポート"
+                      >
+                        📥
+                      </button>
+                      <button
+                        onClick={() => setShowBasicSettings(false)}
+                        className="text-gray-500 hover:text-gray-700 text-2xl"
+                      >
+                        ×
+                      </button>
+                    </div>
                   </div>
 
                   <div className="p-6 space-y-4 overflow-y-auto flex-1">
@@ -1822,34 +1848,6 @@
                       </>
                     )}
 
-                    {/* データのバックアップ・復元 */}
-                    <div className="bg-gray-50 rounded-xl p-4 border-2 border-gray-200">
-                      <div className="text-sm font-medium text-gray-700 mb-3">💾 データのバックアップ・復元</div>
-                      <div className="space-y-2">
-                        <button
-                          onClick={exportData}
-                          className="w-full bg-blue-500 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-600 transition-colors text-sm"
-                        >
-                          📤 データをエクスポート
-                        </button>
-                        <input
-                          ref={fileInputRef}
-                          type="file"
-                          accept=".json"
-                          onChange={importData}
-                          className="hidden"
-                        />
-                        <button
-                          onClick={() => fileInputRef.current?.click()}
-                          className="w-full bg-green-500 text-white py-2 px-4 rounded-lg font-medium hover:bg-green-600 transition-colors text-sm"
-                        >
-                          📥 データをインポート
-                        </button>
-                        <p className="text-xs text-gray-500 mt-2">
-                          ※エクスポートしたJSONファイルを保存しておくと、データを復元できます
-                        </p>
-                      </div>
-                    </div>
                   </div>
 
                   <div className="p-4 border-t border-gray-200 flex-shrink-0">
