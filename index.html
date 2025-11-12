@@ -597,89 +597,86 @@
       // データインポート
       const importData = (event) => {
         try {
+          alert('ステップ1: ファイル選択開始');
           const file = event.target.files[0];
           if (!file) {
-            console.log('ファイルが選択されていません');
+            alert('ファイルが選択されていません');
             return;
           }
 
-          console.log('ファイル選択:', file.name);
+          alert('ステップ2: ファイル読み込み開始 - ' + file.name);
 
           const reader = new FileReader();
           reader.onload = (e) => {
             try {
-              console.log('ファイル読み込み開始');
+              alert('ステップ3: JSONパース開始');
               const data = JSON.parse(e.target.result);
-              console.log('JSONパース成功:', data);
+              alert('ステップ4: JSONパース成功');
 
               // データをlocalStorageに直接保存（各項目ごとにtry-catch）
               try {
+                alert('ステップ5: 基本設定保存開始');
                 if (data.weekdayAvgPrice !== undefined) localStorage.setItem('weekdayAvgPrice', String(data.weekdayAvgPrice));
                 if (data.weekendAvgPrice !== undefined) localStorage.setItem('weekendAvgPrice', String(data.weekendAvgPrice));
                 if (data.weekdayDeliveriesPerHour !== undefined) localStorage.setItem('weekdayDeliveriesPerHour', String(data.weekdayDeliveriesPerHour));
                 if (data.weekendDeliveriesPerHour !== undefined) localStorage.setItem('weekendDeliveriesPerHour', String(data.weekendDeliveriesPerHour));
-                console.log('基本設定保存完了');
+                alert('ステップ6: 基本設定保存完了');
               } catch (err) {
-                console.error('基本設定保存エラー:', err);
-                throw new Error('基本設定の保存に失敗しました');
+                alert('基本設定保存エラー: ' + err.message);
+                throw err;
               }
 
               try {
+                alert('ステップ7: クエスト設定保存開始');
                 if (data.useAutoCalculate !== undefined) localStorage.setItem('useAutoCalculate', JSON.stringify(data.useAutoCalculate));
                 if (data.weekdayQuests) localStorage.setItem('weekdayQuests', JSON.stringify(data.weekdayQuests));
                 if (data.weekendQuests) localStorage.setItem('weekendQuests', JSON.stringify(data.weekendQuests));
-                console.log('クエスト設定保存完了');
+                alert('ステップ8: クエスト設定保存完了');
               } catch (err) {
-                console.error('クエスト設定保存エラー:', err);
-                throw new Error('クエスト設定の保存に失敗しました');
+                alert('クエスト設定保存エラー: ' + err.message);
+                throw err;
               }
 
               try {
+                alert('ステップ9: 週間データ保存開始');
                 if (data.hours) localStorage.setItem('hours', JSON.stringify(data.hours));
                 if (data.targetAmount !== undefined) localStorage.setItem('targetAmount', String(data.targetAmount));
-                console.log('週間データ保存完了');
+                alert('ステップ10: 週間データ保存完了');
               } catch (err) {
-                console.error('週間データ保存エラー:', err);
-                throw new Error('週間データの保存に失敗しました');
+                alert('週間データ保存エラー: ' + err.message);
+                throw err;
               }
 
               try {
+                alert('ステップ11: カレンダーデータ保存開始');
                 if (data.dailyData) localStorage.setItem('dailyData', JSON.stringify(data.dailyData));
                 if (data.currentWeekStart) localStorage.setItem('currentWeekStart', data.currentWeekStart);
                 if (data.lastAccessDate) localStorage.setItem('lastAccessDate', data.lastAccessDate);
-                console.log('カレンダーデータ保存完了');
+                alert('ステップ12: カレンダーデータ保存完了');
               } catch (err) {
-                console.error('カレンダーデータ保存エラー:', err);
-                throw new Error('カレンダーデータの保存に失敗しました');
+                alert('カレンダーデータ保存エラー: ' + err.message);
+                throw err;
               }
 
-              // input要素をリセット（同じファイルを再選択できるように）
+              // input要素をリセット
               if (event.target) event.target.value = '';
 
-              console.log('全データ保存完了、リロード準備中');
-              alert('データを復元しました！ページを再読み込みします。');
+              alert('ステップ13: 全データ保存完了。OKを押すとページをリロードします。');
 
-              // setTimeoutで少し遅らせてからリロード
-              setTimeout(() => {
-                console.log('ページリロード実行');
-                window.location.reload();
-              }, 100);
+              // リロード実行
+              window.location.reload();
             } catch (error) {
-              console.error('インポートエラー詳細:', error);
-              alert('データの読み込みに失敗しました:\n' + error.message + '\n\nコンソールで詳細を確認してください。');
-              // input要素をリセット
+              alert('インポートエラー:\n' + error.message + '\n' + error.stack);
               if (event.target) event.target.value = '';
             }
           };
           reader.onerror = (error) => {
-            console.error('ファイル読み込みエラー:', error);
-            alert('ファイルの読み込みに失敗しました');
+            alert('ファイル読み込みエラー: ' + error);
             if (event.target) event.target.value = '';
           };
           reader.readAsText(file);
         } catch (error) {
-          console.error('インポート処理全体エラー:', error);
-          alert('インポート処理でエラーが発生しました:\n' + error.message);
+          alert('インポート処理全体エラー:\n' + error.message);
         }
       };
 
