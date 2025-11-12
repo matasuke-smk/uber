@@ -1146,7 +1146,7 @@
                               <input
                                 type="number"
                                 step="10"
-                                value={weekdayAvgPrice}
+                                value={weekdayAvgPrice || ''}
                                 onChange={(e) => setWeekdayAvgPrice(parseFloat(e.target.value) || 0)}
                                 onKeyDown={handleKeyDown}
                                 className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-base"
@@ -1159,7 +1159,7 @@
                               <input
                                 type="number"
                                 step="0.1"
-                                value={weekdayDeliveriesPerHour}
+                                value={weekdayDeliveriesPerHour || ''}
                                 onChange={(e) => setWeekdayDeliveriesPerHour(parseFloat(e.target.value) || 0)}
                                 onKeyDown={handleKeyDown}
                                 className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-base"
@@ -1178,7 +1178,7 @@
                               <input
                                 type="number"
                                 step="10"
-                                value={weekendAvgPrice}
+                                value={weekendAvgPrice || ''}
                                 onChange={(e) => setWeekendAvgPrice(parseFloat(e.target.value) || 0)}
                                 onKeyDown={handleKeyDown}
                                 className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none text-base"
@@ -1191,7 +1191,7 @@
                               <input
                                 type="number"
                                 step="0.1"
-                                value={weekendDeliveriesPerHour}
+                                value={weekendDeliveriesPerHour || ''}
                                 onChange={(e) => setWeekendDeliveriesPerHour(parseFloat(e.target.value) || 0)}
                                 onKeyDown={handleKeyDown}
                                 className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none text-base"
