@@ -309,7 +309,7 @@
       const [originalSelectedDate, setOriginalSelectedDate] = useState(null); // 日付変更用
       const [showDayEdit, setShowDayEdit] = useState(false);
       const [isChangingDate, setIsChangingDate] = useState(false); // 日付変更モード
-      const [editingDayData, setEditingDayData] = useState({ hours: 0, deliveries: 0, earnings: 0, quest: 0 });
+      const [editingDayData, setEditingDayData] = useState({ hours: 0, deliveries: 0, earnings: 0, quest: 0, isRainy: false, isHoliday: false });
 
       // 経費管理関連のstate
       const [expenses, setExpenses] = useState(() => loadFromStorage('expenses', {}));
@@ -330,6 +330,7 @@
       };
 
       // 履歴から平均値を計算（月～木と金～日で分ける）
+      // 雨の日と祝日は除外して計算し、別途平均時給を算出
       const calculateFromHistory = () => {
         const allEntries = Object.entries(dailyData);
         if (allEntries.length === 0) {
@@ -339,7 +340,9 @@
             weekdayDeliveriesPerHour: 4,
             weekendDeliveriesPerHour: 4,
             weekdayQuestPerHour: 0,
-            weekendQuestPerHour: 0
+            weekendQuestPerHour: 0,
+            rainyAvgHourlyWage: 0,
+            holidayAvgHourlyWage: 0
           };
         }
 
@@ -353,8 +356,31 @@
         let weekendEarnings = 0;
         let weekendQuest = 0;
 
+        // 雨の日と祝日の平均時給計算用
+        let rainyHours = 0;
+        let rainyTotalEarnings = 0;
+        let holidayHours = 0;
+        let holidayTotalEarnings = 0;
+
         allEntries.forEach(([dateStr, data]) => {
           if (data.hours > 0 && data.deliveries > 0 && data.earnings > 0) {
+            const totalEarnings = data.earnings + (data.quest || 0);
+
+            // 雨の日の平均時給を計算
+            if (data.isRainy) {
+              rainyHours += data.hours;
+              rainyTotalEarnings += totalEarnings;
+              return; // 通常の平均計算からは除外
+            }
+
+            // 祝日の平均時給を計算
+            if (data.isHoliday) {
+              holidayHours += data.hours;
+              holidayTotalEarnings += totalEarnings;
+              return; // 通常の平均計算からは除外
+            }
+
+            // 通常日の計算
             const date = new Date(dateStr + 'T00:00:00');
             const dayOfWeek = date.getDay(); // 0=日, 1=月, 2=火, ..., 6=土
 
@@ -379,7 +405,9 @@
           weekdayDeliveriesPerHour: weekdayHours > 0 ? parseFloat((weekdayDeliveries / weekdayHours).toFixed(1)) : 4,
           weekendDeliveriesPerHour: weekendHours > 0 ? parseFloat((weekendDeliveries / weekendHours).toFixed(1)) : 4,
           weekdayQuestPerHour: weekdayHours > 0 ? Math.round(weekdayQuest / weekdayHours) : 0,
-          weekendQuestPerHour: weekendHours > 0 ? Math.round(weekendQuest / weekendHours) : 0
+          weekendQuestPerHour: weekendHours > 0 ? Math.round(weekendQuest / weekendHours) : 0,
+          rainyAvgHourlyWage: rainyHours > 0 ? Math.round(rainyTotalEarnings / rainyHours) : 0,
+          holidayAvgHourlyWage: holidayHours > 0 ? Math.round(holidayTotalEarnings / holidayHours) : 0
         };
       };
 
@@ -840,7 +868,7 @@
         setOriginalSelectedDate(dateStr); // 元の日付を保存
 
         // その日のデータを取得
-        const dayData = dailyData[dateStr] || { hours: 0, deliveries: 0, earnings: 0, quest: 0 };
+        const dayData = dailyData[dateStr] || { hours: 0, deliveries: 0, earnings: 0, quest: 0, isRainy: false, isHoliday: false };
         setEditingDayData(dayData);
         setShowDayEdit(true);
       };
@@ -959,55 +987,119 @@
         let weekdayHours = 0;
         let weekdayDeliveries = 0;
         let weekdayBasicEarnings = 0;
+        let weekdayQuestEarnings = 0;
 
+        // まず配達件数を計算（クエスト計算に必要）
+        const weekdayDailyData = [];
         weekdays.forEach(day => {
           const dayData = hours[day];
           weekdayHours += dayData.hours;
-
-          // 件数：入力があればそれを使用、なければ予想
           const dayDeliveries = dayData.deliveries > 0 ? dayData.deliveries : dayData.hours * effectiveValues.weekdayDeliveriesPerHour;
           weekdayDeliveries += dayDeliveries;
-
-          // 金額：入力があればそれを使用、なければ予想（基本報酬のみ、クエストは別途計算）
-          const dayEarnings = dayData.earnings > 0 ? dayData.earnings : dayData.hours * effectiveValues.weekdayDeliveriesPerHour * effectiveValues.weekdayAvgPrice;
-          weekdayBasicEarnings += dayEarnings;
+          weekdayDailyData.push({ day, dayData, dayDeliveries });
         });
-        
-        // 月～木のクエスト報酬
-        let weekdayQuestEarnings = 0;
+
+        // 各日のクエスト報酬を計算
         let cumulativeWeekday = 0;
-        weekdayQuests.forEach(quest => {
-          cumulativeWeekday += quest.count;
-          if (weekdayDeliveries >= cumulativeWeekday) {
-            weekdayQuestEarnings += quest.reward;
+        weekdayDailyData.forEach(({ day, dayData, dayDeliveries }) => {
+          const previousCumulative = cumulativeWeekday;
+          cumulativeWeekday += dayDeliveries;
+
+          // この日に達成したクエスト報酬を計算
+          let dayQuestReward = 0;
+          let questIndex = 0;
+          let cumulativeThreshold = 0;
+
+          // 前日までに達成していたクエストをスキップ
+          while (questIndex < weekdayQuests.length) {
+            const nextThreshold = cumulativeThreshold + weekdayQuests[questIndex].count;
+            if (previousCumulative >= nextThreshold) {
+              cumulativeThreshold = nextThreshold;
+              questIndex++;
+            } else {
+              break;
+            }
+          }
+
+          // この日に新たに達成したクエストを加算
+          while (questIndex < weekdayQuests.length) {
+            const nextThreshold = cumulativeThreshold + weekdayQuests[questIndex].count;
+            if (cumulativeWeekday >= nextThreshold) {
+              dayQuestReward += weekdayQuests[questIndex].reward;
+              cumulativeThreshold = nextThreshold;
+              questIndex++;
+            } else {
+              break;
+            }
+          }
+
+          weekdayQuestEarnings += dayQuestReward;
+
+          // 金額計算：入力がある場合はクエストを引いた額を基本売上とする
+          if (dayData.earnings > 0) {
+            weekdayBasicEarnings += dayData.earnings - dayQuestReward;
+          } else {
+            weekdayBasicEarnings += dayData.hours * effectiveValues.weekdayDeliveriesPerHour * effectiveValues.weekdayAvgPrice;
           }
         });
-        
+
         // 金～日の合計
         let weekendHours = 0;
         let weekendDeliveries = 0;
         let weekendBasicEarnings = 0;
-        
+        let weekendQuestEarnings = 0;
+
+        // まず配達件数を計算（クエスト計算に必要）
+        const weekendDailyData = [];
         weekends.forEach(day => {
           const dayData = hours[day];
           weekendHours += dayData.hours;
-
-          // 件数：入力があればそれを使用、なければ予想
           const dayDeliveries = dayData.deliveries > 0 ? dayData.deliveries : dayData.hours * effectiveValues.weekendDeliveriesPerHour;
           weekendDeliveries += dayDeliveries;
-
-          // 金額：入力があればそれを使用、なければ予想（基本報酬のみ、クエストは別途計算）
-          const dayEarnings = dayData.earnings > 0 ? dayData.earnings : dayData.hours * effectiveValues.weekendDeliveriesPerHour * effectiveValues.weekendAvgPrice;
-          weekendBasicEarnings += dayEarnings;
+          weekendDailyData.push({ day, dayData, dayDeliveries });
         });
-        
-        // 金～日のクエスト報酬
-        let weekendQuestEarnings = 0;
+
+        // 各日のクエスト報酬を計算
         let cumulativeWeekend = 0;
-        weekendQuests.forEach(quest => {
-          cumulativeWeekend += quest.count;
-          if (weekendDeliveries >= cumulativeWeekend) {
-            weekendQuestEarnings += quest.reward;
+        weekendDailyData.forEach(({ day, dayData, dayDeliveries }) => {
+          const previousCumulative = cumulativeWeekend;
+          cumulativeWeekend += dayDeliveries;
+
+          // この日に達成したクエスト報酬を計算
+          let dayQuestReward = 0;
+          let questIndex = 0;
+          let cumulativeThreshold = 0;
+
+          // 前日までに達成していたクエストをスキップ
+          while (questIndex < weekendQuests.length) {
+            const nextThreshold = cumulativeThreshold + weekendQuests[questIndex].count;
+            if (previousCumulative >= nextThreshold) {
+              cumulativeThreshold = nextThreshold;
+              questIndex++;
+            } else {
+              break;
+            }
+          }
+
+          // この日に新たに達成したクエストを加算
+          while (questIndex < weekendQuests.length) {
+            const nextThreshold = cumulativeThreshold + weekendQuests[questIndex].count;
+            if (cumulativeWeekend >= nextThreshold) {
+              dayQuestReward += weekendQuests[questIndex].reward;
+              cumulativeThreshold = nextThreshold;
+              questIndex++;
+            } else {
+              break;
+            }
+          }
+
+          weekendQuestEarnings += dayQuestReward;
+
+          // 金額計算：入力がある場合はクエストを引いた額を基本売上とする
+          if (dayData.earnings > 0) {
+            weekendBasicEarnings += dayData.earnings - dayQuestReward;
+          } else {
+            weekendBasicEarnings += dayData.hours * effectiveValues.weekendDeliveriesPerHour * effectiveValues.weekendAvgPrice;
           }
         });
         
@@ -1779,6 +1871,24 @@
                               </div>
                             </div>
                           </div>
+
+                          {/* 雨の日・祝日の平均時給 */}
+                          <div className="grid grid-cols-2 gap-2">
+                            {calcValues.rainyAvgHourlyWage > 0 && (
+                              <div className="bg-cyan-50 rounded-xl p-3 border-2 border-cyan-200">
+                                <div className="text-xs font-medium text-cyan-800 mb-1">🌧️ 雨の日</div>
+                                <div className="text-sm text-gray-600">平均時給</div>
+                                <div className="text-lg font-bold text-cyan-600">¥{calcValues.rainyAvgHourlyWage}/h</div>
+                              </div>
+                            )}
+                            {calcValues.holidayAvgHourlyWage > 0 && (
+                              <div className="bg-orange-50 rounded-xl p-3 border-2 border-orange-200">
+                                <div className="text-xs font-medium text-orange-800 mb-1">🎌 祝日</div>
+                                <div className="text-sm text-gray-600">平均時給</div>
+                                <div className="text-lg font-bold text-orange-600">¥{calcValues.holidayAvgHourlyWage}/h</div>
+                              </div>
+                            )}
+                          </div>
                         </>
                       );
                     })()}
@@ -1926,11 +2036,29 @@
                           const dayData = dailyData[dateStr];
                           const hasData = dayData && (dayData.hours > 0 || dayData.deliveries > 0 || dayData.earnings > 0 || dayData.quest > 0);
                           const isToday = dateStr === formatDateToLocal(new Date());
+                          const isRainy = dayData && dayData.isRainy;
+                          const isHoliday = dayData && dayData.isHoliday;
 
                           // 合計売上を計算（基本売上 + クエスト報酬）
                           const totalDailyEarnings = hasData
                             ? (dayData.earnings || 0) + (dayData.quest || 0)
                             : 0;
+
+                          // 背景色とテキスト色を決定
+                          let bgClass = 'hover:bg-gray-100';
+                          let textClass = 'text-purple-600';
+                          if (hasData) {
+                            if (isRainy) {
+                              bgClass = 'bg-blue-100 hover:bg-blue-200';
+                              textClass = 'text-blue-600';
+                            } else if (isHoliday) {
+                              bgClass = 'bg-red-100 hover:bg-red-200';
+                              textClass = 'text-red-600';
+                            } else {
+                              bgClass = 'bg-purple-100 hover:bg-purple-200';
+                              textClass = 'text-purple-600';
+                            }
+                          }
 
                           return (
                             <button
@@ -1939,13 +2067,17 @@
                               className={`
                                 aspect-square p-1 rounded-lg text-sm relative flex flex-col items-center justify-center text-gray-800
                                 ${isToday ? 'ring-2 ring-blue-500' : ''}
-                                ${hasData ? 'bg-purple-100 hover:bg-purple-200' : 'hover:bg-gray-100'}
+                                ${bgClass}
                                 transition-colors
                               `}
                             >
-                              <div className="font-medium">{dayInfo.date.getDate()}</div>
+                              <div className="font-medium flex items-center gap-0.5">
+                                {isRainy && <span className="text-[10px]">🌧️</span>}
+                                {isHoliday && <span className="text-[10px]">🎌</span>}
+                                {dayInfo.date.getDate()}
+                              </div>
                               {hasData && (
-                                <div className="text-[9px] text-purple-600 font-bold leading-tight">
+                                <div className={`text-[9px] font-bold leading-tight ${textClass}`}>
                                   ¥{Math.floor(totalDailyEarnings).toLocaleString()}
                                 </div>
                               )}
@@ -2249,6 +2381,38 @@
                           placeholder="0"
                         />
                         <span className="text-gray-600 font-medium">円</span>
+                      </div>
+                    </div>
+
+                    {/* 雨の日・祝日チェックボックス */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="bg-blue-50 rounded-xl p-3 border-2 border-blue-200">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={editingDayData.isRainy || false}
+                            onChange={(e) => setEditingDayData({...editingDayData, isRainy: e.target.checked})}
+                            className="w-5 h-5 text-blue-500 rounded focus:ring-2 focus:ring-blue-500"
+                          />
+                          <div>
+                            <div className="text-sm font-medium text-gray-800">🌧️ 雨の日</div>
+                            <div className="text-xs text-gray-600 mt-0.5">平均計算から除外</div>
+                          </div>
+                        </label>
+                      </div>
+                      <div className="bg-red-50 rounded-xl p-3 border-2 border-red-200">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={editingDayData.isHoliday || false}
+                            onChange={(e) => setEditingDayData({...editingDayData, isHoliday: e.target.checked})}
+                            className="w-5 h-5 text-red-500 rounded focus:ring-2 focus:ring-red-500"
+                          />
+                          <div>
+                            <div className="text-sm font-medium text-gray-800">🎌 祝日</div>
+                            <div className="text-xs text-gray-600 mt-0.5">平均計算から除外</div>
+                          </div>
+                        </label>
                       </div>
                     </div>
 
