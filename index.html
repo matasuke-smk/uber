@@ -1678,11 +1678,20 @@
                           // 月曜日始まりに並び替え: [月1, 火2, 水3, 木4, 金5, 土6, 日0]
                           const sortedDayData = [1, 2, 3, 4, 5, 6, 0].map(dow => dayOfWeekData[dow]);
 
-                          // グラフ用の最大値を計算
-                          const maxHourlyWage = Math.max(...sortedDayData.map(d => {
-                            if (d.count === 0) return 0;
-                            return d.hours > 0 ? (d.earnings + d.quest) / d.hours : 0;
-                          }));
+                          // 雨の日と祝日の平均時給を計算
+                          const rainyAvgHourlyWage = rainyData.hours > 0 ? (rainyData.earnings + rainyData.quest) / rainyData.hours : 0;
+                          const holidayAvgHourlyWage = holidayData.hours > 0 ? (holidayData.earnings + holidayData.quest) / holidayData.hours : 0;
+
+                          // グラフ用の最大値を計算（雨の日と祝日も含める）
+                          const allWages = [
+                            ...sortedDayData.map(d => {
+                              if (d.count === 0) return 0;
+                              return d.hours > 0 ? (d.earnings + d.quest) / d.hours : 0;
+                            }),
+                            rainyAvgHourlyWage,
+                            holidayAvgHourlyWage
+                          ];
+                          const maxHourlyWage = Math.max(...allWages);
 
                           return (
                             <div className="space-y-4">
@@ -1714,6 +1723,52 @@
                                       </div>
                                     );
                                   })}
+
+                                  {/* 雨の日 */}
+                                  {rainyData.count > 0 && (() => {
+                                    const widthPercent = maxHourlyWage > 0 ? (rainyAvgHourlyWage / maxHourlyWage) * 100 : 0;
+                                    return (
+                                      <div className="flex items-center gap-2">
+                                        <div className="text-xs font-medium text-cyan-700 w-6">🌧️</div>
+                                        <div className="flex-1 bg-white rounded-full h-6 overflow-hidden">
+                                          <div
+                                            className="bg-gradient-to-r from-cyan-500 to-blue-500 h-full rounded-full flex items-center justify-end pr-2 transition-all duration-300"
+                                            style={{ width: `${widthPercent}%` }}
+                                          >
+                                            {widthPercent > 20 && (
+                                              <span className="text-xs font-bold text-white">¥{Math.floor(rainyAvgHourlyWage).toLocaleString()}</span>
+                                            )}
+                                          </div>
+                                        </div>
+                                        {widthPercent <= 20 && (
+                                          <span className="text-xs font-bold text-cyan-700 w-16">¥{Math.floor(rainyAvgHourlyWage).toLocaleString()}</span>
+                                        )}
+                                      </div>
+                                    );
+                                  })()}
+
+                                  {/* 祝日 */}
+                                  {holidayData.count > 0 && (() => {
+                                    const widthPercent = maxHourlyWage > 0 ? (holidayAvgHourlyWage / maxHourlyWage) * 100 : 0;
+                                    return (
+                                      <div className="flex items-center gap-2">
+                                        <div className="text-xs font-medium text-orange-700 w-6">🎌</div>
+                                        <div className="flex-1 bg-white rounded-full h-6 overflow-hidden">
+                                          <div
+                                            className="bg-gradient-to-r from-orange-500 to-red-500 h-full rounded-full flex items-center justify-end pr-2 transition-all duration-300"
+                                            style={{ width: `${widthPercent}%` }}
+                                          >
+                                            {widthPercent > 20 && (
+                                              <span className="text-xs font-bold text-white">¥{Math.floor(holidayAvgHourlyWage).toLocaleString()}</span>
+                                            )}
+                                          </div>
+                                        </div>
+                                        {widthPercent <= 20 && (
+                                          <span className="text-xs font-bold text-orange-700 w-16">¥{Math.floor(holidayAvgHourlyWage).toLocaleString()}</span>
+                                        )}
+                                      </div>
+                                    );
+                                  })()}
                                 </div>
                               </div>
 
