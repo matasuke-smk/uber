@@ -555,7 +555,8 @@
         setDailyData(prev => {
           const updatedData = { ...prev };
 
-          // まず、週のすべてのデータをupdatedDataに反映
+          // まず、週のすべてのデータを一時的に保存（クエスト計算のため）
+          const tempData = {};
           [...weekdays, ...weekends].forEach(day => {
             const dayData = hours[day];
             const hasAllFields = dayData.hours > 0 &&
@@ -565,12 +566,11 @@
             const dateStr = getDayDate(day);
             if (dateStr) {
               if (hasAllFields) {
-                // 完全なデータがある場合は保存（クエストは後で計算）
-                updatedData[dateStr] = {
+                tempData[dateStr] = {
+                  day: day,
                   hours: dayData.hours,
                   deliveries: dayData.deliveries,
-                  earnings: dayData.earnings,
-                  quest: 0
+                  earnings: dayData.earnings  // 入力値（クエスト込み）
                 };
               } else if (updatedData[dateStr]) {
                 // 不完全なデータの場合は削除
@@ -585,6 +585,9 @@
           let cumulativeQuestCount = 0;
 
           weekdays.forEach(day => {
+            const dateStr = getDayDate(day);
+            if (!dateStr || !tempData[dateStr]) return;
+
             const dayData = hours[day];
             const dayDeliveries = dayData.deliveries > 0 ? dayData.deliveries : dayData.hours * effectiveValues.weekdayDeliveriesPerHour;
             cumulativeWeekday += dayDeliveries;
@@ -602,18 +605,13 @@
               }
             }
 
-            // この日にクエスト報酬があり、かつ全てのデータが入力されている場合に設定
-            const dateStr = getDayDate(day);
-            if (dateStr && dayQuestReward > 0 && updatedData[dateStr] &&
-                updatedData[dateStr].hours > 0 &&
-                updatedData[dateStr].deliveries > 0 &&
-                updatedData[dateStr].earnings > 0) {
-              // 既存データがあり、全てのフィールドが入力されていればクエストを追加
-              updatedData[dateStr] = {
-                ...updatedData[dateStr],
-                quest: dayQuestReward
-              };
-            }
+            // 入力値（クエスト込み）からクエストを引いて基本売上を保存
+            updatedData[dateStr] = {
+              hours: tempData[dateStr].hours,
+              deliveries: tempData[dateStr].deliveries,
+              earnings: tempData[dateStr].earnings - dayQuestReward,
+              quest: dayQuestReward
+            };
           });
 
           // 金～日のクエスト報酬を達成した日に配分
@@ -622,6 +620,9 @@
           let cumulativeWeekendQuestCount = 0;
 
           weekends.forEach(day => {
+            const dateStr = getDayDate(day);
+            if (!dateStr || !tempData[dateStr]) return;
+
             const dayData = hours[day];
             const dayDeliveries = dayData.deliveries > 0 ? dayData.deliveries : dayData.hours * effectiveValues.weekendDeliveriesPerHour;
             cumulativeWeekend += dayDeliveries;
@@ -639,18 +640,13 @@
               }
             }
 
-            // この日にクエスト報酬があり、かつ全てのデータが入力されている場合に設定
-            const dateStr = getDayDate(day);
-            if (dateStr && dayQuestReward > 0 && updatedData[dateStr] &&
-                updatedData[dateStr].hours > 0 &&
-                updatedData[dateStr].deliveries > 0 &&
-                updatedData[dateStr].earnings > 0) {
-              // 既存データがあり、全てのフィールドが入力されていればクエストを追加
-              updatedData[dateStr] = {
-                ...updatedData[dateStr],
-                quest: dayQuestReward
-              };
-            }
+            // 入力値（クエスト込み）からクエストを引いて基本売上を保存
+            updatedData[dateStr] = {
+              hours: tempData[dateStr].hours,
+              deliveries: tempData[dateStr].deliveries,
+              earnings: tempData[dateStr].earnings - dayQuestReward,
+              quest: dayQuestReward
+            };
           });
 
           return updatedData;
