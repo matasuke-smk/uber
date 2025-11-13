@@ -1674,15 +1674,15 @@
                           // 月曜日始まりに並び替え: [月1, 火2, 水3, 木4, 金5, 土6, 日0]
                           const sortedDayData = [1, 2, 3, 4, 5, 6, 0].map(dow => dayOfWeekData[dow]);
 
-                          // 雨の日と祝日の平均時給を計算
-                          const rainyAvgHourlyWage = rainyData.hours > 0 ? (rainyData.earnings + rainyData.quest) / rainyData.hours : 0;
-                          const holidayAvgHourlyWage = holidayData.hours > 0 ? (holidayData.earnings + holidayData.quest) / holidayData.hours : 0;
+                          // 雨の日と祝日の平均時給を計算（クエスト報酬を含めない）
+                          const rainyAvgHourlyWage = rainyData.hours > 0 ? rainyData.earnings / rainyData.hours : 0;
+                          const holidayAvgHourlyWage = holidayData.hours > 0 ? holidayData.earnings / holidayData.hours : 0;
 
                           // グラフ用の最大値を計算（雨の日と祝日も含める）
                           const allWages = [
                             ...sortedDayData.map(d => {
                               if (d.count === 0) return 0;
-                              return d.hours > 0 ? (d.earnings + d.quest) / d.hours : 0;
+                              return d.hours > 0 ? d.earnings / d.hours : 0;  // クエスト報酬を含めない
                             }),
                             rainyAvgHourlyWage,
                             holidayAvgHourlyWage
@@ -1697,7 +1697,7 @@
                                 <div className="space-y-2">
                                   {sortedDayData.map((dayData, idx) => {
                                     if (dayData.count === 0) return null;
-                                    const avgHourlyWage = dayData.hours > 0 ? (dayData.earnings + dayData.quest) / dayData.hours : 0;
+                                    const avgHourlyWage = dayData.hours > 0 ? dayData.earnings / dayData.hours : 0;  // クエスト報酬を含めない
                                     const widthPercent = maxHourlyWage > 0 ? (avgHourlyWage / maxHourlyWage) * 100 : 0;
 
                                     return (
@@ -1776,10 +1776,10 @@
                                 const avgDeliveries = dayData.deliveries / dayData.count;
                                 const avgEarnings = dayData.earnings / dayData.count;
                                 const avgQuest = dayData.quest / dayData.count;
-                                const avgTotal = avgEarnings + avgQuest;
+                                const avgTotal = avgEarnings;  // クエスト報酬を含めない
                                 const avgPrice = dayData.deliveries > 0 ? dayData.earnings / dayData.deliveries : 0;
                                 const avgDeliveriesPerHour = dayData.hours > 0 ? dayData.deliveries / dayData.hours : 0;
-                                const avgHourlyWage = dayData.hours > 0 ? (dayData.earnings + dayData.quest) / dayData.hours : 0;
+                                const avgHourlyWage = dayData.hours > 0 ? dayData.earnings / dayData.hours : 0;  // クエスト報酬を含めない
 
                                 return (
                                   <div key={dayData.dow} className="bg-gray-50 rounded-xl p-4">
@@ -1823,10 +1823,10 @@
                                 const avgDeliveries = rainyData.deliveries / rainyData.count;
                                 const avgEarnings = rainyData.earnings / rainyData.count;
                                 const avgQuest = rainyData.quest / rainyData.count;
-                                const avgTotal = avgEarnings + avgQuest;
+                                const avgTotal = avgEarnings;  // クエスト報酬を含めない
                                 const avgPrice = rainyData.deliveries > 0 ? rainyData.earnings / rainyData.deliveries : 0;
                                 const avgDeliveriesPerHour = rainyData.hours > 0 ? rainyData.deliveries / rainyData.hours : 0;
-                                const avgHourlyWage = rainyData.hours > 0 ? (rainyData.earnings + rainyData.quest) / rainyData.hours : 0;
+                                const avgHourlyWage = rainyData.hours > 0 ? rainyData.earnings / rainyData.hours : 0;  // クエスト報酬を含めない
 
                                 return (
                                   <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl p-4 border-2 border-cyan-200">
@@ -1870,10 +1870,10 @@
                                 const avgDeliveries = holidayData.deliveries / holidayData.count;
                                 const avgEarnings = holidayData.earnings / holidayData.count;
                                 const avgQuest = holidayData.quest / holidayData.count;
-                                const avgTotal = avgEarnings + avgQuest;
+                                const avgTotal = avgEarnings;  // クエスト報酬を含めない
                                 const avgPrice = holidayData.deliveries > 0 ? holidayData.earnings / holidayData.deliveries : 0;
                                 const avgDeliveriesPerHour = holidayData.hours > 0 ? holidayData.deliveries / holidayData.hours : 0;
-                                const avgHourlyWage = holidayData.hours > 0 ? (holidayData.earnings + holidayData.quest) / holidayData.hours : 0;
+                                const avgHourlyWage = holidayData.hours > 0 ? holidayData.earnings / holidayData.hours : 0;  // クエスト報酬を含めない
 
                                 return (
                                   <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-xl p-4 border-2 border-orange-200">
