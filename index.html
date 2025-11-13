@@ -1632,11 +1632,36 @@
                             count: 0
                           }));
 
+                          // 雨の日と祝日のデータを別途集計
+                          const rainyData = { hours: 0, deliveries: 0, earnings: 0, quest: 0, count: 0 };
+                          const holidayData = { hours: 0, deliveries: 0, earnings: 0, quest: 0, count: 0 };
+
                           allEntries.forEach(([dateStr, data]) => {
                             if (data) {
                               // 時間、件数、金額の全てが入力されている日のみを集計
                               const hasCompleteData = (data.hours > 0) && (data.deliveries > 0) && (data.earnings > 0);
                               if (hasCompleteData) {
+                                // 雨の日は別途集計
+                                if (data.isRainy) {
+                                  rainyData.hours += data.hours || 0;
+                                  rainyData.deliveries += data.deliveries || 0;
+                                  rainyData.earnings += data.earnings || 0;
+                                  rainyData.quest += data.quest || 0;
+                                  rainyData.count += 1;
+                                  return;
+                                }
+
+                                // 祝日は別途集計
+                                if (data.isHoliday) {
+                                  holidayData.hours += data.hours || 0;
+                                  holidayData.deliveries += data.deliveries || 0;
+                                  holidayData.earnings += data.earnings || 0;
+                                  holidayData.quest += data.quest || 0;
+                                  holidayData.count += 1;
+                                  return;
+                                }
+
+                                // 通常日を曜日別に集計
                                 const date = new Date(dateStr + 'T00:00:00');
                                 const dow = date.getDay(); // 0=日, 1=月, ..., 6=土
                                 dayOfWeekData[dow].hours += data.hours || 0;
@@ -1740,6 +1765,100 @@
                                   </div>
                                 );
                               })}
+
+                              {/* 雨の日の平均 */}
+                              {rainyData.count > 0 && (() => {
+                                const avgHours = rainyData.hours / rainyData.count;
+                                const avgDeliveries = rainyData.deliveries / rainyData.count;
+                                const avgEarnings = rainyData.earnings / rainyData.count;
+                                const avgQuest = rainyData.quest / rainyData.count;
+                                const avgTotal = avgEarnings + avgQuest;
+                                const avgPrice = rainyData.deliveries > 0 ? rainyData.earnings / rainyData.deliveries : 0;
+                                const avgDeliveriesPerHour = rainyData.hours > 0 ? rainyData.deliveries / rainyData.hours : 0;
+                                const avgHourlyWage = rainyData.hours > 0 ? (rainyData.earnings + rainyData.quest) / rainyData.hours : 0;
+
+                                return (
+                                  <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl p-4 border-2 border-cyan-200">
+                                    <div className="font-bold text-cyan-800 mb-3 flex items-center justify-between">
+                                      <span>🌧️ 雨の日</span>
+                                      <span className="text-xs text-cyan-600">{rainyData.count}日分</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3 text-sm">
+                                      <div>
+                                        <div className="text-gray-600">平均稼働時間</div>
+                                        <div className="font-bold text-gray-800">{avgHours.toFixed(1)}時間</div>
+                                      </div>
+                                      <div>
+                                        <div className="text-gray-600">平均配達件数</div>
+                                        <div className="font-bold text-gray-800">{avgDeliveries.toFixed(1)}件</div>
+                                      </div>
+                                      <div>
+                                        <div className="text-gray-600">平均単価</div>
+                                        <div className="font-bold text-gray-800">¥{Math.floor(avgPrice).toLocaleString()}/件</div>
+                                      </div>
+                                      <div>
+                                        <div className="text-gray-600">平均時給</div>
+                                        <div className="font-bold text-cyan-600">¥{Math.floor(avgHourlyWage).toLocaleString()}/h</div>
+                                      </div>
+                                      <div>
+                                        <div className="text-gray-600">時間配達件数</div>
+                                        <div className="font-bold text-gray-800">{avgDeliveriesPerHour.toFixed(1)}件/h</div>
+                                      </div>
+                                      <div>
+                                        <div className="text-gray-600">平均売上</div>
+                                        <div className="font-bold text-gray-800">¥{Math.floor(avgTotal).toLocaleString()}</div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })()}
+
+                              {/* 祝日の平均 */}
+                              {holidayData.count > 0 && (() => {
+                                const avgHours = holidayData.hours / holidayData.count;
+                                const avgDeliveries = holidayData.deliveries / holidayData.count;
+                                const avgEarnings = holidayData.earnings / holidayData.count;
+                                const avgQuest = holidayData.quest / holidayData.count;
+                                const avgTotal = avgEarnings + avgQuest;
+                                const avgPrice = holidayData.deliveries > 0 ? holidayData.earnings / holidayData.deliveries : 0;
+                                const avgDeliveriesPerHour = holidayData.hours > 0 ? holidayData.deliveries / holidayData.hours : 0;
+                                const avgHourlyWage = holidayData.hours > 0 ? (holidayData.earnings + holidayData.quest) / holidayData.hours : 0;
+
+                                return (
+                                  <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-xl p-4 border-2 border-orange-200">
+                                    <div className="font-bold text-orange-800 mb-3 flex items-center justify-between">
+                                      <span>🎌 祝日</span>
+                                      <span className="text-xs text-orange-600">{holidayData.count}日分</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3 text-sm">
+                                      <div>
+                                        <div className="text-gray-600">平均稼働時間</div>
+                                        <div className="font-bold text-gray-800">{avgHours.toFixed(1)}時間</div>
+                                      </div>
+                                      <div>
+                                        <div className="text-gray-600">平均配達件数</div>
+                                        <div className="font-bold text-gray-800">{avgDeliveries.toFixed(1)}件</div>
+                                      </div>
+                                      <div>
+                                        <div className="text-gray-600">平均単価</div>
+                                        <div className="font-bold text-gray-800">¥{Math.floor(avgPrice).toLocaleString()}/件</div>
+                                      </div>
+                                      <div>
+                                        <div className="text-gray-600">平均時給</div>
+                                        <div className="font-bold text-orange-600">¥{Math.floor(avgHourlyWage).toLocaleString()}/h</div>
+                                      </div>
+                                      <div>
+                                        <div className="text-gray-600">時間配達件数</div>
+                                        <div className="font-bold text-gray-800">{avgDeliveriesPerHour.toFixed(1)}件/h</div>
+                                      </div>
+                                      <div>
+                                        <div className="text-gray-600">平均売上</div>
+                                        <div className="font-bold text-gray-800">¥{Math.floor(avgTotal).toLocaleString()}</div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })()}
                             </div>
                           );
                         }
