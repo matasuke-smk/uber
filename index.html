@@ -959,11 +959,33 @@
         };
       }, [showBasicSettings, showQuestSettings, showCalendar, showTotalStats, showDayEdit, showExpenses, showExpenseInput, showImagePreview]);
 
-      // クエスト設定モーダルを開いた時、スクロール位置をリセット
+      // クエスト設定モーダルを開いた時、スクロール位置をリセットし、bodyのスクロールを無効化
       useEffect(() => {
-        if (showQuestSettings && questModalContentRef.current) {
-          questModalContentRef.current.scrollTop = 0;
+        if (showQuestSettings) {
+          // スクロール位置をリセット
+          if (questModalContentRef.current) {
+            questModalContentRef.current.scrollTop = 0;
+          }
+          // bodyのスクロールを無効化
+          document.body.style.overflow = 'hidden';
+          document.body.style.position = 'fixed';
+          document.body.style.width = '100%';
+          document.body.style.height = '100%';
+        } else {
+          // bodyのスクロールを有効化
+          document.body.style.overflow = '';
+          document.body.style.position = '';
+          document.body.style.width = '';
+          document.body.style.height = '';
         }
+
+        return () => {
+          // クリーンアップ
+          document.body.style.overflow = '';
+          document.body.style.position = '';
+          document.body.style.width = '';
+          document.body.style.height = '';
+        };
       }, [showQuestSettings]);
 
       // 週の稼働時間が変更されたら、クエスト報酬を計算してdailyData（表示用）を更新
@@ -1610,13 +1632,6 @@
               e.target.blur();
             }
           }
-        }
-      };
-
-      // モーダルのスクロール位置をリセット
-      const resetModalScroll = () => {
-        if (questModalContentRef.current) {
-          questModalContentRef.current.scrollTop = 0;
         }
       };
 
@@ -3036,17 +3051,19 @@
 
             {/* クエスト設定モーダル */}
             {showQuestSettings && (
-              <div className="fixed inset-0 bg-white z-50" style={{overflow: 'hidden'}}>
+              <div
+                className="fixed inset-0 bg-white z-50"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  overflow: 'hidden',
+                  height: '100vh',
+                  height: '100dvh'
+                }}
+              >
                 <div
                   className="bg-white border-b border-gray-200 p-4 flex items-center justify-between"
-                  style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    zIndex: 52,
-                    touchAction: 'none'
-                  }}
+                  style={{flexShrink: 0, touchAction: 'none'}}
                 >
                   <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                     <Award />
@@ -3064,14 +3081,10 @@
                 <div
                   ref={questModalContentRef}
                   style={{
-                    position: 'fixed',
-                    top: '73px',
-                    bottom: '89px',
-                    left: 0,
-                    right: 0,
+                    flex: 1,
                     overflowY: 'auto',
                     WebkitOverflowScrolling: 'touch',
-                    zIndex: 51
+                    minHeight: 0
                   }}
                 >
                   <div className="p-6 space-y-6">
@@ -3090,7 +3103,6 @@
                               value={quest.count || ''}
                               onChange={(e) => updateWeekdayQuest(index, 'count', e.target.value)}
                               onKeyDown={handleKeyDown}
-                              onBlur={resetModalScroll}
                               className="w-14 px-2 py-1.5 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm text-center flex-shrink-0"
                             />
                             <span className="text-xs text-gray-600 flex-shrink-0">回</span>
@@ -3100,7 +3112,6 @@
                               value={quest.reward || ''}
                               onChange={(e) => updateWeekdayQuest(index, 'reward', e.target.value)}
                               onKeyDown={handleKeyDown}
-                              onBlur={resetModalScroll}
                               className="flex-1 min-w-0 px-2 py-1.5 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm text-center"
                             />
                             <span className="text-xs text-gray-600 flex-shrink-0">円</span>
@@ -3124,7 +3135,6 @@
                               value={quest.count || ''}
                               onChange={(e) => updateWeekendQuest(index, 'count', e.target.value)}
                               onKeyDown={handleKeyDown}
-                              onBlur={resetModalScroll}
                               className="w-14 px-2 py-1.5 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none text-sm text-center flex-shrink-0"
                             />
                             <span className="text-xs text-gray-600 flex-shrink-0">回</span>
@@ -3134,7 +3144,6 @@
                               value={quest.reward || ''}
                               onChange={(e) => updateWeekendQuest(index, 'reward', e.target.value)}
                               onKeyDown={handleKeyDown}
-                              onBlur={resetModalScroll}
                               className="flex-1 min-w-0 px-2 py-1.5 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none text-sm text-center"
                             />
                             <span className="text-xs text-gray-600 flex-shrink-0">円</span>
@@ -3147,14 +3156,7 @@
 
                 <div
                   className="bg-white p-4 border-t border-gray-200"
-                  style={{
-                    position: 'fixed',
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    zIndex: 52,
-                    touchAction: 'none'
-                  }}
+                  style={{flexShrink: 0, touchAction: 'none'}}
                 >
                   <button
                     onClick={() => setShowQuestSettings(false)}
