@@ -402,15 +402,26 @@
         { count: 10, reward: 0 }
       ]);
       
-      // 各曜日の稼働時間・件数・金額 (Supabaseから読み込む)
-      const [hours, setHours] = useState({
-        月: { hours: 0, deliveries: 0, earnings: 0 },
-        火: { hours: 0, deliveries: 0, earnings: 0 },
-        水: { hours: 0, deliveries: 0, earnings: 0 },
-        木: { hours: 0, deliveries: 0, earnings: 0 },
-        金: { hours: 0, deliveries: 0, earnings: 0 },
-        土: { hours: 0, deliveries: 0, earnings: 0 },
-        日: { hours: 0, deliveries: 0, earnings: 0 }
+      // 各曜日の稼働時間・件数・金額
+      const [hours, setHours] = useState(() => {
+        const saved = loadFromStorage('hours', null);
+        // 旧形式から新形式への移行
+        if (saved && typeof saved['月'] === 'number') {
+          const converted = {};
+          days.forEach(day => {
+            converted[day] = { hours: saved[day] || 0, deliveries: 0, earnings: 0 };
+          });
+          return converted;
+        }
+        return loadFromStorage('hours', {
+          月: { hours: 0, deliveries: 0, earnings: 0 },
+          火: { hours: 0, deliveries: 0, earnings: 0 },
+          水: { hours: 0, deliveries: 0, earnings: 0 },
+          木: { hours: 0, deliveries: 0, earnings: 0 },
+          金: { hours: 0, deliveries: 0, earnings: 0 },
+          土: { hours: 0, deliveries: 0, earnings: 0 },
+          日: { hours: 0, deliveries: 0, earnings: 0 }
+        });
       });
       
       // 目標金額 (Supabaseから読み込む)
