@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
+  <!--
+    Supabase user_settings テーブルに vision_api_key カラムを追加するSQL:
+    ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS vision_api_key TEXT;
+  -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#10b981">
@@ -899,6 +903,12 @@
               setWeekdayDeliveriesPerHour(data.weekday_deliveries_per_hour || 4);
               setWeekendDeliveriesPerHour(data.weekend_deliveries_per_hour || 4);
               setUseAutoCalculate(data.use_auto_calculate || false);
+
+              // Vision APIキーをSupabaseから読み込み
+              if (data.vision_api_key) {
+                setVisionApiKey(data.vision_api_key);
+                localStorage.setItem('visionApiKey', data.vision_api_key); // localStorageにもキャッシュ
+              }
               setWeekdayQuests(data.weekday_quests || [
                 { count: 10, reward: 0 },
                 { count: 10, reward: 0 },
@@ -1278,6 +1288,7 @@
               target_amount: targetAmount,
               current_week_start: currentWeekStart,
               hours: hours,
+              vision_api_key: visionApiKey || null,
               updated_at: new Date().toISOString()
             }, {
               onConflict: 'user_id'
@@ -3220,10 +3231,14 @@
                               } catch (err) {
                                 console.error('Failed to save API key:', err);
                               }
+                              // Supabaseにも保存（設定保存時に一括保存される）
                             }}
                             placeholder="AIza..."
                             className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-base"
                           />
+                          <div className="text-xs text-gray-500 mt-1">
+                            ※ 設定を保存するとクラウドに暗号化して保存されます
+                          </div>
                           <div className="text-xs text-gray-500 mt-1">
                             <a
                               href="https://console.cloud.google.com/apis/credentials"
