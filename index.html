@@ -675,44 +675,142 @@
             }
           }
 
-          // 店名を抽出（最初の行や「店」が含まれる行を優先）
+          // 商品名・項目名を抽出
           const lines = text.split('\n').filter(line => line.trim());
-          let extractedStoreName = '';
+          let extractedItemNames = [];
 
-          // 店名の候補を探す（よくある店名パターン）
-          const storePatterns = [
-            /^(.+?)(店|ストア|マート|スーパー|薬局|堂|屋)/,
-            /^(セブンイレブン|ファミリーマート|ローソン|ミニストップ).*/,
-            /^(イオン|ヨーカドー|西友|マルエツ|ライフ|OK|ドンキ).*/,
-            /^(スギ薬局|マツモトキヨシ|ウエルシア|ツルハ).*/,
-            /^(マクドナルド|ケンタッキー|すき家|吉野家|松屋).*/
-          ];
+          // まずガソリン関連かチェック
+          const isGasoline = text.match(/(ガソリン|給油|軽油|レギュラー|ハイオク|ENEOS|出光|昭和シェル|コスモ石油|エッソ|モービル)/i);
 
-          for (const line of lines.slice(0, 5)) { // 最初の5行を確認
-            for (const pattern of storePatterns) {
-              const match = line.match(pattern);
+          if (isGasoline) {
+            // ガソリンの場合の特別処理
+            let gasolineType = '';
+            let liters = 0;
+
+            // ガソリンの種類を判定
+            if (text.match(/ハイオク|ハイオクタン|HIGH|プレミアム/i)) {
+              gasolineType = 'ハイオクガソリン';
+            } else if (text.match(/軽油|ディーゼル|DIESEL/i)) {
+              gasolineType = '軽油';
+            } else if (text.match(/レギュラー|REGULAR|ガソリン/i)) {
+              gasolineType = 'レギュラーガソリン';
+            }
+
+            // リッター数を探す（複数のパターンに対応）
+            const literPatterns = [
+              /(\d+\.?\d*)\s*[Lℓリットル]/i,
+              /数量\s*[:：]\s*(\d+\.?\d*)/i,
+              /給油量\s*[:：]?\s*(\d+\.?\d*)/i,
+              /(\d+\.?\d*)\s*L/i,
+              /(\d{2,3}\.?\d*)\s*@/i  // 単価の前の数量
+            ];
+
+            for (const pattern of literPatterns) {
+              const match = text.match(pattern);
               if (match) {
-                extractedStoreName = match[0].trim();
-                break;
+                liters = parseFloat(match[1]);
+                if (liters > 0 && liters < 200) {  // 妥当な範囲のリッター数
+                  break;
+                }
               }
             }
-            if (extractedStoreName) break;
+
+            // リッター数が見つからない場合、金額から推定を試みる
+            if (liters === 0 && extractedAmount > 0) {
+              // 単価を探す（150-200円/L程度を想定）
+              const priceMatch = text.match(/@\s*(\d+)/i);
+              if (priceMatch) {
+                const unitPrice = parseInt(priceMatch[1]);
+                if (unitPrice > 100 && unitPrice < 300) {
+                  liters = Math.round(extractedAmount / unitPrice * 10) / 10;
+                }
+              }
+            }
+
+            // ガソリンの形式で出力
+            if (gasolineType && liters > 0) {
+              extractedItemNames = [`${gasolineType}${liters}L`];
+            } else if (gasolineType) {
+              extractedItemNames = [`${gasolineType}${liters}L`];
+            }
           }
 
-          if (!extractedStoreName && lines.length > 0) {
-            // 店名が見つからない場合は最初の長めの行を使用
-            for (const line of lines.slice(0, 3)) {
-              if (line.length > 3 && !line.match(/^\d+$/)) {
-                extractedStoreName = line.trim();
-                break;
+          // ガソリンでない場合、または抽出できなかった場合は通常の処理
+          if (extractedItemNames.length === 0) {
+            // 商品名のパターンを探す
+            const itemPatterns = [
+              // 一般的な商品カテゴリ
+              /(コーヒー|珈琲|カフェラテ|紅茶|お茶|ジュース|ドリンク)/i,
+              /(弁当|おにぎり|サンドイッチ|パン|惣菜|サラダ)/i,
+              /(駐車|パーキング|コインパーキング)/i,
+              /(食事|ランチ|ディナー|朝食|夕食)/i,
+              /(タバコ|たばこ|煙草)/i,
+              /(お菓子|スナック|チョコ|ガム|飴)/i,
+              // 価格が後ろについているパターン (例: "コーヒー ¥150")
+              /(.+?)\s*[¥￥]\s*\d+/,
+              // 個数が後ろについているパターン (例: "おにぎり 2個")
+              /(.+?)\s*\d+[個点本杯]/
+            ];
+
+            // レシートの中央部分を重点的に探す（通常、商品リストがある部分）
+            const middleStart = Math.floor(lines.length * 0.2);
+            const middleEnd = Math.floor(lines.length * 0.8);
+
+            for (let i = middleStart; i < Math.min(middleEnd, lines.length); i++) {
+              const line = lines[i];
+
+              // 金額行やレシート番号などをスキップ
+              if (line.match(/^[\d,]+円?$/) || line.match(/^No\.|^TEL|^住所|^〒/)) {
+                continue;
+              }
+
+              // 商品名パターンにマッチするか確認
+              for (const pattern of itemPatterns) {
+                const match = line.match(pattern);
+                if (match) {
+                  const itemName = match[1] ? match[1].trim() : match[0].trim();
+                  if (itemName.length > 1 && itemName.length < 30) {
+                    extractedItemNames.push(itemName);
+                    break;
+                  }
+                }
+              }
+
+              // 最大3個の商品名を抽出
+              if (extractedItemNames.length >= 3) break;
+            }
+
+            // 商品名が見つからない場合は、金額の前にある短い行を探す
+            if (extractedItemNames.length === 0) {
+              for (let i = 0; i < lines.length - 1; i++) {
+                const currentLine = lines[i];
+                const nextLine = lines[i + 1];
+
+                // 次の行が金額っぽい場合、現在の行が商品名の可能性
+                if (nextLine.match(/[¥￥]\s*[\d,]+/) || nextLine.match(/[\d,]+円/)) {
+                  if (currentLine.length > 2 && currentLine.length < 20 && !currentLine.match(/^\d+$/)) {
+                    extractedItemNames.push(currentLine.trim());
+                    if (extractedItemNames.length >= 2) break;
+                  }
+                }
               }
             }
+          }
+
+          // 複数の商品名をカンマ区切りで結合
+          const itemDescription = extractedItemNames.join('、');
+
+          // カテゴリーの自動判定（ガソリンの場合は燃料費）
+          let suggestedCategory = null;
+          if (isGasoline) {
+            suggestedCategory = 'fuel';
           }
 
           return {
             date: extractedDate || formatDateToLocal(new Date()),
             amount: extractedAmount || 0,
-            storeName: extractedStoreName || '',
+            itemName: itemDescription || '',
+            category: suggestedCategory,
             fullText: text
           };
         } catch (error) {
@@ -4296,15 +4394,27 @@
                                   extractReceiptData(resizedDataUrl).then(result => {
                                     if (result) {
                                       // 認識結果を自動入力
-                                      setEditingExpense(prev => ({
-                                        ...prev,
-                                        date: result.date,
-                                        amount: result.amount,
-                                        description: result.storeName
-                                      }));
+                                      setEditingExpense(prev => {
+                                        const updateData = {
+                                          ...prev,
+                                          date: result.date,
+                                          amount: result.amount,
+                                          description: result.itemName
+                                        };
+
+                                        // カテゴリーが提案されている場合は設定
+                                        if (result.category) {
+                                          updateData.category = result.category;
+                                          // カテゴリーに応じたデフォルト借方科目を設定
+                                          const defaultSubject = categoryToSubjects[result.category]?.[0] || 'vehicle';
+                                          updateData.accountingSubject = defaultSubject;
+                                        }
+
+                                        return updateData;
+                                      });
 
                                       // 成功メッセージ
-                                      if (result.amount > 0 || result.storeName) {
+                                      if (result.amount > 0 || result.itemName) {
                                         console.log('OCR認識成功:', result);
                                       }
                                     }
