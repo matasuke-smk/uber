@@ -928,6 +928,8 @@
       useEffect(() => {
         if (!currentWeekStart) return;
 
+        console.log('[Display Update] Running useEffect for hours:', JSON.stringify(hours));
+
         // 使用する平均値を取得
         const effectiveValues = getEffectiveValues();
 
@@ -943,6 +945,7 @@
                                dayData.earnings > 0;
 
             const dateStr = getDayDate(day);
+            console.log(`[Display Update] ${day}: dateStr=${dateStr}, hasAllFields=${hasAllFields}, data=`, dayData);
             if (dateStr) {
               if (hasAllFields) {
                 tempData[dateStr] = {
@@ -951,9 +954,11 @@
                   deliveries: dayData.deliveries,
                   earnings: dayData.earnings  // 入力値（クエスト込み）
                 };
+                console.log(`[Display Update] Added to tempData:`, tempData[dateStr]);
               } else if (updatedData[dateStr]) {
                 // 不完全なデータの場合は削除
                 delete updatedData[dateStr];
+                console.log(`[Display Update] Deleted from updatedData: ${dateStr}`);
               }
             }
           });
