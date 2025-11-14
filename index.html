@@ -402,26 +402,15 @@
         { count: 10, reward: 0 }
       ]);
       
-      // 各曜日の稼働時間・件数・金額
-      const [hours, setHours] = useState(() => {
-        const saved = loadFromStorage('hours', null);
-        // 旧形式から新形式への移行
-        if (saved && typeof saved['月'] === 'number') {
-          const converted = {};
-          days.forEach(day => {
-            converted[day] = { hours: saved[day] || 0, deliveries: 0, earnings: 0 };
-          });
-          return converted;
-        }
-        return loadFromStorage('hours', {
-          月: { hours: 0, deliveries: 0, earnings: 0 },
-          火: { hours: 0, deliveries: 0, earnings: 0 },
-          水: { hours: 0, deliveries: 0, earnings: 0 },
-          木: { hours: 0, deliveries: 0, earnings: 0 },
-          金: { hours: 0, deliveries: 0, earnings: 0 },
-          土: { hours: 0, deliveries: 0, earnings: 0 },
-          日: { hours: 0, deliveries: 0, earnings: 0 }
-        });
+      // 各曜日の稼働時間・件数・金額 (Supabaseから読み込む)
+      const [hours, setHours] = useState({
+        月: { hours: 0, deliveries: 0, earnings: 0 },
+        火: { hours: 0, deliveries: 0, earnings: 0 },
+        水: { hours: 0, deliveries: 0, earnings: 0 },
+        木: { hours: 0, deliveries: 0, earnings: 0 },
+        金: { hours: 0, deliveries: 0, earnings: 0 },
+        土: { hours: 0, deliveries: 0, earnings: 0 },
+        日: { hours: 0, deliveries: 0, earnings: 0 }
       });
       
       // 目標金額 (Supabaseから読み込む)
@@ -521,35 +510,25 @@
 
             if (data) {
               // Supabaseにデータがある場合は読み込み
-              console.log('[DEBUG] Loaded user_settings from Supabase');
-              console.log('[DEBUG] weekend_quests from DB:', JSON.stringify(data.weekend_quests));
-              console.log('[DEBUG] weekday_quests from DB:', JSON.stringify(data.weekday_quests));
-
-              const loadedWeekendQuests = data.weekend_quests || [
-                { count: 10, reward: 0 },
-                { count: 10, reward: 0 },
-                { count: 10, reward: 0 },
-                { count: 10, reward: 0 },
-                { count: 10, reward: 0 }
-              ];
-              const loadedWeekdayQuests = data.weekday_quests || [
-                { count: 10, reward: 0 },
-                { count: 10, reward: 0 },
-                { count: 10, reward: 0 },
-                { count: 10, reward: 0 },
-                { count: 10, reward: 0 }
-              ];
-
-              console.log('[DEBUG] Setting weekendQuests to:', JSON.stringify(loadedWeekendQuests));
-              console.log('[DEBUG] Setting weekdayQuests to:', JSON.stringify(loadedWeekdayQuests));
-
               setWeekdayAvgPrice(data.weekday_avg_price || 400);
               setWeekendAvgPrice(data.weekend_avg_price || 400);
               setWeekdayDeliveriesPerHour(data.weekday_deliveries_per_hour || 4);
               setWeekendDeliveriesPerHour(data.weekend_deliveries_per_hour || 4);
               setUseAutoCalculate(data.use_auto_calculate || false);
-              setWeekdayQuests(loadedWeekdayQuests);
-              setWeekendQuests(loadedWeekendQuests);
+              setWeekdayQuests(data.weekday_quests || [
+                { count: 10, reward: 0 },
+                { count: 10, reward: 0 },
+                { count: 10, reward: 0 },
+                { count: 10, reward: 0 },
+                { count: 10, reward: 0 }
+              ]);
+              setWeekendQuests(data.weekend_quests || [
+                { count: 10, reward: 0 },
+                { count: 10, reward: 0 },
+                { count: 10, reward: 0 },
+                { count: 10, reward: 0 },
+                { count: 10, reward: 0 }
+              ]);
               setTargetAmount(data.target_amount || 0);
 
               // 今週の月曜日を自動設定
@@ -562,8 +541,7 @@
 
               // データベースの週と今週が違う場合、または週が未設定の場合
               if (data.current_week_start !== thisMondayStr) {
-                console.log('[DEBUG] New week detected. Clearing hours. Old week:', data.current_week_start, 'New week:', thisMondayStr);
-                // hoursをクリア
+                // 新しい週なのでhoursをクリア
                 setHours({
                   月: { hours: 0, deliveries: 0, earnings: 0 },
                   火: { hours: 0, deliveries: 0, earnings: 0 },
@@ -575,6 +553,16 @@
                 });
                 setCurrentWeekStart(thisMondayStr);
               } else {
+                // 同じ週ならhoursを読み込む
+                setHours(data.hours || {
+                  月: { hours: 0, deliveries: 0, earnings: 0 },
+                  火: { hours: 0, deliveries: 0, earnings: 0 },
+                  水: { hours: 0, deliveries: 0, earnings: 0 },
+                  木: { hours: 0, deliveries: 0, earnings: 0 },
+                  金: { hours: 0, deliveries: 0, earnings: 0 },
+                  土: { hours: 0, deliveries: 0, earnings: 0 },
+                  日: { hours: 0, deliveries: 0, earnings: 0 }
+                });
                 setCurrentWeekStart(data.current_week_start);
               }
             } else {
@@ -590,10 +578,10 @@
                 const localWeekendQuests = loadFromStorage('weekendQuests', null);
                 const localTarget = loadFromStorage('targetAmount', null);
                 const localWeekStart = loadFromStorage('currentWeekStart', null);
+                const localHours = loadFromStorage('hours', null);
 
                 if (localWeekdayAvgPrice !== null || localWeekdayQuests !== null) {
                   // localStorageにデータがある場合は移行
-                  console.log('Migrating settings from localStorage to Supabase...');
 
                   setWeekdayAvgPrice(localWeekdayAvgPrice || 400);
                   setWeekendAvgPrice(localWeekendAvgPrice || 400);
@@ -625,7 +613,7 @@
                   const thisMondayStr = formatDateToLocal(thisMonday);
 
                   if (localWeekStart !== thisMondayStr) {
-                    console.log('[DEBUG] Migration: New week detected. Old week:', localWeekStart, 'New week:', thisMondayStr);
+                    // 新しい週なのでhoursをクリア
                     setHours({
                       月: { hours: 0, deliveries: 0, earnings: 0 },
                       火: { hours: 0, deliveries: 0, earnings: 0 },
@@ -635,6 +623,9 @@
                       土: { hours: 0, deliveries: 0, earnings: 0 },
                       日: { hours: 0, deliveries: 0, earnings: 0 }
                     });
+                  } else if (localHours) {
+                    // 同じ週ならlocalStorageのhoursを移行
+                    setHours(localHours);
                   }
                   setCurrentWeekStart(thisMondayStr);
 
@@ -663,7 +654,16 @@
                         { count: 10, reward: 0 }
                       ],
                       target_amount: localTarget || 0,
-                      current_week_start: thisMondayStr
+                      current_week_start: thisMondayStr,
+                      hours: (localWeekStart === thisMondayStr && localHours) ? localHours : {
+                        月: { hours: 0, deliveries: 0, earnings: 0 },
+                        火: { hours: 0, deliveries: 0, earnings: 0 },
+                        水: { hours: 0, deliveries: 0, earnings: 0 },
+                        木: { hours: 0, deliveries: 0, earnings: 0 },
+                        金: { hours: 0, deliveries: 0, earnings: 0 },
+                        土: { hours: 0, deliveries: 0, earnings: 0 },
+                        日: { hours: 0, deliveries: 0, earnings: 0 }
+                      }
                     }, {
                       onConflict: 'user_id'
                     });
@@ -678,7 +678,6 @@
                   const thisMonday = new Date(today);
                   thisMonday.setDate(today.getDate() + diff);
                   const thisMondayStr = formatDateToLocal(thisMonday);
-                  console.log('[DEBUG] First login: Setting week start to:', thisMondayStr);
                   setCurrentWeekStart(thisMondayStr);
                 }
               }
@@ -711,7 +710,6 @@
 
             // Convert Supabase format to local format
             const dailyDataMap = {};
-            console.log('[DEBUG] Loaded daily_records from Supabase:', data?.length || 0, 'records');
             for (const record of data || []) {
               dailyDataMap[record.date] = {
                 hours: record.hours,
@@ -721,7 +719,6 @@
                 isRainy: record.is_rainy,
                 isHoliday: record.is_holiday
               };
-              console.log('[DEBUG] Record:', record.date, record);
             }
 
             // localStorageからの移行（Supabaseにデータがない場合）
@@ -878,20 +875,12 @@
         };
       };
 
-      // データをlocalStorageに保存
       // Save settings to Supabase
       const saveSettings = async () => {
-        if (!session?.user?.id) {
-          console.log('[DEBUG] saveSettings: No session, skipping');
-          return;
-        }
+        if (!session?.user?.id) return;
 
         try {
-          console.log('[DEBUG] saveSettings: Saving settings to Supabase');
-          console.log('[DEBUG] saveSettings: weekendQuests =', JSON.stringify(weekendQuests));
-          console.log('[DEBUG] saveSettings: weekdayQuests =', JSON.stringify(weekdayQuests));
-
-          const { data, error } = await supabaseClient
+          const { error } = await supabaseClient
             .from('user_settings')
             .upsert({
               user_id: session.user.id,
@@ -904,39 +893,29 @@
               weekend_quests: weekendQuests,
               target_amount: targetAmount,
               current_week_start: currentWeekStart,
+              hours: hours,
               updated_at: new Date().toISOString()
             }, {
               onConflict: 'user_id'
             });
 
           if (error) throw error;
-          console.log('[DEBUG] saveSettings: Successfully saved');
         } catch (error) {
-          console.error('[DEBUG] saveSettings: Error saving settings:', error);
+          console.error('Error saving settings:', error);
         }
       };
 
       // Auto-save settings when they change (debounced)
       useEffect(() => {
-        if (settingsLoading) {
-          console.log('[DEBUG] Auto-save: Skipping (settingsLoading=true)');
-          return; // Don't save during initial load
-        }
-        console.log('[DEBUG] Auto-save: Scheduling save in 500ms');
+        if (settingsLoading) return;
         const timer = setTimeout(() => {
           saveSettings();
-        }, 500); // Debounce 500ms
+        }, 500);
         return () => clearTimeout(timer);
       }, [weekdayAvgPrice, weekendAvgPrice, weekdayDeliveriesPerHour, weekendDeliveriesPerHour,
-          useAutoCalculate, weekdayQuests, weekendQuests, targetAmount, currentWeekStart, settingsLoading]);
+          useAutoCalculate, weekdayQuests, weekendQuests, targetAmount, currentWeekStart, hours, settingsLoading]);
 
-      // Keep these in localStorage (週ごとの計画データなど)
-      useEffect(() => {
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('hours', JSON.stringify(hours));
-        }
-      }, [hours]);
-
+      // Keep these in localStorage
       useEffect(() => {
         if (typeof window !== 'undefined') {
           localStorage.setItem('historicalData', JSON.stringify(historicalData));
@@ -979,18 +958,13 @@
 
       // 週の稼働時間が変更されたら、クエスト報酬を計算してdailyData（表示用）を更新
       useEffect(() => {
-        console.log('[DEBUG] Display update check:', { currentWeekStart, settingsLoading, dailyDataLoading });
         if (!currentWeekStart || settingsLoading || dailyDataLoading) return;
-
-        console.log('[DEBUG] Display update useEffect triggered');
-        console.log('[DEBUG] weekendQuests:', JSON.stringify(weekendQuests));
 
         // 使用する平均値を取得
         const effectiveValues = getEffectiveValues();
 
         setDailyData(prev => {
           const updatedData = { ...prev };
-          console.log('[DEBUG] prev dailyData keys:', Object.keys(prev));
 
           // まず、週のすべてのデータを一時的に保存（クエスト計算のため）
           const tempData = {};
@@ -1059,17 +1033,12 @@
             const dayDeliveries = dayData.deliveries > 0 ? dayData.deliveries : dayData.hours * effectiveValues.weekendDeliveriesPerHour;
             cumulativeWeekend += dayDeliveries;
 
-            console.log(`[DEBUG] ${day} - deliveries: ${dayDeliveries}, cumulative: ${cumulativeWeekend}`);
-            console.log(`[DEBUG] weekendQuests:`, weekendQuests.map(q => `count:${q.count},reward:${q.reward}`).join(' | '));
-
             // この日に達成したクエストを確認
             let dayQuestReward = 0;
             while (nextWeekendQuestIndex < weekendQuests.length) {
               const quest = weekendQuests[nextWeekendQuestIndex];
               const nextThreshold = cumulativeWeekendQuestCount + quest.count;
-              console.log(`[DEBUG] Checking quest ${nextWeekendQuestIndex}: threshold=${nextThreshold}, count=${quest.count}, reward=${quest.reward}`);
               if (cumulativeWeekend >= nextThreshold) {
-                console.log(`[DEBUG] Quest ${nextWeekendQuestIndex} achieved! Adding reward: ${quest.reward}`);
                 dayQuestReward += quest.reward;
                 cumulativeWeekendQuestCount = nextThreshold;
                 nextWeekendQuestIndex++;
@@ -1078,8 +1047,6 @@
               }
             }
 
-            console.log(`[DEBUG] ${day} total quest reward: ${dayQuestReward}`);
-
             // 入力値（クエスト込み）からクエストを引いて基本売上を保存
             updatedData[dateStr] = {
               hours: tempData[dateStr].hours,
@@ -1087,25 +1054,19 @@
               earnings: tempData[dateStr].earnings - dayQuestReward,
               quest: dayQuestReward
             };
-            console.log(`[DEBUG] Added ${dateStr}:`, updatedData[dateStr]);
           });
 
-          console.log('[DEBUG] Final updatedData keys:', Object.keys(updatedData));
-          console.log('[DEBUG] Returning updatedData');
           return updatedData;
         });
       }, [hours, weekdayQuests, weekendQuests, currentWeekStart, weekdayDeliveriesPerHour, weekendDeliveriesPerHour, useAutoCalculate, weekdayAvgPrice, weekendAvgPrice, settingsLoading, dailyDataLoading]);
 
-      // hoursが変更されたら、Supabaseに保存
+      // hoursが変更されたら、Supabaseに保存（daily_recordsに）
       useEffect(() => {
-        console.log('[DEBUG] Save to Supabase check:', { currentWeekStart, hasSession: !!session?.user?.id, settingsLoading, dailyDataLoading });
         if (!currentWeekStart || !session?.user?.id || settingsLoading || dailyDataLoading) return;
 
-        console.log('[DEBUG] Scheduling Supabase save in 500ms');
         // デバウンス：入力が落ち着いてから保存
         const timer = setTimeout(async () => {
           try {
-            console.log('[DEBUG] Starting Supabase save...');
             // 使用する平均値を取得
             const effectiveValues = getEffectiveValues();
 
@@ -1210,23 +1171,14 @@
 
             // 保存
             if (datesToSave.length > 0) {
-              console.log('[DEBUG] Saving to Supabase:', datesToSave.length, 'records');
-              console.log('[DEBUG] Records to save:', datesToSave);
-              const { data, error } = await supabaseClient
+              await supabaseClient
                 .from('daily_records')
                 .upsert(datesToSave, {
                   onConflict: 'user_id,date'
                 });
-              if (error) {
-                console.error('[DEBUG] Supabase save error:', error);
-              } else {
-                console.log('[DEBUG] Supabase save successful!');
-              }
-            } else {
-              console.log('[DEBUG] No data to save (all fields not filled)');
             }
           } catch (error) {
-            console.error('[DEBUG] Error saving daily data from hours:', error);
+            console.error('Error saving daily data from hours:', error);
           }
         }, 500); // 500ms デバウンス
 
