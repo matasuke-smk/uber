@@ -901,11 +901,14 @@
       useEffect(() => {
         if (!currentWeekStart) return;
 
+        console.log('[DEBUG] Display update useEffect triggered');
+
         // 使用する平均値を取得
         const effectiveValues = getEffectiveValues();
 
         setDailyData(prev => {
           const updatedData = { ...prev };
+          console.log('[DEBUG] prev dailyData keys:', Object.keys(prev));
 
           // まず、週のすべてのデータを一時的に保存（クエスト計算のため）
           const tempData = {};
@@ -994,8 +997,11 @@
               earnings: tempData[dateStr].earnings - dayQuestReward,
               quest: dayQuestReward
             };
+            console.log(`[DEBUG] Added ${dateStr}:`, updatedData[dateStr]);
           });
 
+          console.log('[DEBUG] Final updatedData keys:', Object.keys(updatedData));
+          console.log('[DEBUG] Returning updatedData');
           return updatedData;
         });
       }, [hours, weekdayQuests, weekendQuests, currentWeekStart, weekdayDeliveriesPerHour, weekendDeliveriesPerHour, useAutoCalculate, weekdayAvgPrice, weekendAvgPrice]);
