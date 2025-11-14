@@ -4321,55 +4321,80 @@
                       </label>
                       <input
                         type="text"
-                        value={editingExpense.description}
+                        value={editingExpense?.description || ''}
                         onChange={(e) => {
                           setEditingExpense({...editingExpense, description: e.target.value});
                           // 入力内容に応じて候補をフィルタリング
-                          if (e.target.value.trim()) {
-                            const filtered = descriptionSuggestions.filter(s =>
-                              s.toLowerCase().includes(e.target.value.toLowerCase())
-                            );
-                            setShowDescriptionSuggestions(filtered.length > 0);
-                          } else {
-                            setShowDescriptionSuggestions(true);
+                          try {
+                            if (e.target.value.trim() && Array.isArray(descriptionSuggestions)) {
+                              const filtered = descriptionSuggestions.filter(s =>
+                                s && s.toLowerCase().includes(e.target.value.toLowerCase())
+                              );
+                              setShowDescriptionSuggestions(filtered.length > 0);
+                            } else {
+                              setShowDescriptionSuggestions(descriptionSuggestions && descriptionSuggestions.length > 0);
+                            }
+                          } catch (error) {
+                            console.error('フィルタリングエラー:', error);
+                            setShowDescriptionSuggestions(false);
                           }
                         }}
                         onFocus={() => {
-                          // フォーカス時に過去の入力履歴から候補を生成
-                          const allDescriptions = new Set();
-                          Object.values(expenses).forEach(dayExpenses => {
-                            dayExpenses.forEach(expense => {
-                              if (expense.description && expense.description.trim()) {
-                                allDescriptions.add(expense.description);
-                              }
-                            });
-                          });
+                          try {
+                            // フォーカス時に過去の入力履歴から候補を生成
+                            const allDescriptions = new Set();
 
-                          // 使用頻度の高い定型文も追加
-                          const commonDescriptions = [
-                            'レギュラーガソリン30L',
-                            'ハイオクガソリン30L',
-                            '軽油30L',
-                            'コンビニ（飲食）',
-                            '昼食',
-                            '夕食',
-                            '駐車場',
-                            '高速道路',
-                            '事務用品',
-                            '工具・資材',
-                            '車両整備',
-                            'オイル交換',
-                            'タイヤ交換',
-                            '洗車',
-                            '防寒具',
-                            '作業着'
-                          ];
+                            // 使用頻度の高い定型文を先に追加
+                            const commonDescriptions = [
+                              'レギュラーガソリン30L',
+                              'ハイオクガソリン30L',
+                              '軽油30L',
+                              'コンビニ（飲食）',
+                              '昼食',
+                              '夕食',
+                              '駐車場',
+                              '高速道路',
+                              '事務用品',
+                              '工具・資材',
+                              '車両整備',
+                              'オイル交換',
+                              'タイヤ交換',
+                              '洗車',
+                              '防寒具',
+                              '作業着'
+                            ];
 
-                          commonDescriptions.forEach(desc => allDescriptions.add(desc));
+                            commonDescriptions.forEach(desc => allDescriptions.add(desc));
 
-                          const suggestions = Array.from(allDescriptions).sort();
-                          setDescriptionSuggestions(suggestions);
-                          setShowDescriptionSuggestions(suggestions.length > 0);
+                            // 過去の経費データから候補を追加（エラーハンドリング付き）
+                            if (expenses && typeof expenses === 'object') {
+                              Object.values(expenses).forEach(dayExpenses => {
+                                if (Array.isArray(dayExpenses)) {
+                                  dayExpenses.forEach(expense => {
+                                    if (expense && expense.description && expense.description.trim()) {
+                                      allDescriptions.add(expense.description);
+                                    }
+                                  });
+                                }
+                              });
+                            }
+
+                            const suggestions = Array.from(allDescriptions).sort();
+                            setDescriptionSuggestions(suggestions);
+                            setShowDescriptionSuggestions(suggestions.length > 0);
+                          } catch (error) {
+                            console.error('候補生成エラー:', error);
+                            // エラーが発生しても定型文だけは表示
+                            const fallbackSuggestions = [
+                              'レギュラーガソリン30L',
+                              'コンビニ（飲食）',
+                              '昼食',
+                              '駐車場',
+                              '高速道路'
+                            ];
+                            setDescriptionSuggestions(fallbackSuggestions);
+                            setShowDescriptionSuggestions(true);
+                          }
                         }}
                         onBlur={() => {
                           // 候補クリックの処理を優先するため、少し遅延を入れる
@@ -4380,11 +4405,14 @@
                       />
 
                       {/* 候補リスト */}
-                      {showDescriptionSuggestions && descriptionSuggestions.length > 0 && (
+                      {showDescriptionSuggestions && Array.isArray(descriptionSuggestions) && descriptionSuggestions.length > 0 && (
                         <div className="absolute z-50 w-full mt-1 bg-white border-2 border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
                           {descriptionSuggestions
-                            .filter(s => !editingExpense.description ||
-                                      s.toLowerCase().includes(editingExpense.description.toLowerCase()))
+                            .filter(s => {
+                              if (!s) return false;
+                              if (!editingExpense || !editingExpense.description) return true;
+                              return s.toLowerCase().includes(editingExpense.description.toLowerCase());
+                            })
                             .slice(0, 10)
                             .map((suggestion, index) => (
                               <div
