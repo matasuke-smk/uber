@@ -1661,7 +1661,10 @@
             {showTotalStats && (
               <div className="fixed inset-0 bg-white z-50 flex flex-col overscroll-contain">
                 <div className="bg-white w-full h-full flex flex-col">
-                  <div className="bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0">
+                  <div
+                    className="bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0"
+                    onTouchMove={(e) => e.stopPropagation()}
+                  >
                     <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                       <Calculator />
                       <span>全期間集計【{Object.keys(dailyData || {}).length}日】</span>
@@ -2141,7 +2144,10 @@
             {showBasicSettings && (
               <div className="fixed inset-0 bg-white z-50 flex flex-col overscroll-contain">
                 <div className="bg-white w-full h-full flex flex-col">
-                  <div className="bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0">
+                  <div
+                    className="bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0"
+                    onTouchMove={(e) => e.stopPropagation()}
+                  >
                     <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                       <Settings />
                       設定
@@ -2356,7 +2362,10 @@
             {showCalendar && (
               <div className="fixed inset-0 bg-white z-50 flex flex-col overscroll-contain">
                 <div className="bg-white w-full h-full flex flex-col">
-                  <div className="bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0">
+                  <div
+                    className="bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0"
+                    onTouchMove={(e) => e.stopPropagation()}
+                  >
                     <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                       <Calendar />
                       カレンダー
@@ -2579,7 +2588,10 @@
             {showQuestSettings && (
               <div className="fixed inset-0 bg-white z-50 flex flex-col overscroll-contain">
                 <div className="bg-white w-full h-full flex flex-col">
-                  <div className="bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0">
+                  <div
+                    className="bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0"
+                    onTouchMove={(e) => e.stopPropagation()}
+                  >
                     <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                       <Award />
                       クエスト
@@ -2677,7 +2689,10 @@
             {showDayEdit && selectedDate && (
               <div className="fixed inset-0 bg-white z-[60] flex flex-col overscroll-contain">
                 <div className="bg-white w-full h-full flex flex-col">
-                  <div className="bg-gradient-to-r from-purple-500 to-blue-500 text-white p-4 flex-shrink-0">
+                  <div
+                    className="bg-gradient-to-r from-purple-500 to-blue-500 text-white p-4 flex-shrink-0"
+                    onTouchMove={(e) => e.stopPropagation()}
+                  >
                     <div className="flex items-center justify-between">
                       <button
                         onClick={() => setIsChangingDate(true)}
@@ -2866,7 +2881,10 @@
                 {isChangingDate && (
                   <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[70]">
                     <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[80vh] flex flex-col">
-                      <div className="bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0">
+                      <div
+                        className="bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0"
+                        onTouchMove={(e) => e.stopPropagation()}
+                      >
                         <h3 className="text-lg font-bold text-gray-800">日付を選択</h3>
                         <button
                           onClick={() => setIsChangingDate(false)}
@@ -2969,7 +2987,10 @@
             {showExpenses && (
               <div className="fixed inset-0 bg-white z-50 flex flex-col overscroll-contain">
                 <div className="bg-white w-full h-full flex flex-col">
-                  <div className="bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0">
+                  <div
+                    className="bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0"
+                    onTouchMove={(e) => e.stopPropagation()}
+                  >
                     <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                       <Receipt />
                       経費管理
@@ -3189,7 +3210,10 @@
             {showExpenseInput && editingExpense && (
               <div className="fixed inset-0 bg-white z-[60] flex flex-col overscroll-contain">
                 <div className="bg-white w-full h-full flex flex-col">
-                  <div className="bg-gradient-to-r from-red-500 to-pink-500 text-white p-4 flex-shrink-0">
+                  <div
+                    className="bg-gradient-to-r from-red-500 to-pink-500 text-white p-4 flex-shrink-0"
+                    onTouchMove={(e) => e.stopPropagation()}
+                  >
                     <div className="flex items-center justify-between">
                       <h2 className="text-xl font-bold">
                         {editingExpenseId ? '経費を編集' : '新規経費'}
