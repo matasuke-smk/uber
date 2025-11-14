@@ -561,6 +561,8 @@
       const [previewImage, setPreviewImage] = useState(null);
       const [swipedExpenseId, setSwipedExpenseId] = useState(null);
       const [isProcessingOCR, setIsProcessingOCR] = useState(false);
+      const [showDescriptionSuggestions, setShowDescriptionSuggestions] = useState(false);
+      const [descriptionSuggestions, setDescriptionSuggestions] = useState([]);
       const [visionApiKey, setVisionApiKey] = useState(() => {
         try {
           return localStorage.getItem('visionApiKey') || '';
@@ -750,15 +752,14 @@
             }
           }
 
-          // 商品名・項目名を抽出
-          const lines = text.split('\n').filter(line => line.trim());
-          let extractedItemNames = [];
+          // ガソリン関連のレシートかチェックして、ガソリンの場合のみ品名を自動入力
+          let itemDescription = '';
+          let suggestedCategory = null;
 
-          // まずガソリン関連かチェック
           const isGasoline = text.match(/(ガソリン|給油|軽油|レギュラー|ハイオク|ENEOS|出光|昭和シェル|コスモ石油|エッソ|モービル)/i);
 
           if (isGasoline) {
-            // ガソリンの場合の特別処理
+            // ガソリンの場合のみ特別処理
             let gasolineType = '';
             let liters = 0;
 
@@ -804,87 +805,21 @@
 
             // ガソリンの形式で出力
             if (gasolineType && liters > 0) {
-              extractedItemNames = [`${gasolineType}${liters}L`];
+              itemDescription = `${gasolineType}${liters}L`;
             } else if (gasolineType) {
-              extractedItemNames = [`${gasolineType}${liters}L`];
-            }
-          }
-
-          // ガソリンでない場合、または抽出できなかった場合は通常の処理
-          if (extractedItemNames.length === 0) {
-            // 商品名のパターンを探す
-            const itemPatterns = [
-              // 一般的な商品カテゴリ
-              /(コーヒー|珈琲|カフェラテ|紅茶|お茶|ジュース|ドリンク)/i,
-              /(弁当|おにぎり|サンドイッチ|パン|惣菜|サラダ)/i,
-              /(駐車|パーキング|コインパーキング)/i,
-              /(食事|ランチ|ディナー|朝食|夕食)/i,
-              /(タバコ|たばこ|煙草)/i,
-              /(お菓子|スナック|チョコ|ガム|飴)/i,
-              // 価格が後ろについているパターン (例: "コーヒー ¥150")
-              /(.+?)\s*[¥￥]\s*\d+/,
-              // 個数が後ろについているパターン (例: "おにぎり 2個")
-              /(.+?)\s*\d+[個点本杯]/
-            ];
-
-            // レシートの中央部分を重点的に探す（通常、商品リストがある部分）
-            const middleStart = Math.floor(lines.length * 0.2);
-            const middleEnd = Math.floor(lines.length * 0.8);
-
-            for (let i = middleStart; i < Math.min(middleEnd, lines.length); i++) {
-              const line = lines[i];
-
-              // 金額行やレシート番号などをスキップ
-              if (line.match(/^[\d,]+円?$/) || line.match(/^No\.|^TEL|^住所|^〒/)) {
-                continue;
-              }
-
-              // 商品名パターンにマッチするか確認
-              for (const pattern of itemPatterns) {
-                const match = line.match(pattern);
-                if (match) {
-                  const itemName = match[1] ? match[1].trim() : match[0].trim();
-                  if (itemName.length > 1 && itemName.length < 30) {
-                    extractedItemNames.push(itemName);
-                    break;
-                  }
-                }
-              }
-
-              // 最大3個の商品名を抽出
-              if (extractedItemNames.length >= 3) break;
+              itemDescription = `${gasolineType}${liters}L`;
             }
 
-            // 商品名が見つからない場合は、金額の前にある短い行を探す
-            if (extractedItemNames.length === 0) {
-              for (let i = 0; i < lines.length - 1; i++) {
-                const currentLine = lines[i];
-                const nextLine = lines[i + 1];
-
-                // 次の行が金額っぽい場合、現在の行が商品名の可能性
-                if (nextLine.match(/[¥￥]\s*[\d,]+/) || nextLine.match(/[\d,]+円/)) {
-                  if (currentLine.length > 2 && currentLine.length < 20 && !currentLine.match(/^\d+$/)) {
-                    extractedItemNames.push(currentLine.trim());
-                    if (extractedItemNames.length >= 2) break;
-                  }
-                }
-              }
-            }
-          }
-
-          // 複数の商品名をカンマ区切りで結合
-          const itemDescription = extractedItemNames.join('、');
-
-          // カテゴリーの自動判定（ガソリンの場合は燃料費）
-          let suggestedCategory = null;
-          if (isGasoline) {
+            // ガソリンの場合はカテゴリーを燃料費に設定
             suggestedCategory = 'fuel';
           }
+
+          // ガソリン以外は品名を空にする（日付と金額のみ自動入力）
 
           return {
             date: extractedDate || formatDateToLocal(new Date()),
             amount: extractedAmount || 0,
-            itemName: itemDescription || '',
+            itemName: itemDescription,
             category: suggestedCategory,
             fullText: text
           };
@@ -4365,17 +4300,91 @@
                     </div>
 
                     {/* 品目 */}
-                    <div>
+                    <div className="relative">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         品目・説明
                       </label>
                       <input
                         type="text"
                         value={editingExpense.description}
-                        onChange={(e) => setEditingExpense({...editingExpense, description: e.target.value})}
+                        onChange={(e) => {
+                          setEditingExpense({...editingExpense, description: e.target.value});
+                          // 入力内容に応じて候補をフィルタリング
+                          if (e.target.value.trim()) {
+                            const filtered = descriptionSuggestions.filter(s =>
+                              s.toLowerCase().includes(e.target.value.toLowerCase())
+                            );
+                            setShowDescriptionSuggestions(filtered.length > 0);
+                          } else {
+                            setShowDescriptionSuggestions(true);
+                          }
+                        }}
+                        onFocus={() => {
+                          // フォーカス時に過去の入力履歴から候補を生成
+                          const allDescriptions = new Set();
+                          Object.values(expenses).forEach(dayExpenses => {
+                            dayExpenses.forEach(expense => {
+                              if (expense.description && expense.description.trim()) {
+                                allDescriptions.add(expense.description);
+                              }
+                            });
+                          });
+
+                          // 使用頻度の高い定型文も追加
+                          const commonDescriptions = [
+                            'レギュラーガソリン30L',
+                            'ハイオクガソリン30L',
+                            '軽油30L',
+                            'コンビニ（飲食）',
+                            '昼食',
+                            '夕食',
+                            '駐車場',
+                            '高速道路',
+                            '事務用品',
+                            '工具・資材',
+                            '車両整備',
+                            'オイル交換',
+                            'タイヤ交換',
+                            '洗車',
+                            '防寒具',
+                            '作業着'
+                          ];
+
+                          commonDescriptions.forEach(desc => allDescriptions.add(desc));
+
+                          const suggestions = Array.from(allDescriptions).sort();
+                          setDescriptionSuggestions(suggestions);
+                          setShowDescriptionSuggestions(suggestions.length > 0);
+                        }}
+                        onBlur={() => {
+                          // 候補クリックの処理を優先するため、少し遅延を入れる
+                          setTimeout(() => setShowDescriptionSuggestions(false), 200);
+                        }}
                         className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none"
                         placeholder="例：レギュラーガソリン 30L"
                       />
+
+                      {/* 候補リスト */}
+                      {showDescriptionSuggestions && descriptionSuggestions.length > 0 && (
+                        <div className="absolute z-50 w-full mt-1 bg-white border-2 border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                          {descriptionSuggestions
+                            .filter(s => !editingExpense.description ||
+                                      s.toLowerCase().includes(editingExpense.description.toLowerCase()))
+                            .slice(0, 10)
+                            .map((suggestion, index) => (
+                              <div
+                                key={index}
+                                onClick={() => {
+                                  setEditingExpense({...editingExpense, description: suggestion});
+                                  setShowDescriptionSuggestions(false);
+                                }}
+                                className="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                              >
+                                {suggestion}
+                              </div>
+                            ))}
+                        </div>
+                      )}
                     </div>
 
                     {/* 金額と事業使用割合 */}
