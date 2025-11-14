@@ -341,6 +341,9 @@
       const [showTotalStats, setShowTotalStats] = useState(false);
       const [totalStatsTab, setTotalStatsTab] = useState('summary'); // 'summary' or 'daily'
 
+      // モーダルコンテンツのref（スクロール位置リセット用）
+      const questModalContentRef = React.useRef(null);
+
       // 古いlocalStorageキーをクリーンアップ（一度だけ実行）
       try {
         if (typeof window !== 'undefined' && typeof localStorage !== 'undefined' && !localStorage.getItem('cleanupDone_v2')) {
@@ -955,6 +958,13 @@
           }
         };
       }, [showBasicSettings, showQuestSettings, showCalendar, showTotalStats, showDayEdit, showExpenses, showExpenseInput, showImagePreview]);
+
+      // クエスト設定モーダルを開いた時、スクロール位置をリセット
+      useEffect(() => {
+        if (showQuestSettings && questModalContentRef.current) {
+          questModalContentRef.current.scrollTop = 0;
+        }
+      }, [showQuestSettings]);
 
       // 週の稼働時間が変更されたら、クエスト報酬を計算してdailyData（表示用）を更新
       useEffect(() => {
@@ -3037,7 +3047,7 @@
                   </button>
                 </div>
 
-                <div style={{flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch'}}>
+                <div ref={questModalContentRef} style={{flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch'}}>
                   <div className="p-6 space-y-6">
                     {/* 月～木のクエスト */}
                     <div>
