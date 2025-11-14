@@ -341,6 +341,9 @@
       const [showTotalStats, setShowTotalStats] = useState(false);
       const [totalStatsTab, setTotalStatsTab] = useState('summary'); // 'summary' or 'daily'
 
+      // 初期のビューポート高さを保存（キーボード表示の影響を受けない）
+      const [initialViewportHeight] = useState(() => window.innerHeight);
+
       // 古いlocalStorageキーをクリーンアップ（一度だけ実行）
       try {
         if (typeof window !== 'undefined' && typeof localStorage !== 'undefined' && !localStorage.getItem('cleanupDone_v2')) {
@@ -3019,7 +3022,7 @@
 
             {/* クエスト設定モーダル */}
             {showQuestSettings && (
-              <div className="fixed inset-0 bg-white z-50" style={{display: 'flex', flexDirection: 'column', overflow: 'hidden', height: '100vh'}}>
+              <div className="fixed bg-white z-50" style={{display: 'flex', flexDirection: 'column', overflow: 'hidden', top: 0, left: 0, right: 0, height: initialViewportHeight + 'px'}}>
                 <div
                   className="bg-white border-b border-gray-200 p-4 flex items-center justify-between"
                   style={{flexShrink: 0, touchAction: 'none'}}
