@@ -966,16 +966,25 @@
           if (questModalContentRef.current) {
             questModalContentRef.current.scrollTop = 0;
           }
-          // bodyのスクロールを無効化
+          // bodyのスクロールと位置を固定（heightは削除してブラウザでの表示を改善）
           document.body.style.overflow = 'hidden';
+          document.body.style.position = 'fixed';
+          document.body.style.width = '100%';
+          document.body.style.top = '0';
         } else {
           // bodyのスクロールを有効化
           document.body.style.overflow = '';
+          document.body.style.position = '';
+          document.body.style.width = '';
+          document.body.style.top = '';
         }
 
         return () => {
           // クリーンアップ
           document.body.style.overflow = '';
+          document.body.style.position = '';
+          document.body.style.width = '';
+          document.body.style.top = '';
         };
       }, [showQuestSettings]);
 
