@@ -1613,6 +1613,13 @@
         }
       };
 
+      // モーダルのスクロール位置をリセット
+      const resetModalScroll = () => {
+        if (questModalContentRef.current) {
+          questModalContentRef.current.scrollTop = 0;
+        }
+      };
+
       // 計算
       const calculate = () => {
         // 使用する平均値を取得
@@ -3064,6 +3071,7 @@
                               value={quest.count || ''}
                               onChange={(e) => updateWeekdayQuest(index, 'count', e.target.value)}
                               onKeyDown={handleKeyDown}
+                              onBlur={resetModalScroll}
                               className="w-14 px-2 py-1.5 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm text-center flex-shrink-0"
                             />
                             <span className="text-xs text-gray-600 flex-shrink-0">回</span>
@@ -3073,6 +3081,7 @@
                               value={quest.reward || ''}
                               onChange={(e) => updateWeekdayQuest(index, 'reward', e.target.value)}
                               onKeyDown={handleKeyDown}
+                              onBlur={resetModalScroll}
                               className="flex-1 min-w-0 px-2 py-1.5 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm text-center"
                             />
                             <span className="text-xs text-gray-600 flex-shrink-0">円</span>
@@ -3096,6 +3105,7 @@
                               value={quest.count || ''}
                               onChange={(e) => updateWeekendQuest(index, 'count', e.target.value)}
                               onKeyDown={handleKeyDown}
+                              onBlur={resetModalScroll}
                               className="w-14 px-2 py-1.5 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none text-sm text-center flex-shrink-0"
                             />
                             <span className="text-xs text-gray-600 flex-shrink-0">回</span>
@@ -3105,6 +3115,7 @@
                               value={quest.reward || ''}
                               onChange={(e) => updateWeekendQuest(index, 'reward', e.target.value)}
                               onKeyDown={handleKeyDown}
+                              onBlur={resetModalScroll}
                               className="flex-1 min-w-0 px-2 py-1.5 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none text-sm text-center"
                             />
                             <span className="text-xs text-gray-600 flex-shrink-0">円</span>
