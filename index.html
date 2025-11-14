@@ -585,7 +585,7 @@
                   // Supabaseに保存
                   await supabaseClient
                     .from('user_settings')
-                    .insert({
+                    .upsert({
                       user_id: session.user.id,
                       weekday_avg_price: localWeekdayAvgPrice || 400,
                       weekend_avg_price: localWeekendAvgPrice || 400,
@@ -608,6 +608,8 @@
                       ],
                       target_amount: localTarget || 0,
                       current_week_start: localWeekStart || null
+                    }, {
+                      onConflict: 'user_id'
                     });
 
                   localStorage.setItem('migrated_to_supabase', 'true');
@@ -679,7 +681,9 @@
                 if (recordsToInsert.length > 0) {
                   await supabaseClient
                     .from('daily_records')
-                    .insert(recordsToInsert);
+                    .upsert(recordsToInsert, {
+                      onConflict: 'user_id,date'
+                    });
 
                   // ローカルステートに設定
                   setDailyData(localDailyData);
@@ -826,6 +830,8 @@
               target_amount: targetAmount,
               current_week_start: currentWeekStart,
               updated_at: new Date().toISOString()
+            }, {
+              onConflict: 'user_id'
             });
 
           if (error) throw error;
@@ -1242,6 +1248,8 @@
               is_rainy: editingDayData.isRainy,
               is_holiday: editingDayData.isHoliday,
               updated_at: new Date().toISOString()
+            }, {
+              onConflict: 'user_id,date'
             });
 
           if (error) throw error;
