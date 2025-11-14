@@ -977,7 +977,7 @@
           let cumulativeWeekendQuestCount = 0;
 
           console.log('[Display Update] Processing weekends...');
-          console.log('[Display Update] weekendQuests:', weekendQuests);
+          console.log('[Display Update] weekendQuests:', JSON.stringify(weekendQuests));
           weekends.forEach(day => {
             const dateStr = getDayDate(day);
             console.log(`[Display Update] Weekend ${day}: dateStr=${dateStr}, tempData exists=${!!tempData[dateStr]}`);
