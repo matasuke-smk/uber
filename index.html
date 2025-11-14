@@ -2,8 +2,9 @@
 <html lang="ja">
 <head>
   <!--
-    Supabase user_settings テーブルに vision_api_key カラムを追加するSQL:
+    Supabase テーブルに必要なカラムを追加するSQL:
     ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS vision_api_key TEXT;
+    ALTER TABLE expenses ADD COLUMN IF NOT EXISTS memo TEXT;
   -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -4054,7 +4055,8 @@
                           amount: 0,
                           photo: null,
                           accountingSubject: defaultSubject,
-                          businessPercentage: 100
+                          businessPercentage: 100,
+                          memo: ''
                         });
                         setEditingExpenseId(null);
                         setShowExpenseInput(true);
@@ -4104,7 +4106,8 @@
                                     setEditingExpense({
                                       ...expense,
                                       accountingSubject: expense.accountingSubject || 'vehicle',
-                                      businessPercentage: expense.businessPercentage ?? 100
+                                      businessPercentage: expense.businessPercentage ?? 100,
+                                      memo: expense.memo || ''
                                     });
                                     setEditingExpenseId(id);
                                     setShowExpenseInput(true);
@@ -4115,21 +4118,28 @@
                                 }`}
                                 style={{ transition: 'transform 0.3s ease' }}
                               >
-                                <div className="flex items-center gap-3">
-                                  <div className="text-sm text-gray-500 whitespace-nowrap">
-                                    {new Date(expense.date + 'T00:00:00').toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' })}
-                                  </div>
-                                  <div className="flex-1 min-w-0 font-medium text-gray-800 truncate">
-                                    {expense.description || expenseCategories[expense.category].name}
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    {expense.photo && (
-                                      <span className="text-gray-400 text-lg">📷</span>
-                                    )}
-                                    <div className="text-lg font-bold text-gray-800 whitespace-nowrap">
-                                      ¥{expense.amount.toLocaleString()}
+                                <div>
+                                  <div className="flex items-center gap-3">
+                                    <div className="text-sm text-gray-500 whitespace-nowrap">
+                                      {new Date(expense.date + 'T00:00:00').toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' })}
+                                    </div>
+                                    <div className="flex-1 min-w-0 font-medium text-gray-800 truncate">
+                                      {expense.description || expenseCategories[expense.category].name}
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      {expense.photo && (
+                                        <span className="text-gray-400 text-lg">📷</span>
+                                      )}
+                                      <div className="text-lg font-bold text-gray-800 whitespace-nowrap">
+                                        ¥{expense.amount.toLocaleString()}
+                                      </div>
                                     </div>
                                   </div>
+                                  {expense.memo && (
+                                    <div className="mt-1 text-sm text-gray-500 truncate pl-12">
+                                      {expense.memo}
+                                    </div>
+                                  )}
                                 </div>
                               </button>
                               {swipedExpenseId === id && (
@@ -4344,35 +4354,19 @@
                             // フォーカス時に過去の入力履歴から候補を生成
                             const allDescriptions = new Set();
 
-                            // 使用頻度の高い定型文を先に追加
-                            const commonDescriptions = [
-                              'レギュラーガソリン30L',
-                              'ハイオクガソリン30L',
-                              '軽油30L',
-                              'コンビニ（飲食）',
-                              '昼食',
-                              '夕食',
-                              '駐車場',
-                              '高速道路',
-                              '事務用品',
-                              '工具・資材',
-                              '車両整備',
-                              'オイル交換',
-                              'タイヤ交換',
-                              '洗車',
-                              '防寒具',
-                              '作業着'
-                            ];
-
-                            commonDescriptions.forEach(desc => allDescriptions.add(desc));
-
-                            // 過去の経費データから候補を追加（エラーハンドリング付き）
+                            // 過去の経費データから候補を追加（ガソリン関連は除外）
                             if (expenses && typeof expenses === 'object') {
                               Object.values(expenses).forEach(dayExpenses => {
                                 if (Array.isArray(dayExpenses)) {
                                   dayExpenses.forEach(expense => {
                                     if (expense && expense.description && expense.description.trim()) {
-                                      allDescriptions.add(expense.description);
+                                      // ガソリン関連の項目を除外
+                                      const desc = expense.description;
+                                      if (!desc.includes('ガソリン') &&
+                                          !desc.includes('軽油') &&
+                                          !desc.match(/\d+L$/)) {
+                                        allDescriptions.add(desc);
+                                      }
                                     }
                                   });
                                 }
@@ -4384,16 +4378,9 @@
                             setShowDescriptionSuggestions(suggestions.length > 0);
                           } catch (error) {
                             console.error('候補生成エラー:', error);
-                            // エラーが発生しても定型文だけは表示
-                            const fallbackSuggestions = [
-                              'レギュラーガソリン30L',
-                              'コンビニ（飲食）',
-                              '昼食',
-                              '駐車場',
-                              '高速道路'
-                            ];
-                            setDescriptionSuggestions(fallbackSuggestions);
-                            setShowDescriptionSuggestions(true);
+                            // エラーが発生した場合は候補を表示しない
+                            setDescriptionSuggestions([]);
+                            setShowDescriptionSuggestions(false);
                           }
                         }}
                         onBlur={() => {
@@ -4428,6 +4415,20 @@
                             ))}
                         </div>
                       )}
+                    </div>
+
+                    {/* メモ欄 */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        メモ・備考
+                      </label>
+                      <textarea
+                        value={editingExpense?.memo || ''}
+                        onChange={(e) => setEditingExpense({...editingExpense, memo: e.target.value})}
+                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none resize-none"
+                        placeholder="例：打ち合わせ用、〇〇案件の移動費など"
+                        rows="2"
+                      />
                     </div>
 
                     {/* 金額と事業使用割合 */}
@@ -4639,6 +4640,7 @@
                                   business_percentage: editingExpense.businessPercentage,
                                   accounting_subject: editingExpense.accountingSubject || '',
                                   photo_url: photoUrl || null,
+                                  memo: editingExpense.memo || '',
                                   updated_at: new Date().toISOString()
                                 })
                                 .eq('id', editingExpenseId)
@@ -4662,7 +4664,8 @@
                                   amount: editingExpense.amount,
                                   business_percentage: editingExpense.businessPercentage,
                                   accounting_subject: editingExpense.accountingSubject || '',
-                                  photo_url: photoUrl || null
+                                  photo_url: photoUrl || null,
+                                  memo: editingExpense.memo || ''
                                 })
                                 .select()
                                 .single();
