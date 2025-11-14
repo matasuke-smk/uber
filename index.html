@@ -619,34 +619,109 @@
             return null;
           }
 
-          // 日付を抽出（YYYY/MM/DD, YYYY年MM月DD日, MM/DD などのパターン）
+          // 日付を抽出（様々なパターンに対応）
           const datePatterns = [
-            /(\d{4})[\/年\-](\d{1,2})[\/月\-](\d{1,2})[日]?/,
-            /(\d{1,2})[\/月\-](\d{1,2})[日]?/,
-            /令和(\d+)年(\d{1,2})月(\d{1,2})日/,
-            /R(\d+)[\.\/](\d{1,2})[\.\/](\d{1,2})/,  // R6.11.14 形式
-            /(\d{4})\.(\d{1,2})\.(\d{1,2})/  // 2024.11.14 形式
+            // 完全な日付パターン（年月日）
+            /(\d{4})[\/年\-\.](\d{1,2})[\/月\-\.](\d{1,2})[日]?/,
+            /(\d{4})\s*[\/年\-\.]\s*(\d{1,2})\s*[\/月\-\.]\s*(\d{1,2})[日]?/,  // スペース含む
+            /令和\s*(\d+)\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日/,
+            /R\s*(\d+)\s*[\.\/\-]\s*(\d{1,2})\s*[\.\/\-]\s*(\d{1,2})/,  // R6.11.14 形式（スペース含む）
+            /令\s*和\s*(\d+)\s*[\.\/\-]\s*(\d{1,2})\s*[\.\/\-]\s*(\d{1,2})/,  // 令和の別表記
+            /H\s*(\d+)\s*[\.\/\-]\s*(\d{1,2})\s*[\.\/\-]\s*(\d{1,2})/,  // 平成
+
+            // 2桁年の日付パターン（'24年など）
+            /'(\d{2})[\/年\-\.](\d{1,2})[\/月\-\.](\d{1,2})[日]?/,
+            /(\d{2})[\/年](\d{1,2})[\/月](\d{1,2})[日]?/,
+
+            // 月日のみのパターン
+            /(\d{1,2})[\/月\-\.](\d{1,2})[日]?(?!\d)/,  // 後ろに数字が続かない
+            /(\d{1,2})\s*[\/月\-\.]\s*(\d{1,2})[日]?(?!\d)/,  // スペース含む
+
+            // 日付と時刻が一緒のパターン（日付部分のみ抽出）
+            /(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})\s+\d{1,2}:\d{2}/,
+            /(\d{1,2})[\/\-\.](\d{1,2})\s+\d{1,2}:\d{2}/,
+
+            // その他の形式
+            /(\d{4})(\d{2})(\d{2})/,  // 20241114形式（8桁連続）
+            /(\d{2})(\d{2})(\d{2})/  // 241114形式（6桁連続）
           ];
 
           let extractedDate = null;
+
+          // 全てのパターンを試す
           for (const pattern of datePatterns) {
-            const match = text.match(pattern);
-            if (match) {
-              if (match[0].includes('令和') || match[0].startsWith('R')) {
+            const matches = text.matchAll(new RegExp(pattern, 'g'));
+            for (const match of matches) {
+              let year, month, day;
+
+              // パターンに応じて年月日を抽出
+              if (match[0].includes('令和') || match[0].includes('令') || match[0].toUpperCase().startsWith('R')) {
                 // 令和の場合は西暦に変換
                 const reiwaYear = parseInt(match[1]);
-                const year = 2018 + reiwaYear;
-                extractedDate = `${year}-${match[2].padStart(2, '0')}-${match[3].padStart(2, '0')}`;
+                year = 2018 + reiwaYear;
+                month = parseInt(match[2]);
+                day = parseInt(match[3]);
+              } else if (match[0].toUpperCase().startsWith('H')) {
+                // 平成の場合は西暦に変換
+                const heiseiYear = parseInt(match[1]);
+                year = 1988 + heiseiYear;
+                month = parseInt(match[2]);
+                day = parseInt(match[3]);
               } else if (match[1] && match[1].length === 4) {
-                // 西暦の場合
-                extractedDate = `${match[1]}-${match[2].padStart(2, '0')}-${match[3].padStart(2, '0')}`;
+                // 4桁の西暦
+                year = parseInt(match[1]);
+                month = parseInt(match[2]);
+                day = parseInt(match[3]);
+              } else if (match[1] && match[1].length === 2 && match[0].startsWith("'")) {
+                // '24形式の2桁年
+                year = 2000 + parseInt(match[1]);
+                month = parseInt(match[2]);
+                day = parseInt(match[3]);
+              } else if (match[1] && match[1].length === 2 && !match[3]) {
+                // 月日のみ（MM/DD）
+                const currentDate = new Date();
+                year = currentDate.getFullYear();
+                month = parseInt(match[1]);
+                day = parseInt(match[2]);
+
+                // 未来の日付の場合は前年とする
+                const checkDate = new Date(year, month - 1, day);
+                if (checkDate > currentDate) {
+                  year--;
+                }
+              } else if (match[1] && match[1].length === 2 && match[3]) {
+                // YY/MM/DD形式
+                const yy = parseInt(match[1]);
+                // 50以下は20XX年、51以上は19XX年と判断
+                year = yy <= 50 ? 2000 + yy : 1900 + yy;
+                month = parseInt(match[2]);
+                day = parseInt(match[3]);
+              } else if (match[1] && (match[1].length === 6 || match[1].length === 8)) {
+                // 連続数字形式
+                if (match[1].length === 8) {
+                  // YYYYMMDD
+                  year = parseInt(match[1]);
+                  month = parseInt(match[2]);
+                  day = parseInt(match[3]);
+                } else {
+                  // YYMMDD
+                  const yy = parseInt(match[1]);
+                  year = yy <= 50 ? 2000 + yy : 1900 + yy;
+                  month = parseInt(match[2]);
+                  day = parseInt(match[3]);
+                }
               } else {
-                // 月日のみの場合は今年を付ける
-                const year = new Date().getFullYear();
-                extractedDate = `${year}-${match[1].padStart(2, '0')}-${match[2].padStart(2, '0')}`;
+                continue;
               }
-              break;
+
+              // 妥当な日付かチェック
+              if (month >= 1 && month <= 12 && day >= 1 && day <= 31 && year >= 2020 && year <= 2030) {
+                extractedDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                break;
+              }
             }
+
+            if (extractedDate) break;
           }
 
           // 金額を抽出（¥記号、円、合計などのキーワードを探す）
