@@ -1098,11 +1098,14 @@
 
       // hoursが変更されたら、Supabaseに保存
       useEffect(() => {
+        console.log('[DEBUG] Save to Supabase check:', { currentWeekStart, hasSession: !!session?.user?.id, settingsLoading, dailyDataLoading });
         if (!currentWeekStart || !session?.user?.id || settingsLoading || dailyDataLoading) return;
 
+        console.log('[DEBUG] Scheduling Supabase save in 500ms');
         // デバウンス：入力が落ち着いてから保存
         const timer = setTimeout(async () => {
           try {
+            console.log('[DEBUG] Starting Supabase save...');
             // 使用する平均値を取得
             const effectiveValues = getEffectiveValues();
 
@@ -1207,14 +1210,23 @@
 
             // 保存
             if (datesToSave.length > 0) {
-              await supabaseClient
+              console.log('[DEBUG] Saving to Supabase:', datesToSave.length, 'records');
+              console.log('[DEBUG] Records to save:', datesToSave);
+              const { data, error } = await supabaseClient
                 .from('daily_records')
                 .upsert(datesToSave, {
                   onConflict: 'user_id,date'
                 });
+              if (error) {
+                console.error('[DEBUG] Supabase save error:', error);
+              } else {
+                console.log('[DEBUG] Supabase save successful!');
+              }
+            } else {
+              console.log('[DEBUG] No data to save (all fields not filled)');
             }
           } catch (error) {
-            console.error('Error saving daily data from hours:', error);
+            console.error('[DEBUG] Error saving daily data from hours:', error);
           }
         }, 500); // 500ms デバウンス
 
