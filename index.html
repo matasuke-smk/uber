@@ -926,11 +926,13 @@
 
       // 週の稼働時間が変更されたら、クエスト報酬を計算してカレンダーに反映
       useEffect(() => {
-        if (!currentWeekStart || !session?.user?.id) return;
+        if (!currentWeekStart || !session?.user?.id || settingsLoading || dailyDataLoading) return;
 
         const saveToSupabase = async () => {
           // 使用する平均値を取得
           const effectiveValues = getEffectiveValues();
+
+          console.log('Saving hours to Supabase...');
 
           // まず、週のすべてのデータを一時的に保存（クエスト計算のため）
           const tempData = {};
@@ -1044,6 +1046,7 @@
 
             // 新しいデータを保存
             if (datesToSave.length > 0) {
+              console.log('Data to save:', datesToSave);
               const recordsToUpsert = datesToSave.map(data => ({
                 user_id: session.user.id,
                 date: data.date,
@@ -1056,11 +1059,19 @@
                 updated_at: new Date().toISOString()
               }));
 
-              await supabaseClient
+              const { error } = await supabaseClient
                 .from('daily_records')
                 .upsert(recordsToUpsert, {
                   onConflict: 'user_id,date'
                 });
+
+              if (error) {
+                console.error('Supabase save error:', error);
+              } else {
+                console.log('Successfully saved to Supabase');
+              }
+            } else {
+              console.log('No data to save');
             }
 
             // ローカルステートを更新
@@ -1090,7 +1101,7 @@
         };
 
         saveToSupabase();
-      }, [hours, weekdayQuests, weekendQuests, currentWeekStart, weekdayDeliveriesPerHour, weekendDeliveriesPerHour, useAutoCalculate, weekdayAvgPrice, weekendAvgPrice, session?.user?.id]);
+      }, [hours, weekdayQuests, weekendQuests, currentWeekStart, weekdayDeliveriesPerHour, weekendDeliveriesPerHour, useAutoCalculate, weekdayAvgPrice, weekendAvgPrice, session?.user?.id, settingsLoading, dailyDataLoading]);
 
       // 週の切り替わり検知（日曜日→月曜日）
       useEffect(() => {
