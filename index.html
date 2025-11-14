@@ -13,6 +13,7 @@
   <script crossorigin="anonymous" src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script crossorigin="anonymous" src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     body {
       margin: 0;
@@ -29,6 +30,11 @@
 
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
+
+    // Supabase initialization
+    const SUPABASE_URL = 'https://gavepcaxauzmthpuqodg.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdhdmVwY2F4YXV6bXRocHVxb2RnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwMjU1OTMsImV4cCI6MjA3ODYwMTU5M30.u_65L-VfD7GdTVXDB_yql81YpRrEEztYLes-Greidlk';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // Lucide icons as simple SVG components
     const Calculator = () => (
@@ -92,7 +98,167 @@
       </svg>
     );
 
-    function UberEatsSimulator() {
+    // Authentication Component
+    function AuthUI({ onAuthSuccess }) {
+      const [isSignUp, setIsSignUp] = useState(false);
+      const [email, setEmail] = useState('');
+      const [password, setPassword] = useState('');
+      const [loading, setLoading] = useState(false);
+      const [error, setError] = useState('');
+
+      const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+        setLoading(true);
+
+        try {
+          let result;
+          if (isSignUp) {
+            // Sign up
+            result = await supabaseClient.auth.signUp({
+              email,
+              password,
+            });
+            if (result.error) throw result.error;
+
+            // Check if email confirmation is required
+            if (result.data.user && result.data.user.identities && result.data.user.identities.length === 0) {
+              setError('このメールアドレスは既に登録されています。ログインしてください。');
+              setIsSignUp(false);
+            } else if (result.data.session) {
+              onAuthSuccess(result.data.session);
+            } else {
+              alert('確認メールを送信しました。メールを確認してアカウントを有効化してください。');
+            }
+          } else {
+            // Sign in
+            result = await supabaseClient.auth.signInWithPassword({
+              email,
+              password,
+            });
+            if (result.error) throw result.error;
+            onAuthSuccess(result.data.session);
+          }
+        } catch (err) {
+          console.error('Auth error:', err);
+          setError(err.message || '認証エラーが発生しました');
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-100 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold text-gray-800 mb-2">Uber記録</h1>
+              <p className="text-gray-600">
+                {isSignUp ? 'アカウントを作成' : 'ログイン'}
+              </p>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  メールアドレス
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  placeholder="example@email.com"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  パスワード
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength="6"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  placeholder="6文字以上"
+                />
+              </div>
+
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                  {error}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? '処理中...' : (isSignUp ? 'アカウント作成' : 'ログイン')}
+              </button>
+            </form>
+
+            <div className="mt-6 text-center">
+              <button
+                onClick={() => {
+                  setIsSignUp(!isSignUp);
+                  setError('');
+                }}
+                className="text-emerald-600 hover:text-emerald-700 text-sm font-medium"
+              >
+                {isSignUp ? '既にアカウントをお持ちの方はこちら' : 'アカウントを作成する'}
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Main App Component with Auth
+    function App() {
+      const [session, setSession] = useState(null);
+      const [loading, setLoading] = useState(true);
+
+      useEffect(() => {
+        // Check active sessions
+        supabaseClient.auth.getSession().then(({ data: { session } }) => {
+          setSession(session);
+          setLoading(false);
+        });
+
+        // Listen for auth changes
+        const {
+          data: { subscription },
+        } = supabaseClient.auth.onAuthStateChange((_event, session) => {
+          setSession(session);
+        });
+
+        return () => subscription.unsubscribe();
+      }, []);
+
+      if (loading) {
+        return (
+          <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-100 flex items-center justify-center">
+            <div className="text-center">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-emerald-500 border-t-transparent"></div>
+              <p className="mt-4 text-gray-600">読み込み中...</p>
+            </div>
+          </div>
+        );
+      }
+
+      if (!session) {
+        return <AuthUI onAuthSuccess={setSession} />;
+      }
+
+      return <UberEatsSimulator session={session} />;
+    }
+
+    function UberEatsSimulator({ session }) {
       // 定数定義
       const days = ['月', '火', '水', '木', '金', '土', '日'];
       const weekdays = ['月', '火', '水', '木'];
@@ -312,7 +478,8 @@
       const [editingDayData, setEditingDayData] = useState({ hours: 0, deliveries: 0, earnings: 0, quest: 0, isRainy: false, isHoliday: false });
 
       // 経費管理関連のstate
-      const [expenses, setExpenses] = useState(() => loadFromStorage('expenses', {}));
+      const [expenses, setExpenses] = useState({});
+      const [expensesLoading, setExpensesLoading] = useState(true);
       const [showExpenses, setShowExpenses] = useState(false);
       const [showExpenseInput, setShowExpenseInput] = useState(false);
       const [editingExpense, setEditingExpense] = useState(null);
@@ -320,6 +487,46 @@
       const [showImagePreview, setShowImagePreview] = useState(false);
       const [previewImage, setPreviewImage] = useState(null);
       const [swipedExpenseId, setSwipedExpenseId] = useState(null);
+
+      // Load expenses from Supabase
+      useEffect(() => {
+        const loadExpenses = async () => {
+          if (!session?.user?.id) {
+            setExpensesLoading(false);
+            return;
+          }
+
+          try {
+            const { data, error } = await supabaseClient
+              .from('expenses')
+              .select('*')
+              .eq('user_id', session.user.id);
+
+            if (error) throw error;
+
+            // Convert Supabase format to local format
+            const expensesMap = {};
+            for (const expense of data || []) {
+              expensesMap[expense.id] = {
+                date: expense.date,
+                category: expense.category,
+                description: expense.description || '',
+                amount: expense.amount,
+                businessPercentage: expense.business_percentage,
+                accountingSubject: expense.accounting_subject || '',
+                photo: expense.photo_url || null,
+              };
+            }
+            setExpenses(expensesMap);
+          } catch (error) {
+            console.error('Error loading expenses:', error);
+          } finally {
+            setExpensesLoading(false);
+          }
+        };
+
+        loadExpenses();
+      }, [session?.user?.id]);
 
       // 日付をローカルタイムゾーンでYYYY-MM-DD形式に変換
       const formatDateToLocal = (date) => {
@@ -505,20 +712,8 @@
         }
       }, [dailyData]);
 
-      useEffect(() => {
-        if (typeof window !== 'undefined') {
-          try {
-            localStorage.setItem('expenses', JSON.stringify(expenses));
-          } catch (error) {
-            if (error.name === 'QuotaExceededError' || error.code === 22) {
-              console.error('localStorage容量超過エラー:', error);
-              alert('保存容量を超えました。写真のサイズが大きすぎるか、データが多すぎます。古いデータや写真を削除してください。');
-            } else {
-              console.error('localStorage保存エラー:', error);
-            }
-          }
-        }
-      }, [expenses]);
+      // Expenses are now saved to Supabase instead of localStorage
+      // (removed automatic localStorage sync)
 
       // モーダル表示中は背景のスクロールを無効化
       useEffect(() => {
@@ -2129,7 +2324,17 @@
 
                   </div>
 
-                  <div className="p-4 border-t border-gray-200 flex-shrink-0">
+                  <div className="p-4 border-t border-gray-200 flex-shrink-0 space-y-2">
+                    <button
+                      onClick={async () => {
+                        if (confirm('ログアウトしますか？')) {
+                          await supabaseClient.auth.signOut();
+                        }
+                      }}
+                      className="w-full bg-red-500 text-white py-3 rounded-xl font-medium hover:bg-red-600 transition-colors"
+                    >
+                      ログアウト
+                    </button>
                     <button
                       onClick={() => setShowBasicSettings(false)}
                       className="w-full bg-gray-500 text-white py-3 rounded-xl font-medium hover:bg-gray-600 transition-colors"
@@ -2900,14 +3105,37 @@
                               </button>
                               {swipedExpenseId === id && (
                                 <button
-                                  onClick={() => {
+                                  onClick={async () => {
                                     if (confirm('この経費を削除しますか？')) {
-                                      setExpenses(prev => {
-                                        const newExpenses = { ...prev };
-                                        delete newExpenses[id];
-                                        return newExpenses;
-                                      });
-                                      setSwipedExpenseId(null);
+                                      try {
+                                        // Delete from Supabase
+                                        const { error } = await supabaseClient
+                                          .from('expenses')
+                                          .delete()
+                                          .eq('id', id)
+                                          .eq('user_id', session.user.id);
+
+                                        if (error) throw error;
+
+                                        // Delete photo from storage if exists
+                                        const expense = expenses[id];
+                                        if (expense.photo && !expense.photo.startsWith('data:image/')) {
+                                          const fileName = expense.photo.split('/').pop();
+                                          await supabaseClient.storage
+                                            .from('expense-photos')
+                                            .remove([`${session.user.id}/${fileName}`]);
+                                        }
+
+                                        setExpenses(prev => {
+                                          const newExpenses = { ...prev };
+                                          delete newExpenses[id];
+                                          return newExpenses;
+                                        });
+                                        setSwipedExpenseId(null);
+                                      } catch (error) {
+                                        console.error('Delete error:', error);
+                                        alert('削除中にエラーが発生しました: ' + error.message);
+                                      }
                                     }
                                   }}
                                   className="absolute right-0 top-0 bottom-0 w-20 bg-red-500 text-white font-medium flex items-center justify-center rounded-r-lg"
@@ -3168,29 +3396,87 @@
                   <div className="p-4 border-t border-gray-200 flex-shrink-0">
                     <div className="flex gap-2">
                       <button
-                        onClick={() => {
+                        onClick={async () => {
                           try {
+                            let photoUrl = editingExpense.photo;
+
+                            // Upload photo to Supabase Storage if it's a base64 string
+                            if (photoUrl && photoUrl.startsWith('data:image/')) {
+                              const base64Data = photoUrl.split(',')[1];
+                              const byteCharacters = atob(base64Data);
+                              const byteNumbers = new Array(byteCharacters.length);
+                              for (let i = 0; i < byteCharacters.length; i++) {
+                                byteNumbers[i] = byteCharacters.charCodeAt(i);
+                              }
+                              const byteArray = new Uint8Array(byteNumbers);
+                              const blob = new Blob([byteArray], { type: 'image/jpeg' });
+
+                              const fileName = `${session.user.id}/${Date.now()}.jpg`;
+                              const { data: uploadData, error: uploadError } = await supabaseClient.storage
+                                .from('expense-photos')
+                                .upload(fileName, blob);
+
+                              if (uploadError) throw uploadError;
+
+                              // Get public URL
+                              const { data: { publicUrl } } = supabaseClient.storage
+                                .from('expense-photos')
+                                .getPublicUrl(fileName);
+
+                              photoUrl = publicUrl;
+                            }
+
                             if (editingExpenseId) {
-                              // 更新
+                              // Update existing expense
+                              const { error } = await supabaseClient
+                                .from('expenses')
+                                .update({
+                                  date: editingExpense.date,
+                                  category: editingExpense.category,
+                                  description: editingExpense.description || '',
+                                  amount: editingExpense.amount,
+                                  business_percentage: editingExpense.businessPercentage,
+                                  accounting_subject: editingExpense.accountingSubject || '',
+                                  photo_url: photoUrl || null,
+                                  updated_at: new Date().toISOString()
+                                })
+                                .eq('id', editingExpenseId)
+                                .eq('user_id', session.user.id);
+
+                              if (error) throw error;
+
                               setExpenses(prev => ({
                                 ...prev,
-                                [editingExpenseId]: editingExpense
+                                [editingExpenseId]: { ...editingExpense, photo: photoUrl }
                               }));
                             } else {
-                              // 新規作成
-                              const id = Date.now().toString();
+                              // Create new expense
+                              const { data, error } = await supabaseClient
+                                .from('expenses')
+                                .insert({
+                                  user_id: session.user.id,
+                                  date: editingExpense.date,
+                                  category: editingExpense.category,
+                                  description: editingExpense.description || '',
+                                  amount: editingExpense.amount,
+                                  business_percentage: editingExpense.businessPercentage,
+                                  accounting_subject: editingExpense.accountingSubject || '',
+                                  photo_url: photoUrl || null
+                                })
+                                .select()
+                                .single();
+
+                              if (error) throw error;
+
                               setExpenses(prev => ({
                                 ...prev,
-                                [id]: editingExpense
+                                [data.id]: { ...editingExpense, photo: photoUrl }
                               }));
                             }
                             setShowExpenseInput(false);
                           } catch (error) {
-                            if (error.name === 'QuotaExceededError' || error.code === 22) {
-                              alert('保存容量を超えました。写真のサイズが大きすぎるか、データが多すぎます。写真を削除するか、古いデータを削除してください。');
-                            } else {
-                              alert('保存中にエラーが発生しました: ' + error.message);
-                            }
+                            console.error('Save error:', error);
+                            alert('保存中にエラーが発生しました: ' + error.message);
                           }
                         }}
                         className="flex-[2] bg-red-500 text-white py-3 rounded-xl font-medium hover:bg-red-600 transition-colors"
@@ -3446,7 +3732,7 @@
     // Render the app
     try {
       const root = ReactDOM.createRoot(document.getElementById('root'));
-      root.render(<UberEatsSimulator />);
+      root.render(<App />);
     } catch (error) {
       const errorDiv = document.createElement('div');
       errorDiv.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:white;z-index:99999;padding:20px;overflow:auto;font-family:monospace;font-size:14px;';
