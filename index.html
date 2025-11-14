@@ -923,6 +923,7 @@
 
       // 週の稼働時間が変更されたら、クエスト報酬を計算してdailyData（表示用）を更新
       useEffect(() => {
+        console.log('[DEBUG] Display update check:', { currentWeekStart, settingsLoading, dailyDataLoading });
         if (!currentWeekStart || settingsLoading || dailyDataLoading) return;
 
         console.log('[DEBUG] Display update useEffect triggered');
