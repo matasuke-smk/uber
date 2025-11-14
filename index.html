@@ -966,7 +966,22 @@
         setDailyData(prev => {
           const updatedData = { ...prev };
 
-          // まず、週のすべてのデータを一時的に保存（クエスト計算のため）
+          // まず、今週の0,0,0の日をdailyDataから削除
+          [...weekdays, ...weekends].forEach(day => {
+            const dayData = hours[day];
+            const dateStr = getDayDate(day);
+            if (dateStr) {
+              const hasAllFields = dayData.hours > 0 &&
+                                 dayData.deliveries > 0 &&
+                                 dayData.earnings > 0;
+              if (!hasAllFields && updatedData[dateStr]) {
+                // hoursが空（0,0,0）なのにdailyDataにある場合は削除
+                delete updatedData[dateStr];
+              }
+            }
+          });
+
+          // 週のすべてのデータを一時的に保存（クエスト計算のため）
           const tempData = {};
           [...weekdays, ...weekends].forEach(day => {
             const dayData = hours[day];
@@ -1168,6 +1183,30 @@
                 updated_at: new Date().toISOString()
               });
             });
+
+            // 今週でhoursが0,0,0の日をdaily_recordsから削除
+            const datesToDelete = [];
+            [...weekdays, ...weekends].forEach(day => {
+              const dayData = hours[day];
+              const dateStr = getDayDate(day);
+              if (dateStr) {
+                const hasAllFields = dayData.hours > 0 &&
+                                   dayData.deliveries > 0 &&
+                                   dayData.earnings > 0;
+                if (!hasAllFields) {
+                  datesToDelete.push(dateStr);
+                }
+              }
+            });
+
+            // 削除
+            if (datesToDelete.length > 0) {
+              await supabaseClient
+                .from('daily_records')
+                .delete()
+                .eq('user_id', session.user.id)
+                .in('date', datesToDelete);
+            }
 
             // 保存
             if (datesToSave.length > 0) {
