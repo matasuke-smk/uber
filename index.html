@@ -551,7 +551,32 @@
               setWeekdayQuests(loadedWeekdayQuests);
               setWeekendQuests(loadedWeekendQuests);
               setTargetAmount(data.target_amount || 0);
-              setCurrentWeekStart(data.current_week_start || null);
+
+              // 今週の月曜日を自動設定
+              const today = new Date();
+              const dayOfWeek = today.getDay(); // 0=日, 1=月, ..., 6=土
+              const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // 月曜日までの差分
+              const thisMonday = new Date(today);
+              thisMonday.setDate(today.getDate() + diff);
+              const thisMondayStr = formatDateToLocal(thisMonday);
+
+              // データベースの週と今週が違う場合、または週が未設定の場合
+              if (data.current_week_start !== thisMondayStr) {
+                console.log('[DEBUG] New week detected. Clearing hours. Old week:', data.current_week_start, 'New week:', thisMondayStr);
+                // hoursをクリア
+                setHours({
+                  月: { hours: 0, deliveries: 0, earnings: 0 },
+                  火: { hours: 0, deliveries: 0, earnings: 0 },
+                  水: { hours: 0, deliveries: 0, earnings: 0 },
+                  木: { hours: 0, deliveries: 0, earnings: 0 },
+                  金: { hours: 0, deliveries: 0, earnings: 0 },
+                  土: { hours: 0, deliveries: 0, earnings: 0 },
+                  日: { hours: 0, deliveries: 0, earnings: 0 }
+                });
+                setCurrentWeekStart(thisMondayStr);
+              } else {
+                setCurrentWeekStart(data.current_week_start);
+              }
             } else {
               // Supabaseにデータがない場合は、localStorageから移行
               const migratedFromLocalStorage = localStorage.getItem('migrated_to_supabase');
@@ -590,7 +615,28 @@
                     { count: 10, reward: 0 }
                   ]);
                   setTargetAmount(localTarget || 0);
-                  setCurrentWeekStart(localWeekStart || null);
+
+                  // 今週の月曜日を自動設定
+                  const today = new Date();
+                  const dayOfWeek = today.getDay();
+                  const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+                  const thisMonday = new Date(today);
+                  thisMonday.setDate(today.getDate() + diff);
+                  const thisMondayStr = formatDateToLocal(thisMonday);
+
+                  if (localWeekStart !== thisMondayStr) {
+                    console.log('[DEBUG] Migration: New week detected. Old week:', localWeekStart, 'New week:', thisMondayStr);
+                    setHours({
+                      月: { hours: 0, deliveries: 0, earnings: 0 },
+                      火: { hours: 0, deliveries: 0, earnings: 0 },
+                      水: { hours: 0, deliveries: 0, earnings: 0 },
+                      木: { hours: 0, deliveries: 0, earnings: 0 },
+                      金: { hours: 0, deliveries: 0, earnings: 0 },
+                      土: { hours: 0, deliveries: 0, earnings: 0 },
+                      日: { hours: 0, deliveries: 0, earnings: 0 }
+                    });
+                  }
+                  setCurrentWeekStart(thisMondayStr);
 
                   // Supabaseに保存
                   await supabaseClient
@@ -617,13 +663,23 @@
                         { count: 10, reward: 0 }
                       ],
                       target_amount: localTarget || 0,
-                      current_week_start: localWeekStart || null
+                      current_week_start: thisMondayStr
                     }, {
                       onConflict: 'user_id'
                     });
 
                   localStorage.setItem('migrated_to_supabase', 'true');
                   alert('localStorageのデータをSupabaseに移行しました！');
+                } else {
+                  // データがまったくない場合（初回ログイン時）
+                  const today = new Date();
+                  const dayOfWeek = today.getDay();
+                  const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+                  const thisMonday = new Date(today);
+                  thisMonday.setDate(today.getDate() + diff);
+                  const thisMondayStr = formatDateToLocal(thisMonday);
+                  console.log('[DEBUG] First login: Setting week start to:', thisMondayStr);
+                  setCurrentWeekStart(thisMondayStr);
                 }
               }
             }
