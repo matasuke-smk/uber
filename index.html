@@ -1512,6 +1512,22 @@
           delete newData[selectedDate];
           setDailyData(newData);
 
+          // 今週の日付なら「今週の稼働」もクリア
+          if (currentWeekStart) {
+            const weekStartDate = new Date(currentWeekStart + 'T00:00:00');
+            const deleteDate = new Date(selectedDate + 'T00:00:00');
+            const daysDiff = Math.floor((deleteDate - weekStartDate) / (1000 * 60 * 60 * 24));
+
+            // 0-6日以内なら今週
+            if (daysDiff >= 0 && daysDiff <= 6) {
+              const dayName = days[daysDiff]; // 0=月, 1=火, ..., 6=日
+              setHours(prev => ({
+                ...prev,
+                [dayName]: { hours: 0, deliveries: 0, earnings: 0 }
+              }));
+            }
+          }
+
           setShowDayEdit(false);
           setSelectedDate(null);
           setOriginalSelectedDate(null);
