@@ -1039,9 +1039,12 @@
         // デバウンス：入力が落ち着いてから保存
         const timer = setTimeout(async () => {
           try {
-            // 週のデータを収集
+            // 使用する平均値を取得
+            const effectiveValues = getEffectiveValues();
+
+            // 週のデータを収集して計算（1番目のuseEffectと同じロジック）
             const datesToSave = [];
-            const datesToDelete = [];
+            const tempData = {};
 
             [...weekdays, ...weekends].forEach(day => {
               const dayData = hours[day];
@@ -1052,42 +1055,91 @@
               const dateStr = getDayDate(day);
               if (!dateStr) return;
 
-              if (!hasAllFields && dailyData[dateStr]) {
-                // 不完全なデータの場合は削除対象に追加
-                datesToDelete.push(dateStr);
+              if (hasAllFields) {
+                tempData[dateStr] = {
+                  day: day,
+                  hours: dayData.hours,
+                  deliveries: dayData.deliveries,
+                  earnings: dayData.earnings
+                };
               }
             });
 
-            // 削除処理
-            for (const dateStr of datesToDelete) {
-              await supabaseClient
-                .from('daily_records')
-                .delete()
-                .eq('user_id', session.user.id)
-                .eq('date', dateStr);
-            }
+            // 月～木のクエスト報酬を達成した日に配分
+            let cumulativeWeekday = 0;
+            let nextQuestIndex = 0;
+            let cumulativeQuestCount = 0;
 
-            // dailyDataから今週のデータを取得して保存
-            const weekStart = new Date(currentWeekStart + 'T00:00:00');
-            for (let i = 0; i < 7; i++) {
-              const targetDate = new Date(weekStart);
-              targetDate.setDate(targetDate.getDate() + i);
-              const dateStr = formatDateToLocal(targetDate);
+            weekdays.forEach(day => {
+              const dateStr = getDayDate(day);
+              if (!dateStr || !tempData[dateStr]) return;
 
-              if (dailyData[dateStr]) {
-                datesToSave.push({
-                  user_id: session.user.id,
-                  date: dateStr,
-                  hours: dailyData[dateStr].hours,
-                  deliveries: dailyData[dateStr].deliveries,
-                  earnings: dailyData[dateStr].earnings,
-                  quest: dailyData[dateStr].quest || 0,
-                  is_rainy: dailyData[dateStr].isRainy || false,
-                  is_holiday: dailyData[dateStr].isHoliday || false,
-                  updated_at: new Date().toISOString()
-                });
+              const dayData = hours[day];
+              const dayDeliveries = dayData.deliveries > 0 ? dayData.deliveries : dayData.hours * effectiveValues.weekdayDeliveriesPerHour;
+              cumulativeWeekday += dayDeliveries;
+
+              let dayQuestReward = 0;
+              while (nextQuestIndex < weekdayQuests.length) {
+                const nextThreshold = cumulativeQuestCount + weekdayQuests[nextQuestIndex].count;
+                if (cumulativeWeekday >= nextThreshold) {
+                  dayQuestReward += weekdayQuests[nextQuestIndex].reward;
+                  cumulativeQuestCount = nextThreshold;
+                  nextQuestIndex++;
+                } else {
+                  break;
+                }
               }
-            }
+
+              datesToSave.push({
+                user_id: session.user.id,
+                date: dateStr,
+                hours: tempData[dateStr].hours,
+                deliveries: tempData[dateStr].deliveries,
+                earnings: tempData[dateStr].earnings - dayQuestReward,
+                quest: dayQuestReward,
+                is_rainy: false,
+                is_holiday: false,
+                updated_at: new Date().toISOString()
+              });
+            });
+
+            // 金～日のクエスト報酬を達成した日に配分
+            let cumulativeWeekend = 0;
+            let nextWeekendQuestIndex = 0;
+            let cumulativeWeekendQuestCount = 0;
+
+            weekends.forEach(day => {
+              const dateStr = getDayDate(day);
+              if (!dateStr || !tempData[dateStr]) return;
+
+              const dayData = hours[day];
+              const dayDeliveries = dayData.deliveries > 0 ? dayData.deliveries : dayData.hours * effectiveValues.weekendDeliveriesPerHour;
+              cumulativeWeekend += dayDeliveries;
+
+              let dayQuestReward = 0;
+              while (nextWeekendQuestIndex < weekendQuests.length) {
+                const nextThreshold = cumulativeWeekendQuestCount + weekendQuests[nextWeekendQuestIndex].count;
+                if (cumulativeWeekend >= nextThreshold) {
+                  dayQuestReward += weekendQuests[nextWeekendQuestIndex].reward;
+                  cumulativeWeekendQuestCount = nextThreshold;
+                  nextWeekendQuestIndex++;
+                } else {
+                  break;
+                }
+              }
+
+              datesToSave.push({
+                user_id: session.user.id,
+                date: dateStr,
+                hours: tempData[dateStr].hours,
+                deliveries: tempData[dateStr].deliveries,
+                earnings: tempData[dateStr].earnings - dayQuestReward,
+                quest: dayQuestReward,
+                is_rainy: false,
+                is_holiday: false,
+                updated_at: new Date().toISOString()
+              });
+            });
 
             // 保存
             if (datesToSave.length > 0) {
@@ -1103,7 +1155,7 @@
         }, 500); // 500ms デバウンス
 
         return () => clearTimeout(timer);
-      }, [hours, currentWeekStart, session?.user?.id, settingsLoading, dailyDataLoading, dailyData]);
+      }, [hours, currentWeekStart, session?.user?.id, settingsLoading, dailyDataLoading]);
 
       // 週の切り替わり検知（日曜日→月曜日）
       useEffect(() => {
