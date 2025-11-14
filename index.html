@@ -923,7 +923,7 @@
 
       // 週の稼働時間が変更されたら、クエスト報酬を計算してdailyData（表示用）を更新
       useEffect(() => {
-        if (!currentWeekStart) return;
+        if (!currentWeekStart || settingsLoading || dailyDataLoading) return;
 
         console.log('[DEBUG] Display update useEffect triggered');
         console.log('[DEBUG] weekendQuests:', JSON.stringify(weekendQuests));
@@ -1037,7 +1037,7 @@
           console.log('[DEBUG] Returning updatedData');
           return updatedData;
         });
-      }, [hours, weekdayQuests, weekendQuests, currentWeekStart, weekdayDeliveriesPerHour, weekendDeliveriesPerHour, useAutoCalculate, weekdayAvgPrice, weekendAvgPrice]);
+      }, [hours, weekdayQuests, weekendQuests, currentWeekStart, weekdayDeliveriesPerHour, weekendDeliveriesPerHour, useAutoCalculate, weekdayAvgPrice, weekendAvgPrice, settingsLoading, dailyDataLoading]);
 
       // hoursが変更されたら、Supabaseに保存
       useEffect(() => {
