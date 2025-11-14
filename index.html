@@ -934,15 +934,23 @@
       // Daily data and expenses are now saved to Supabase instead of localStorage
       // (removed automatic localStorage sync)
 
-      // モーダル表示中は背景のスクロールを無効化
+      // モーダル表示中は背景のスクロールを無効化し、背景を固定
       useEffect(() => {
         try {
           const isModalOpen = showBasicSettings || showQuestSettings || showCalendar || showTotalStats || showDayEdit || showExpenses || showExpenseInput || showImagePreview;
           if (typeof document !== 'undefined' && document.body) {
             if (isModalOpen) {
+              // bodyのスクロールと位置を固定
               document.body.style.overflow = 'hidden';
+              document.body.style.position = 'fixed';
+              document.body.style.width = '100%';
+              document.body.style.top = '0';
             } else {
+              // bodyのスクロールを有効化
               document.body.style.overflow = '';
+              document.body.style.position = '';
+              document.body.style.width = '';
+              document.body.style.top = '';
             }
           }
         } catch (error) {
@@ -952,41 +960,15 @@
           try {
             if (typeof document !== 'undefined' && document.body) {
               document.body.style.overflow = '';
+              document.body.style.position = '';
+              document.body.style.width = '';
+              document.body.style.top = '';
             }
           } catch (error) {
             console.error('モーダルスクロール解除エラー:', error);
           }
         };
       }, [showBasicSettings, showQuestSettings, showCalendar, showTotalStats, showDayEdit, showExpenses, showExpenseInput, showImagePreview]);
-
-      // クエスト設定モーダルを開いた時、スクロール位置をリセットし、bodyのスクロールを無効化
-      useEffect(() => {
-        if (showQuestSettings) {
-          // スクロール位置をリセット
-          if (questModalContentRef.current) {
-            questModalContentRef.current.scrollTop = 0;
-          }
-          // bodyのスクロールと位置を固定（heightは削除してブラウザでの表示を改善）
-          document.body.style.overflow = 'hidden';
-          document.body.style.position = 'fixed';
-          document.body.style.width = '100%';
-          document.body.style.top = '0';
-        } else {
-          // bodyのスクロールを有効化
-          document.body.style.overflow = '';
-          document.body.style.position = '';
-          document.body.style.width = '';
-          document.body.style.top = '';
-        }
-
-        return () => {
-          // クリーンアップ
-          document.body.style.overflow = '';
-          document.body.style.position = '';
-          document.body.style.width = '';
-          document.body.style.top = '';
-        };
-      }, [showQuestSettings]);
 
       // 週の稼働時間が変更されたら、クエスト報酬を計算してdailyData（表示用）を更新
       useEffect(() => {
@@ -2124,26 +2106,33 @@
 
             {/* 全期間集計モーダル */}
             {showTotalStats && (
-              <div className="fixed inset-0 bg-white z-50 flex flex-col">
-                <div className="bg-white w-full flex flex-col" style={{height: '100%'}}>
-                  <div
-                    className="bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0"
-                    onTouchMove={(e) => e.stopPropagation()}
+              <div
+                className="fixed inset-0 bg-white z-50"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  overflow: 'hidden'
+                }}
+              >
+                <div
+                  className="bg-white border-b border-gray-200 p-4 flex items-center justify-between"
+                  style={{flexShrink: 0, touchAction: 'none'}}
+                >
+                  <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                    <Calculator />
+                    <span>全期間集計【{Object.keys(dailyData || {}).length}日】</span>
+                  </h2>
+                  <button
+                    onClick={() => setShowTotalStats(false)}
+                    className="text-gray-500 hover:text-gray-700 text-2xl"
+                    style={{touchAction: 'auto'}}
                   >
-                    <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                      <Calculator />
-                      <span>全期間集計【{Object.keys(dailyData || {}).length}日】</span>
-                    </h2>
-                    <button
-                      onClick={() => setShowTotalStats(false)}
-                      className="text-gray-500 hover:text-gray-700 text-2xl"
-                    >
-                      ×
-                    </button>
-                  </div>
+                    ×
+                  </button>
+                </div>
 
-                  {/* タブ */}
-                  <div className="bg-white flex border-b border-gray-200 flex-shrink-0">
+                {/* タブ */}
+                <div className="bg-white flex border-b border-gray-200" style={{flexShrink: 0}}>
                     <button
                       onClick={() => setTotalStatsTab('summary')}
                       className={`flex-1 py-3 text-sm font-medium transition-colors ${
@@ -2164,9 +2153,17 @@
                     >
                       曜日別平均
                     </button>
-                  </div>
+                </div>
 
-                  <div className="p-6 overflow-y-auto flex-1 overscroll-contain">
+                <div
+                  style={{
+                    flex: 1,
+                    overflowY: 'auto',
+                    WebkitOverflowScrolling: 'touch',
+                    minHeight: 0
+                  }}
+                >
+                  <div className="p-6">
                     {(() => {
                       try {
                         const allEntries = Object.entries(dailyData || {});
@@ -2589,30 +2586,37 @@
                       }
                     })()}
                   </div>
+                </div>
 
-                  <div
-                    className="bg-white p-4 border-t border-gray-200 flex-shrink-0"
-                    onTouchMove={(e) => e.stopPropagation()}
+                <div
+                  className="bg-white p-4 border-t border-gray-200"
+                  style={{flexShrink: 0, touchAction: 'none'}}
+                >
+                  <button
+                    onClick={() => setShowTotalStats(false)}
+                    className="w-full bg-green-500 text-white py-3 rounded-xl font-medium hover:bg-green-600 transition-colors"
+                    style={{touchAction: 'auto'}}
                   >
-                    <button
-                      onClick={() => setShowTotalStats(false)}
-                      className="w-full bg-green-500 text-white py-3 rounded-xl font-medium hover:bg-green-600 transition-colors"
-                    >
-                      閉じる
-                    </button>
-                  </div>
+                    閉じる
+                  </button>
                 </div>
               </div>
             )}
 
             {/* 基本設定モーダル */}
             {showBasicSettings && (
-              <div className="fixed inset-0 bg-white z-50 flex flex-col">
-                <div className="bg-white w-full flex flex-col" style={{height: '100%'}}>
-                  <div
-                    className="bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0"
-                    onTouchMove={(e) => e.stopPropagation()}
-                  >
+              <div
+                className="fixed inset-0 bg-white z-50"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  overflow: 'hidden'
+                }}
+              >
+                <div
+                  className="bg-white border-b border-gray-200 p-4 flex items-center justify-between"
+                  style={{flexShrink: 0, touchAction: 'none'}}
+                >
                     <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                       <Settings />
                       設定
@@ -2622,6 +2626,7 @@
                         onClick={exportData}
                         className="bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 transition-colors"
                         title="データをエクスポート"
+                        style={{touchAction: 'auto'}}
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -2638,6 +2643,7 @@
                         onClick={() => fileInputRef.current?.click()}
                         className="bg-green-500 text-white p-2 rounded-lg hover:bg-green-600 transition-colors"
                         title="データをインポート"
+                        style={{touchAction: 'auto'}}
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
@@ -2646,13 +2652,22 @@
                       <button
                         onClick={() => setShowBasicSettings(false)}
                         className="text-gray-500 hover:text-gray-700 text-2xl ml-3"
+                        style={{touchAction: 'auto'}}
                       >
                         ×
                       </button>
                     </div>
-                  </div>
+                </div>
 
-                  <div className="p-6 space-y-4 overflow-y-auto flex-1">
+                <div
+                  style={{
+                    flex: 1,
+                    overflowY: 'auto',
+                    WebkitOverflowScrolling: 'touch',
+                    minHeight: 0
+                  }}
+                >
+                  <div className="p-6 space-y-4">
                     {/* トグルスイッチ */}
                     <div className="bg-gray-50 rounded-xl p-4 border-2 border-gray-200">
                       <label className="flex items-center justify-between cursor-pointer">
@@ -2797,40 +2812,48 @@
                     )}
 
                   </div>
+                </div>
 
-                  <div
-                    className="p-4 border-t border-gray-200 flex-shrink-0 space-y-2"
-                    onTouchMove={(e) => e.stopPropagation()}
+                <div
+                  className="p-4 border-t border-gray-200 space-y-2"
+                  style={{flexShrink: 0, touchAction: 'none'}}
+                >
+                  <button
+                    onClick={async () => {
+                      if (confirm('ログアウトしますか？')) {
+                        await supabaseClient.auth.signOut();
+                      }
+                    }}
+                    className="w-full bg-red-500 text-white py-3 rounded-xl font-medium hover:bg-red-600 transition-colors"
+                    style={{touchAction: 'auto'}}
                   >
-                    <button
-                      onClick={async () => {
-                        if (confirm('ログアウトしますか？')) {
-                          await supabaseClient.auth.signOut();
-                        }
-                      }}
-                      className="w-full bg-red-500 text-white py-3 rounded-xl font-medium hover:bg-red-600 transition-colors"
-                    >
-                      ログアウト
-                    </button>
-                    <button
-                      onClick={() => setShowBasicSettings(false)}
-                      className="w-full bg-gray-500 text-white py-3 rounded-xl font-medium hover:bg-gray-600 transition-colors"
-                    >
-                      閉じる
-                    </button>
-                  </div>
+                    ログアウト
+                  </button>
+                  <button
+                    onClick={() => setShowBasicSettings(false)}
+                    className="w-full bg-gray-500 text-white py-3 rounded-xl font-medium hover:bg-gray-600 transition-colors"
+                    style={{touchAction: 'auto'}}
+                  >
+                    閉じる
+                  </button>
                 </div>
               </div>
             )}
             
             {/* 履歴カレンダーモーダル */}
             {showCalendar && (
-              <div className="fixed inset-0 bg-white z-50 flex flex-col">
-                <div className="bg-white w-full flex flex-col" style={{height: '100%'}}>
-                  <div
-                    className="bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0"
-                    onTouchMove={(e) => e.stopPropagation()}
-                  >
+              <div
+                className="fixed inset-0 bg-white z-50"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  overflow: 'hidden'
+                }}
+              >
+                <div
+                  className="bg-white border-b border-gray-200 p-4 flex items-center justify-between"
+                  style={{flexShrink: 0, touchAction: 'none'}}
+                >
                     <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                       <Calendar />
                       カレンダー
@@ -2852,19 +2875,29 @@
                           }
                         }}
                         className="bg-green-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-600 transition-colors text-sm"
+                        style={{touchAction: 'auto'}}
                       >
                         📊 CSV
                       </button>
                       <button
                         onClick={() => setShowCalendar(false)}
                         className="text-gray-500 hover:text-gray-700 text-2xl"
+                        style={{touchAction: 'auto'}}
                       >
                         ×
                       </button>
                     </div>
-                  </div>
+                </div>
 
-                  <div className="p-6 overflow-y-auto flex-1 overscroll-contain">
+                <div
+                  style={{
+                    flex: 1,
+                    overflowY: 'auto',
+                    WebkitOverflowScrolling: 'touch',
+                    minHeight: 0
+                  }}
+                >
+                  <div className="p-6">
                     {/* 月切り替え */}
                     <div className="flex items-center justify-between mb-4">
                       <button
@@ -3033,18 +3066,19 @@
                       );
                     })()}
                   </div>
+                </div>
 
-                  <div
-                    className="bg-white p-4 border-t border-gray-200 flex-shrink-0"
-                    onTouchMove={(e) => e.stopPropagation()}
+                <div
+                  className="bg-white p-4 border-t border-gray-200"
+                  style={{flexShrink: 0, touchAction: 'none'}}
+                >
+                  <button
+                    onClick={() => setShowCalendar(false)}
+                    className="w-full bg-purple-500 text-white py-3 rounded-xl font-medium hover:bg-purple-600 transition-colors"
+                    style={{touchAction: 'auto'}}
                   >
-                    <button
-                      onClick={() => setShowCalendar(false)}
-                      className="w-full bg-purple-500 text-white py-3 rounded-xl font-medium hover:bg-purple-600 transition-colors"
-                    >
-                      閉じる
-                    </button>
-                  </div>
+                    閉じる
+                  </button>
                 </div>
               </div>
             )}
@@ -3169,16 +3203,23 @@
 
             {/* 日付編集モーダル */}
             {showDayEdit && selectedDate && (
-              <div className="fixed inset-0 bg-white z-[60] flex flex-col">
-                <div className="bg-white w-full flex flex-col" style={{height: '100%'}}>
-                  <div
-                    className="bg-gradient-to-r from-purple-500 to-blue-500 text-white p-4 flex-shrink-0"
-                    onTouchMove={(e) => e.stopPropagation()}
-                  >
+              <div
+                className="fixed inset-0 bg-white z-[60]"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  overflow: 'hidden'
+                }}
+              >
+                <div
+                  className="bg-gradient-to-r from-purple-500 to-blue-500 text-white p-4"
+                  style={{flexShrink: 0, touchAction: 'none'}}
+                >
                     <div className="flex items-center justify-between">
                       <button
                         onClick={() => setIsChangingDate(true)}
                         className="text-xl font-bold hover:opacity-80 transition-opacity text-left"
+                        style={{touchAction: 'auto'}}
                       >
                         {new Date(selectedDate + 'T00:00:00').toLocaleDateString('ja-JP', {
                           year: 'numeric',
@@ -3190,13 +3231,22 @@
                       <button
                         onClick={() => setShowDayEdit(false)}
                         className="text-white hover:text-gray-200 text-2xl"
+                        style={{touchAction: 'auto'}}
                       >
                         ×
                       </button>
                     </div>
-                  </div>
+                </div>
 
-                  <div className="p-6 space-y-4 overflow-y-auto flex-1">
+                <div
+                  style={{
+                    flex: 1,
+                    overflowY: 'auto',
+                    WebkitOverflowScrolling: 'touch',
+                    minHeight: 0
+                  }}
+                >
+                  <div className="p-6 space-y-4">
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -3335,27 +3385,29 @@
                       </div>
                     </div>
                   </div>
+                </div>
 
-                  <div
-                    className="bg-white p-4 border-t border-gray-200 flex-shrink-0"
-                    onTouchMove={(e) => e.stopPropagation()}
-                  >
-                    <div className="flex gap-2">
+                <div
+                  className="bg-white p-4 border-t border-gray-200"
+                  style={{flexShrink: 0, touchAction: 'none'}}
+                >
+                  <div className="flex gap-2">
+                    <button
+                      onClick={saveDayData}
+                      className="flex-1 bg-purple-500 text-white py-3 rounded-xl font-medium hover:bg-purple-600 transition-colors"
+                      style={{touchAction: 'auto'}}
+                    >
+                      保存
+                    </button>
+                    {dailyData[selectedDate] && (
                       <button
-                        onClick={saveDayData}
-                        className="flex-1 bg-purple-500 text-white py-3 rounded-xl font-medium hover:bg-purple-600 transition-colors"
+                        onClick={deleteDayData}
+                        className="px-6 bg-red-500 text-white py-3 rounded-xl font-medium hover:bg-red-600 transition-colors"
+                        style={{touchAction: 'auto'}}
                       >
-                        保存
+                        削除
                       </button>
-                      {dailyData[selectedDate] && (
-                        <button
-                          onClick={deleteDayData}
-                          className="px-6 bg-red-500 text-white py-3 rounded-xl font-medium hover:bg-red-600 transition-colors"
-                        >
-                          削除
-                        </button>
-                      )}
-                    </div>
+                    )}
                   </div>
                 </div>
 
