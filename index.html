@@ -2092,10 +2092,10 @@
 
             {/* 全期間集計モーダル */}
             {showTotalStats && (
-              <div className="fixed inset-0 bg-white z-50 flex flex-col overscroll-contain">
-                <div className="bg-white w-full h-full flex flex-col">
+              <div className="fixed inset-0 bg-white z-50 flex flex-col">
+                <div className="bg-white w-full flex flex-col" style={{height: '100%'}}>
                   <div
-                    className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0 z-10"
+                    className="bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0"
                     onTouchMove={(e) => e.stopPropagation()}
                   >
                     <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
@@ -2111,7 +2111,7 @@
                   </div>
 
                   {/* タブ */}
-                  <div className="sticky top-[57px] bg-white flex border-b border-gray-200 flex-shrink-0 z-10">
+                  <div className="bg-white flex border-b border-gray-200 flex-shrink-0">
                     <button
                       onClick={() => setTotalStatsTab('summary')}
                       className={`flex-1 py-3 text-sm font-medium transition-colors ${
@@ -2134,7 +2134,7 @@
                     </button>
                   </div>
 
-                  <div className="p-6 overflow-y-auto flex-1">
+                  <div className="p-6 overflow-y-auto flex-1 overscroll-contain">
                     {(() => {
                       try {
                         const allEntries = Object.entries(dailyData || {});
@@ -2559,7 +2559,7 @@
                   </div>
 
                   <div
-                    className="sticky bottom-0 bg-white p-4 border-t border-gray-200 flex-shrink-0 z-10"
+                    className="bg-white p-4 border-t border-gray-200 flex-shrink-0"
                     onTouchMove={(e) => e.stopPropagation()}
                   >
                     <button
@@ -2575,10 +2575,10 @@
 
             {/* 基本設定モーダル */}
             {showBasicSettings && (
-              <div className="fixed inset-0 bg-white z-50 flex flex-col overscroll-contain">
-                <div className="bg-white w-full h-full flex flex-col">
+              <div className="fixed inset-0 bg-white z-50 flex flex-col">
+                <div className="bg-white w-full flex flex-col" style={{height: '100%'}}>
                   <div
-                    className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0 z-10"
+                    className="bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0"
                     onTouchMove={(e) => e.stopPropagation()}
                   >
                     <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
@@ -2793,10 +2793,10 @@
             
             {/* 履歴カレンダーモーダル */}
             {showCalendar && (
-              <div className="fixed inset-0 bg-white z-50 flex flex-col overscroll-contain">
-                <div className="bg-white w-full h-full flex flex-col">
+              <div className="fixed inset-0 bg-white z-50 flex flex-col">
+                <div className="bg-white w-full flex flex-col" style={{height: '100%'}}>
                   <div
-                    className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0 z-10"
+                    className="bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0"
                     onTouchMove={(e) => e.stopPropagation()}
                   >
                     <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
@@ -2832,7 +2832,7 @@
                     </div>
                   </div>
 
-                  <div className="p-6 overflow-y-auto flex-1">
+                  <div className="p-6 overflow-y-auto flex-1 overscroll-contain">
                     {/* 月切り替え */}
                     <div className="flex items-center justify-between mb-4">
                       <button
@@ -3003,7 +3003,7 @@
                   </div>
 
                   <div
-                    className="sticky bottom-0 bg-white p-4 border-t border-gray-200 flex-shrink-0 z-10"
+                    className="bg-white p-4 border-t border-gray-200 flex-shrink-0"
                     onTouchMove={(e) => e.stopPropagation()}
                   >
                     <button
@@ -3019,10 +3019,10 @@
 
             {/* クエスト設定モーダル */}
             {showQuestSettings && (
-              <div className="fixed inset-0 bg-white z-50 flex flex-col overscroll-contain">
-                <div className="bg-white w-full h-full flex flex-col">
+              <div className="fixed inset-0 bg-white z-50 flex flex-col">
+                <div className="bg-white w-full flex flex-col" style={{height: '100%'}}>
                   <div
-                    className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0 z-10"
+                    className="bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0"
                     onTouchMove={(e) => e.stopPropagation()}
                   >
                     <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
@@ -3037,7 +3037,7 @@
                     </button>
                   </div>
 
-                  <div className="p-6 space-y-6 overflow-y-auto flex-1">
+                  <div className="p-6 space-y-6 overflow-y-auto flex-1 overscroll-contain">
                     {/* 月～木のクエスト */}
                     <div>
                       <h3 className="font-bold text-gray-800 mb-1">月～木クエスト</h3>
@@ -3104,7 +3104,7 @@
                   </div>
 
                   <div
-                    className="sticky bottom-0 bg-white p-4 border-t border-gray-200 flex-shrink-0 z-10"
+                    className="bg-white p-4 border-t border-gray-200 flex-shrink-0"
                     onTouchMove={(e) => e.stopPropagation()}
                   >
                     <button
@@ -3120,10 +3120,10 @@
 
             {/* 日付編集モーダル */}
             {showDayEdit && selectedDate && (
-              <div className="fixed inset-0 bg-white z-[60] flex flex-col overscroll-contain">
-                <div className="bg-white w-full h-full flex flex-col">
+              <div className="fixed inset-0 bg-white z-[60] flex flex-col">
+                <div className="bg-white w-full flex flex-col" style={{height: '100%'}}>
                   <div
-                    className="sticky top-0 bg-gradient-to-r from-purple-500 to-blue-500 text-white p-4 flex-shrink-0 z-10"
+                    className="bg-gradient-to-r from-purple-500 to-blue-500 text-white p-4 flex-shrink-0"
                     onTouchMove={(e) => e.stopPropagation()}
                   >
                     <div className="flex items-center justify-between">
@@ -3288,7 +3288,7 @@
                   </div>
 
                   <div
-                    className="sticky bottom-0 bg-white p-4 border-t border-gray-200 flex-shrink-0 z-10"
+                    className="bg-white p-4 border-t border-gray-200 flex-shrink-0"
                     onTouchMove={(e) => e.stopPropagation()}
                   >
                     <div className="flex gap-2">
@@ -3315,7 +3315,7 @@
                   <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[70]">
                     <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[80vh] flex flex-col">
                       <div
-                        className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0 z-10 rounded-t-2xl"
+                        className="bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0 rounded-t-2xl"
                         onTouchMove={(e) => e.stopPropagation()}
                       >
                         <h3 className="text-lg font-bold text-gray-800">日付を選択</h3>
@@ -3418,10 +3418,10 @@
 
             {/* 経費一覧モーダル */}
             {showExpenses && (
-              <div className="fixed inset-0 bg-white z-50 flex flex-col overscroll-contain">
-                <div className="bg-white w-full h-full flex flex-col">
+              <div className="fixed inset-0 bg-white z-50 flex flex-col">
+                <div className="bg-white w-full flex flex-col" style={{height: '100%'}}>
                   <div
-                    className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0 z-10"
+                    className="bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0"
                     onTouchMove={(e) => e.stopPropagation()}
                   >
                     <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
@@ -3625,7 +3625,7 @@
                   </div>
 
                   <div
-                    className="sticky bottom-0 bg-white p-4 border-t border-gray-200 flex-shrink-0 z-10"
+                    className="bg-white p-4 border-t border-gray-200 flex-shrink-0"
                     onTouchMove={(e) => e.stopPropagation()}
                   >
                     <button
@@ -3641,10 +3641,10 @@
 
             {/* 経費入力モーダル */}
             {showExpenseInput && editingExpense && (
-              <div className="fixed inset-0 bg-white z-[60] flex flex-col overscroll-contain">
-                <div className="bg-white w-full h-full flex flex-col">
+              <div className="fixed inset-0 bg-white z-[60] flex flex-col">
+                <div className="bg-white w-full flex flex-col" style={{height: '100%'}}>
                   <div
-                    className="sticky top-0 bg-gradient-to-r from-red-500 to-pink-500 text-white p-4 flex-shrink-0 z-10"
+                    className="bg-gradient-to-r from-red-500 to-pink-500 text-white p-4 flex-shrink-0"
                     onTouchMove={(e) => e.stopPropagation()}
                   >
                     <div className="flex items-center justify-between">
@@ -3869,7 +3869,7 @@
                   </div>
 
                   <div
-                    className="sticky bottom-0 bg-white p-4 border-t border-gray-200 flex-shrink-0 z-10"
+                    className="bg-white p-4 border-t border-gray-200 flex-shrink-0"
                     onTouchMove={(e) => e.stopPropagation()}
                   >
                     <div className="flex gap-2">
