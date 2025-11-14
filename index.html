@@ -977,6 +977,7 @@
           let cumulativeWeekendQuestCount = 0;
 
           console.log('[Display Update] Processing weekends...');
+          console.log('[Display Update] weekendQuests:', weekendQuests);
           weekends.forEach(day => {
             const dateStr = getDayDate(day);
             console.log(`[Display Update] Weekend ${day}: dateStr=${dateStr}, tempData exists=${!!tempData[dateStr]}`);
@@ -985,15 +986,18 @@
             const dayData = hours[day];
             const dayDeliveries = dayData.deliveries > 0 ? dayData.deliveries : dayData.hours * effectiveValues.weekendDeliveriesPerHour;
             cumulativeWeekend += dayDeliveries;
+            console.log(`[Display Update] ${day}: deliveries=${dayDeliveries}, cumulativeWeekend=${cumulativeWeekend}`);
 
             // この日に達成したクエストを確認
             let dayQuestReward = 0;
             while (nextWeekendQuestIndex < weekendQuests.length) {
               const nextThreshold = cumulativeWeekendQuestCount + weekendQuests[nextWeekendQuestIndex].count;
+              console.log(`[Display Update] Quest check: index=${nextWeekendQuestIndex}, threshold=${nextThreshold}, cumulative=${cumulativeWeekend}, reward=${weekendQuests[nextWeekendQuestIndex].reward}`);
               if (cumulativeWeekend >= nextThreshold) {
                 dayQuestReward += weekendQuests[nextWeekendQuestIndex].reward;
                 cumulativeWeekendQuestCount = nextThreshold;
                 nextWeekendQuestIndex++;
+                console.log(`[Display Update] Quest achieved! dayQuestReward=${dayQuestReward}`);
               } else {
                 break;
               }
