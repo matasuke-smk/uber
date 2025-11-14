@@ -521,25 +521,35 @@
 
             if (data) {
               // Supabaseにデータがある場合は読み込み
+              console.log('[DEBUG] Loaded user_settings from Supabase');
+              console.log('[DEBUG] weekend_quests from DB:', JSON.stringify(data.weekend_quests));
+              console.log('[DEBUG] weekday_quests from DB:', JSON.stringify(data.weekday_quests));
+
+              const loadedWeekendQuests = data.weekend_quests || [
+                { count: 10, reward: 0 },
+                { count: 10, reward: 0 },
+                { count: 10, reward: 0 },
+                { count: 10, reward: 0 },
+                { count: 10, reward: 0 }
+              ];
+              const loadedWeekdayQuests = data.weekday_quests || [
+                { count: 10, reward: 0 },
+                { count: 10, reward: 0 },
+                { count: 10, reward: 0 },
+                { count: 10, reward: 0 },
+                { count: 10, reward: 0 }
+              ];
+
+              console.log('[DEBUG] Setting weekendQuests to:', JSON.stringify(loadedWeekendQuests));
+              console.log('[DEBUG] Setting weekdayQuests to:', JSON.stringify(loadedWeekdayQuests));
+
               setWeekdayAvgPrice(data.weekday_avg_price || 400);
               setWeekendAvgPrice(data.weekend_avg_price || 400);
               setWeekdayDeliveriesPerHour(data.weekday_deliveries_per_hour || 4);
               setWeekendDeliveriesPerHour(data.weekend_deliveries_per_hour || 4);
               setUseAutoCalculate(data.use_auto_calculate || false);
-              setWeekdayQuests(data.weekday_quests || [
-                { count: 10, reward: 0 },
-                { count: 10, reward: 0 },
-                { count: 10, reward: 0 },
-                { count: 10, reward: 0 },
-                { count: 10, reward: 0 }
-              ]);
-              setWeekendQuests(data.weekend_quests || [
-                { count: 10, reward: 0 },
-                { count: 10, reward: 0 },
-                { count: 10, reward: 0 },
-                { count: 10, reward: 0 },
-                { count: 10, reward: 0 }
-              ]);
+              setWeekdayQuests(loadedWeekdayQuests);
+              setWeekendQuests(loadedWeekendQuests);
               setTargetAmount(data.target_amount || 0);
               setCurrentWeekStart(data.current_week_start || null);
             } else {
@@ -645,6 +655,7 @@
 
             // Convert Supabase format to local format
             const dailyDataMap = {};
+            console.log('[DEBUG] Loaded daily_records from Supabase:', data?.length || 0, 'records');
             for (const record of data || []) {
               dailyDataMap[record.date] = {
                 hours: record.hours,
@@ -654,6 +665,7 @@
                 isRainy: record.is_rainy,
                 isHoliday: record.is_holiday
               };
+              console.log('[DEBUG] Record:', record.date, record);
             }
 
             // localStorageからの移行（Supabaseにデータがない場合）
@@ -813,10 +825,17 @@
       // データをlocalStorageに保存
       // Save settings to Supabase
       const saveSettings = async () => {
-        if (!session?.user?.id) return;
+        if (!session?.user?.id) {
+          console.log('[DEBUG] saveSettings: No session, skipping');
+          return;
+        }
 
         try {
-          const { error } = await supabaseClient
+          console.log('[DEBUG] saveSettings: Saving settings to Supabase');
+          console.log('[DEBUG] saveSettings: weekendQuests =', JSON.stringify(weekendQuests));
+          console.log('[DEBUG] saveSettings: weekdayQuests =', JSON.stringify(weekdayQuests));
+
+          const { data, error } = await supabaseClient
             .from('user_settings')
             .upsert({
               user_id: session.user.id,
@@ -835,14 +854,19 @@
             });
 
           if (error) throw error;
+          console.log('[DEBUG] saveSettings: Successfully saved');
         } catch (error) {
-          console.error('Error saving settings:', error);
+          console.error('[DEBUG] saveSettings: Error saving settings:', error);
         }
       };
 
       // Auto-save settings when they change (debounced)
       useEffect(() => {
-        if (settingsLoading) return; // Don't save during initial load
+        if (settingsLoading) {
+          console.log('[DEBUG] Auto-save: Skipping (settingsLoading=true)');
+          return; // Don't save during initial load
+        }
+        console.log('[DEBUG] Auto-save: Scheduling save in 500ms');
         const timer = setTimeout(() => {
           saveSettings();
         }, 500); // Debounce 500ms
@@ -902,6 +926,7 @@
         if (!currentWeekStart) return;
 
         console.log('[DEBUG] Display update useEffect triggered');
+        console.log('[DEBUG] weekendQuests:', JSON.stringify(weekendQuests));
 
         // 使用する平均値を取得
         const effectiveValues = getEffectiveValues();
@@ -977,18 +1002,26 @@
             const dayDeliveries = dayData.deliveries > 0 ? dayData.deliveries : dayData.hours * effectiveValues.weekendDeliveriesPerHour;
             cumulativeWeekend += dayDeliveries;
 
+            console.log(`[DEBUG] ${day} - deliveries: ${dayDeliveries}, cumulative: ${cumulativeWeekend}`);
+            console.log(`[DEBUG] weekendQuests:`, weekendQuests.map(q => `count:${q.count},reward:${q.reward}`).join(' | '));
+
             // この日に達成したクエストを確認
             let dayQuestReward = 0;
             while (nextWeekendQuestIndex < weekendQuests.length) {
-              const nextThreshold = cumulativeWeekendQuestCount + weekendQuests[nextWeekendQuestIndex].count;
+              const quest = weekendQuests[nextWeekendQuestIndex];
+              const nextThreshold = cumulativeWeekendQuestCount + quest.count;
+              console.log(`[DEBUG] Checking quest ${nextWeekendQuestIndex}: threshold=${nextThreshold}, count=${quest.count}, reward=${quest.reward}`);
               if (cumulativeWeekend >= nextThreshold) {
-                dayQuestReward += weekendQuests[nextWeekendQuestIndex].reward;
+                console.log(`[DEBUG] Quest ${nextWeekendQuestIndex} achieved! Adding reward: ${quest.reward}`);
+                dayQuestReward += quest.reward;
                 cumulativeWeekendQuestCount = nextThreshold;
                 nextWeekendQuestIndex++;
               } else {
                 break;
               }
             }
+
+            console.log(`[DEBUG] ${day} total quest reward: ${dayQuestReward}`);
 
             // 入力値（クエスト込み）からクエストを引いて基本売上を保存
             updatedData[dateStr] = {
