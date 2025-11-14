@@ -560,6 +560,169 @@
       const [showImagePreview, setShowImagePreview] = useState(false);
       const [previewImage, setPreviewImage] = useState(null);
       const [swipedExpenseId, setSwipedExpenseId] = useState(null);
+      const [isProcessingOCR, setIsProcessingOCR] = useState(false);
+      const [visionApiKey, setVisionApiKey] = useState(() => {
+        try {
+          return localStorage.getItem('visionApiKey') || '';
+        } catch {
+          return '';
+        }
+      });
+
+      // Google Cloud Vision APIを使ってレシート画像からOCR処理で情報を抽出
+      const extractReceiptData = async (imageDataUrl) => {
+        if (!visionApiKey) {
+          alert('Google Cloud Vision APIキーが設定されていません。\n設定画面から設定してください。');
+          return null;
+        }
+
+        try {
+          setIsProcessingOCR(true);
+
+          // Base64データの準備（data:image/...;base64,を除く）
+          const base64Image = imageDataUrl.split(',')[1];
+
+          // Vision API リクエスト
+          const response = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${visionApiKey}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              requests: [{
+                image: {
+                  content: base64Image
+                },
+                features: [{
+                  type: 'DOCUMENT_TEXT_DETECTION',
+                  maxResults: 1
+                }]
+              }]
+            })
+          });
+
+          if (!response.ok) {
+            throw new Error('Vision API エラー: ' + response.statusText);
+          }
+
+          const data = await response.json();
+
+          if (data.error) {
+            throw new Error(data.error.message);
+          }
+
+          const text = data.responses[0]?.fullTextAnnotation?.text || '';
+          console.log('OCR Result:', text);
+
+          if (!text) {
+            alert('画像から文字を認識できませんでした。');
+            return null;
+          }
+
+          // 日付を抽出（YYYY/MM/DD, YYYY年MM月DD日, MM/DD などのパターン）
+          const datePatterns = [
+            /(\d{4})[\/年\-](\d{1,2})[\/月\-](\d{1,2})[日]?/,
+            /(\d{1,2})[\/月\-](\d{1,2})[日]?/,
+            /令和(\d+)年(\d{1,2})月(\d{1,2})日/,
+            /R(\d+)[\.\/](\d{1,2})[\.\/](\d{1,2})/,  // R6.11.14 形式
+            /(\d{4})\.(\d{1,2})\.(\d{1,2})/  // 2024.11.14 形式
+          ];
+
+          let extractedDate = null;
+          for (const pattern of datePatterns) {
+            const match = text.match(pattern);
+            if (match) {
+              if (match[0].includes('令和') || match[0].startsWith('R')) {
+                // 令和の場合は西暦に変換
+                const reiwaYear = parseInt(match[1]);
+                const year = 2018 + reiwaYear;
+                extractedDate = `${year}-${match[2].padStart(2, '0')}-${match[3].padStart(2, '0')}`;
+              } else if (match[1] && match[1].length === 4) {
+                // 西暦の場合
+                extractedDate = `${match[1]}-${match[2].padStart(2, '0')}-${match[3].padStart(2, '0')}`;
+              } else {
+                // 月日のみの場合は今年を付ける
+                const year = new Date().getFullYear();
+                extractedDate = `${year}-${match[1].padStart(2, '0')}-${match[2].padStart(2, '0')}`;
+              }
+              break;
+            }
+          }
+
+          // 金額を抽出（¥記号、円、合計などのキーワードを探す）
+          const amountPatterns = [
+            /合計[\s　]*[¥￥]?([0-9,]+)/,
+            /小計[\s　]*[¥￥]?([0-9,]+)/,
+            /税込[\s　]*[¥￥]?([0-9,]+)/,
+            /お支払[\s　]*[¥￥]?([0-9,]+)/,
+            /[¥￥]([0-9,]+)/,
+            /([0-9,]+)円/,
+            /計[\s　]*([0-9,]+)/
+          ];
+
+          let extractedAmount = null;
+          let maxAmount = 0;
+
+          // 各パターンで最大金額を探す
+          for (const pattern of amountPatterns) {
+            const matches = text.matchAll(new RegExp(pattern, 'g'));
+            for (const match of matches) {
+              const amount = parseInt(match[1].replace(/,/g, ''));
+              if (amount > maxAmount && amount < 1000000) { // 100万円未満を有効とする
+                maxAmount = amount;
+                extractedAmount = amount;
+              }
+            }
+          }
+
+          // 店名を抽出（最初の行や「店」が含まれる行を優先）
+          const lines = text.split('\n').filter(line => line.trim());
+          let extractedStoreName = '';
+
+          // 店名の候補を探す（よくある店名パターン）
+          const storePatterns = [
+            /^(.+?)(店|ストア|マート|スーパー|薬局|堂|屋)/,
+            /^(セブンイレブン|ファミリーマート|ローソン|ミニストップ).*/,
+            /^(イオン|ヨーカドー|西友|マルエツ|ライフ|OK|ドンキ).*/,
+            /^(スギ薬局|マツモトキヨシ|ウエルシア|ツルハ).*/,
+            /^(マクドナルド|ケンタッキー|すき家|吉野家|松屋).*/
+          ];
+
+          for (const line of lines.slice(0, 5)) { // 最初の5行を確認
+            for (const pattern of storePatterns) {
+              const match = line.match(pattern);
+              if (match) {
+                extractedStoreName = match[0].trim();
+                break;
+              }
+            }
+            if (extractedStoreName) break;
+          }
+
+          if (!extractedStoreName && lines.length > 0) {
+            // 店名が見つからない場合は最初の長めの行を使用
+            for (const line of lines.slice(0, 3)) {
+              if (line.length > 3 && !line.match(/^\d+$/)) {
+                extractedStoreName = line.trim();
+                break;
+              }
+            }
+          }
+
+          return {
+            date: extractedDate || formatDateToLocal(new Date()),
+            amount: extractedAmount || 0,
+            storeName: extractedStoreName || '',
+            fullText: text
+          };
+        } catch (error) {
+          console.error('OCR処理エラー:', error);
+          alert('OCR処理でエラーが発生しました: ' + error.message);
+          return null;
+        } finally {
+          setIsProcessingOCR(false);
+        }
+      };
 
       // Load expenses from Supabase
       useEffect(() => {
@@ -2921,6 +3084,53 @@
                       </>
                     )}
 
+                    {/* Vision APIキー設定 */}
+                    <div className="bg-gray-50 rounded-xl p-4 border-2 border-gray-200 mt-4">
+                      <h3 className="font-bold text-gray-800 mb-3">📷 レシート自動認識設定</h3>
+                      <div className="space-y-3">
+                        <div className="text-xs text-gray-600 mb-2">
+                          Google Cloud Vision APIを使用してレシートから自動的に情報を抽出できます。
+                          月1000枚まで無料で使用できます。
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Vision APIキー
+                          </label>
+                          <input
+                            type="password"
+                            value={visionApiKey || ''}
+                            onChange={(e) => {
+                              const key = e.target.value;
+                              setVisionApiKey(key);
+                              // localStorageに保存
+                              try {
+                                if (key) {
+                                  localStorage.setItem('visionApiKey', key);
+                                } else {
+                                  localStorage.removeItem('visionApiKey');
+                                }
+                              } catch (err) {
+                                console.error('Failed to save API key:', err);
+                              }
+                            }}
+                            placeholder="AIza..."
+                            className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-base"
+                          />
+                          <div className="text-xs text-gray-500 mt-1">
+                            <a
+                              href="https://console.cloud.google.com/apis/credentials"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-500 hover:underline"
+                            >
+                              APIキーの取得はこちら
+                            </a>
+                            （Cloud Vision APIを有効化してください）
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
                   </div>
                 </div>
 
@@ -4080,6 +4290,26 @@
                                 // JPEG形式で圧縮（品質80%）
                                 const resizedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
                                 setEditingExpense({...editingExpense, photo: resizedDataUrl});
+
+                                // OCR処理を実行（Vision APIキーがある場合）
+                                if (visionApiKey) {
+                                  extractReceiptData(resizedDataUrl).then(result => {
+                                    if (result) {
+                                      // 認識結果を自動入力
+                                      setEditingExpense(prev => ({
+                                        ...prev,
+                                        date: result.date,
+                                        amount: result.amount,
+                                        description: result.storeName
+                                      }));
+
+                                      // 成功メッセージ
+                                      if (result.amount > 0 || result.storeName) {
+                                        console.log('OCR認識成功:', result);
+                                      }
+                                    }
+                                  });
+                                }
                               };
                               img.src = event.target.result;
                             };
@@ -4088,6 +4318,17 @@
                         }}
                         className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none text-sm"
                       />
+                      {isProcessingOCR && (
+                        <div className="mt-2 p-3 bg-blue-50 rounded-lg">
+                          <div className="flex items-center gap-2 text-blue-700">
+                            <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span className="text-sm font-medium">レシートを認識中...</span>
+                          </div>
+                        </div>
+                      )}
                       {editingExpense.photo && (
                         <div className="mt-2">
                           <img
@@ -4101,6 +4342,7 @@
                             style={{ maxHeight: '200px', objectFit: 'contain' }}
                           />
                           <button
+                            type="button"
                             onClick={() => setEditingExpense({...editingExpense, photo: null})}
                             className="mt-2 text-sm text-red-600 hover:text-red-800"
                           >
