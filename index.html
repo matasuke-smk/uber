@@ -924,21 +924,18 @@
         };
       }, [showBasicSettings, showQuestSettings, showCalendar, showTotalStats, showDayEdit, showExpenses, showExpenseInput, showImagePreview]);
 
-      // 週の稼働時間が変更されたら、クエスト報酬を計算してカレンダーに反映
+      // 週の稼働時間が変更されたら、クエスト報酬を計算してdailyData（表示用）を更新
       useEffect(() => {
-        if (!currentWeekStart || !session?.user?.id || settingsLoading || dailyDataLoading) return;
+        if (!currentWeekStart) return;
 
-        const saveToSupabase = async () => {
-          // 使用する平均値を取得
-          const effectiveValues = getEffectiveValues();
+        // 使用する平均値を取得
+        const effectiveValues = getEffectiveValues();
 
-          console.log('Saving hours to Supabase...');
+        setDailyData(prev => {
+          const updatedData = { ...prev };
 
           // まず、週のすべてのデータを一時的に保存（クエスト計算のため）
           const tempData = {};
-          const datesToSave = [];
-          const datesToDelete = [];
-
           [...weekdays, ...weekends].forEach(day => {
             const dayData = hours[day];
             const hasAllFields = dayData.hours > 0 &&
@@ -954,9 +951,9 @@
                   deliveries: dayData.deliveries,
                   earnings: dayData.earnings  // 入力値（クエスト込み）
                 };
-              } else if (dailyData[dateStr]) {
-                // 不完全なデータの場合は削除対象に追加
-                datesToDelete.push(dateStr);
+              } else if (updatedData[dateStr]) {
+                // 不完全なデータの場合は削除
+                delete updatedData[dateStr];
               }
             }
           });
@@ -987,14 +984,13 @@
               }
             }
 
-            // 保存対象データに追加
-            datesToSave.push({
-              date: dateStr,
+            // 入力値（クエスト込み）からクエストを引いて基本売上を保存
+            updatedData[dateStr] = {
               hours: tempData[dateStr].hours,
               deliveries: tempData[dateStr].deliveries,
               earnings: tempData[dateStr].earnings - dayQuestReward,
               quest: dayQuestReward
-            });
+            };
           });
 
           // 金～日のクエスト報酬を達成した日に配分
@@ -1023,19 +1019,46 @@
               }
             }
 
-            // 保存対象データに追加
-            datesToSave.push({
-              date: dateStr,
+            // 入力値（クエスト込み）からクエストを引いて基本売上を保存
+            updatedData[dateStr] = {
               hours: tempData[dateStr].hours,
               deliveries: tempData[dateStr].deliveries,
               earnings: tempData[dateStr].earnings - dayQuestReward,
               quest: dayQuestReward
-            });
+            };
           });
 
-          // Supabaseに保存
+          return updatedData;
+        });
+      }, [hours, weekdayQuests, weekendQuests, currentWeekStart, weekdayDeliveriesPerHour, weekendDeliveriesPerHour, useAutoCalculate, weekdayAvgPrice, weekendAvgPrice]);
+
+      // hoursが変更されたら、Supabaseに保存
+      useEffect(() => {
+        if (!currentWeekStart || !session?.user?.id || settingsLoading || dailyDataLoading) return;
+
+        // デバウンス：入力が落ち着いてから保存
+        const timer = setTimeout(async () => {
           try {
-            // 削除対象のデータを削除
+            // 週のデータを収集
+            const datesToSave = [];
+            const datesToDelete = [];
+
+            [...weekdays, ...weekends].forEach(day => {
+              const dayData = hours[day];
+              const hasAllFields = dayData.hours > 0 &&
+                                 dayData.deliveries > 0 &&
+                                 dayData.earnings > 0;
+
+              const dateStr = getDayDate(day);
+              if (!dateStr) return;
+
+              if (!hasAllFields && dailyData[dateStr]) {
+                // 不完全なデータの場合は削除対象に追加
+                datesToDelete.push(dateStr);
+              }
+            });
+
+            // 削除処理
             for (const dateStr of datesToDelete) {
               await supabaseClient
                 .from('daily_records')
@@ -1044,64 +1067,43 @@
                 .eq('date', dateStr);
             }
 
-            // 新しいデータを保存
-            if (datesToSave.length > 0) {
-              console.log('Data to save:', datesToSave);
-              const recordsToUpsert = datesToSave.map(data => ({
-                user_id: session.user.id,
-                date: data.date,
-                hours: data.hours,
-                deliveries: data.deliveries,
-                earnings: data.earnings,
-                quest: data.quest,
-                is_rainy: false,
-                is_holiday: false,
-                updated_at: new Date().toISOString()
-              }));
+            // dailyDataから今週のデータを取得して保存
+            const weekStart = new Date(currentWeekStart + 'T00:00:00');
+            for (let i = 0; i < 7; i++) {
+              const targetDate = new Date(weekStart);
+              targetDate.setDate(targetDate.getDate() + i);
+              const dateStr = formatDateToLocal(targetDate);
 
-              const { error } = await supabaseClient
-                .from('daily_records')
-                .upsert(recordsToUpsert, {
-                  onConflict: 'user_id,date'
+              if (dailyData[dateStr]) {
+                datesToSave.push({
+                  user_id: session.user.id,
+                  date: dateStr,
+                  hours: dailyData[dateStr].hours,
+                  deliveries: dailyData[dateStr].deliveries,
+                  earnings: dailyData[dateStr].earnings,
+                  quest: dailyData[dateStr].quest || 0,
+                  is_rainy: dailyData[dateStr].isRainy || false,
+                  is_holiday: dailyData[dateStr].isHoliday || false,
+                  updated_at: new Date().toISOString()
                 });
-
-              if (error) {
-                console.error('Supabase save error:', error);
-              } else {
-                console.log('Successfully saved to Supabase');
               }
-            } else {
-              console.log('No data to save');
             }
 
-            // ローカルステートを更新
-            setDailyData(prev => {
-              const updatedData = { ...prev };
-
-              // 削除
-              datesToDelete.forEach(dateStr => {
-                delete updatedData[dateStr];
-              });
-
-              // 追加/更新
-              datesToSave.forEach(data => {
-                updatedData[data.date] = {
-                  hours: data.hours,
-                  deliveries: data.deliveries,
-                  earnings: data.earnings,
-                  quest: data.quest
-                };
-              });
-
-              return updatedData;
-            });
+            // 保存
+            if (datesToSave.length > 0) {
+              await supabaseClient
+                .from('daily_records')
+                .upsert(datesToSave, {
+                  onConflict: 'user_id,date'
+                });
+            }
           } catch (error) {
             console.error('Error saving daily data from hours:', error);
           }
-        };
+        }, 500); // 500ms デバウンス
 
-        saveToSupabase();
-      }, [hours, weekdayQuests, weekendQuests, currentWeekStart, weekdayDeliveriesPerHour, weekendDeliveriesPerHour, useAutoCalculate, weekdayAvgPrice, weekendAvgPrice, session?.user?.id, settingsLoading, dailyDataLoading]);
+        return () => clearTimeout(timer);
+      }, [hours, currentWeekStart, session?.user?.id, settingsLoading, dailyDataLoading, dailyData]);
 
       // 週の切り替わり検知（日曜日→月曜日）
       useEffect(() => {
