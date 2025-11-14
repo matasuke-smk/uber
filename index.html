@@ -1009,6 +1009,8 @@
             console.log(`[Display Update] Added to updatedData[${dateStr}]:`, updatedData[dateStr]);
           });
 
+          console.log('[Display Update] Final updatedData:', updatedData);
+          console.log('[Display Update] Keys in updatedData:', Object.keys(updatedData));
           return updatedData;
         });
       }, [hours, weekdayQuests, weekendQuests, currentWeekStart, weekdayDeliveriesPerHour, weekendDeliveriesPerHour, useAutoCalculate, weekdayAvgPrice, weekendAvgPrice]);
