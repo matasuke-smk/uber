@@ -976,8 +976,10 @@
           let nextWeekendQuestIndex = 0;
           let cumulativeWeekendQuestCount = 0;
 
+          console.log('[Display Update] Processing weekends...');
           weekends.forEach(day => {
             const dateStr = getDayDate(day);
+            console.log(`[Display Update] Weekend ${day}: dateStr=${dateStr}, tempData exists=${!!tempData[dateStr]}`);
             if (!dateStr || !tempData[dateStr]) return;
 
             const dayData = hours[day];
@@ -1004,6 +1006,7 @@
               earnings: tempData[dateStr].earnings - dayQuestReward,
               quest: dayQuestReward
             };
+            console.log(`[Display Update] Added to updatedData[${dateStr}]:`, updatedData[dateStr]);
           });
 
           return updatedData;
