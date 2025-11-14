@@ -864,6 +864,7 @@
                 businessPercentage: expense.business_percentage,
                 accountingSubject: expense.accounting_subject || '',
                 photo: expense.photo_url || null,
+                memo: expense.memo || ''
               };
             }
             setExpenses(expensesMap);
@@ -4268,70 +4269,18 @@
                       />
                     </div>
 
-                    {/* カテゴリーと借方科目 */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          カテゴリー
-                        </label>
-                        <select
-                          key={`category-${editingExpense.category}`}
-                          value={editingExpense.category}
-                          onChange={(e) => {
-                            const newCategory = e.target.value;
-                            const defaultSubject = categoryToSubjects[newCategory]?.[0] || 'vehicle';
-                            setTimeout(() => {
-                              setEditingExpense({
-                                ...editingExpense,
-                                category: newCategory,
-                                accountingSubject: defaultSubject
-                              });
-                            }, 0);
-                          }}
-                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none"
-                        >
-                          {Object.entries(expenseCategories).map(([key, cat]) => (
-                            <option key={key} value={key}>
-                              {cat.emoji} {cat.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          借方科目
-                        </label>
-                        <select
-                          key={`subject-${editingExpense.accountingSubject}-${editingExpense.category}`}
-                          value={editingExpense.accountingSubject || 'vehicle'}
-                          onChange={(e) => {
-                            const newSubject = e.target.value;
-                            setTimeout(() => {
-                              setEditingExpense({...editingExpense, accountingSubject: newSubject});
-                            }, 0);
-                          }}
-                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none"
-                        >
-                          {(() => {
-                            const allowedSubjects = categoryToSubjects[editingExpense.category] || Object.keys(accountingSubjects);
-                            return allowedSubjects.map((key) => (
-                              <option key={key} value={key}>
-                                {accountingSubjects[key]}
-                              </option>
-                            ));
-                          })()}
-                        </select>
-                      </div>
-                    </div>
-
-                    {/* 品目 */}
+                    {/* 品名 */}
                     <div className="relative">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        品目・説明
+                        品名
                       </label>
                       <input
                         type="text"
                         value={editingExpense?.description || ''}
+                        autoComplete="off"
+                        autoCorrect="off"
+                        autoCapitalize="off"
+                        spellCheck="false"
                         onChange={(e) => {
                           setEditingExpense({...editingExpense, description: e.target.value});
                           // 入力内容に応じて候補をフィルタリング
@@ -4352,30 +4301,33 @@
                         onFocus={() => {
                           try {
                             // フォーカス時に過去の入力履歴から候補を生成
-                            const allDescriptions = new Set();
+                            const descriptionMap = new Map(); // 品名 -> {category, accountingSubject} のマップ
 
                             // 過去の経費データから候補を追加（ガソリン関連は除外）
                             if (expenses && typeof expenses === 'object') {
-                              Object.values(expenses).forEach(dayExpenses => {
-                                if (Array.isArray(dayExpenses)) {
-                                  dayExpenses.forEach(expense => {
-                                    if (expense && expense.description && expense.description.trim()) {
-                                      // ガソリン関連の項目を除外
-                                      const desc = expense.description;
-                                      if (!desc.includes('ガソリン') &&
-                                          !desc.includes('軽油') &&
-                                          !desc.match(/\d+L$/)) {
-                                        allDescriptions.add(desc);
-                                      }
-                                    }
-                                  });
+                              Object.values(expenses).forEach(expense => {
+                                if (expense && expense.description && expense.description.trim()) {
+                                  // ガソリン関連の項目を除外
+                                  const desc = expense.description;
+                                  if (!desc.includes('ガソリン') &&
+                                      !desc.includes('軽油') &&
+                                      !desc.match(/\d+L$/)) {
+                                    // 同じ品名の場合は最新のカテゴリーと借方科目を保持
+                                    descriptionMap.set(desc, {
+                                      category: expense.category,
+                                      accountingSubject: expense.accountingSubject
+                                    });
+                                  }
                                 }
                               });
                             }
 
-                            const suggestions = Array.from(allDescriptions).sort();
+                            const suggestions = Array.from(descriptionMap.keys()).sort();
                             setDescriptionSuggestions(suggestions);
                             setShowDescriptionSuggestions(suggestions.length > 0);
+
+                            // マップを保存して選択時に使用できるようにする
+                            window.descriptionCategoryMap = descriptionMap;
                           } catch (error) {
                             console.error('候補生成エラー:', error);
                             // エラーが発生した場合は候補を表示しない
@@ -4405,7 +4357,21 @@
                               <div
                                 key={index}
                                 onClick={() => {
-                                  setEditingExpense({...editingExpense, description: suggestion});
+                                  // 品名を設定
+                                  const updateData = {...editingExpense, description: suggestion};
+
+                                  // 過去の同じ品名のカテゴリーと借方科目も設定
+                                  if (window.descriptionCategoryMap && window.descriptionCategoryMap.has(suggestion)) {
+                                    const categoryData = window.descriptionCategoryMap.get(suggestion);
+                                    if (categoryData.category) {
+                                      updateData.category = categoryData.category;
+                                    }
+                                    if (categoryData.accountingSubject) {
+                                      updateData.accountingSubject = categoryData.accountingSubject;
+                                    }
+                                  }
+
+                                  setEditingExpense(updateData);
                                   setShowDescriptionSuggestions(false);
                                 }}
                                 className="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
@@ -4467,6 +4433,62 @@
                           />
                           <span className="text-gray-600 font-medium text-sm whitespace-nowrap ml-1">%</span>
                         </div>
+                      </div>
+                    </div>
+
+                    {/* カテゴリーと借方科目 */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          カテゴリー
+                        </label>
+                        <select
+                          key={`category-${editingExpense.category}`}
+                          value={editingExpense.category}
+                          onChange={(e) => {
+                            const newCategory = e.target.value;
+                            const defaultSubject = categoryToSubjects[newCategory]?.[0] || 'vehicle';
+                            setTimeout(() => {
+                              setEditingExpense({
+                                ...editingExpense,
+                                category: newCategory,
+                                accountingSubject: defaultSubject
+                              });
+                            }, 0);
+                          }}
+                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none"
+                        >
+                          {Object.entries(expenseCategories).map(([key, cat]) => (
+                            <option key={key} value={key}>
+                              {cat.emoji} {cat.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          借方科目
+                        </label>
+                        <select
+                          key={`subject-${editingExpense.accountingSubject}-${editingExpense.category}`}
+                          value={editingExpense.accountingSubject || 'vehicle'}
+                          onChange={(e) => {
+                            const newSubject = e.target.value;
+                            setTimeout(() => {
+                              setEditingExpense({...editingExpense, accountingSubject: newSubject});
+                            }, 0);
+                          }}
+                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none"
+                        >
+                          {(() => {
+                            const allowedSubjects = categoryToSubjects[editingExpense.category] || Object.keys(accountingSubjects);
+                            return allowedSubjects.map((key) => (
+                              <option key={key} value={key}>
+                                {accountingSubjects[key]}
+                              </option>
+                            ));
+                          })()}
+                        </select>
                       </div>
                     </div>
 
