@@ -926,16 +926,17 @@
 
       // 週の稼働時間が変更されたら、クエスト報酬を計算してカレンダーに反映
       useEffect(() => {
-        if (!currentWeekStart) return;
+        if (!currentWeekStart || !session?.user?.id) return;
 
-        // 使用する平均値を取得
-        const effectiveValues = getEffectiveValues();
-
-        setDailyData(prev => {
-          const updatedData = { ...prev };
+        const saveToSupabase = async () => {
+          // 使用する平均値を取得
+          const effectiveValues = getEffectiveValues();
 
           // まず、週のすべてのデータを一時的に保存（クエスト計算のため）
           const tempData = {};
+          const datesToSave = [];
+          const datesToDelete = [];
+
           [...weekdays, ...weekends].forEach(day => {
             const dayData = hours[day];
             const hasAllFields = dayData.hours > 0 &&
@@ -951,9 +952,9 @@
                   deliveries: dayData.deliveries,
                   earnings: dayData.earnings  // 入力値（クエスト込み）
                 };
-              } else if (updatedData[dateStr]) {
-                // 不完全なデータの場合は削除
-                delete updatedData[dateStr];
+              } else if (dailyData[dateStr]) {
+                // 不完全なデータの場合は削除対象に追加
+                datesToDelete.push(dateStr);
               }
             }
           });
@@ -984,13 +985,14 @@
               }
             }
 
-            // 入力値（クエスト込み）からクエストを引いて基本売上を保存
-            updatedData[dateStr] = {
+            // 保存対象データに追加
+            datesToSave.push({
+              date: dateStr,
               hours: tempData[dateStr].hours,
               deliveries: tempData[dateStr].deliveries,
               earnings: tempData[dateStr].earnings - dayQuestReward,
               quest: dayQuestReward
-            };
+            });
           });
 
           // 金～日のクエスト報酬を達成した日に配分
@@ -1019,18 +1021,76 @@
               }
             }
 
-            // 入力値（クエスト込み）からクエストを引いて基本売上を保存
-            updatedData[dateStr] = {
+            // 保存対象データに追加
+            datesToSave.push({
+              date: dateStr,
               hours: tempData[dateStr].hours,
               deliveries: tempData[dateStr].deliveries,
               earnings: tempData[dateStr].earnings - dayQuestReward,
               quest: dayQuestReward
-            };
+            });
           });
 
-          return updatedData;
-        });
-      }, [hours, weekdayQuests, weekendQuests, currentWeekStart, weekdayDeliveriesPerHour, weekendDeliveriesPerHour, useAutoCalculate, weekdayAvgPrice, weekendAvgPrice]);
+          // Supabaseに保存
+          try {
+            // 削除対象のデータを削除
+            for (const dateStr of datesToDelete) {
+              await supabaseClient
+                .from('daily_records')
+                .delete()
+                .eq('user_id', session.user.id)
+                .eq('date', dateStr);
+            }
+
+            // 新しいデータを保存
+            if (datesToSave.length > 0) {
+              const recordsToUpsert = datesToSave.map(data => ({
+                user_id: session.user.id,
+                date: data.date,
+                hours: data.hours,
+                deliveries: data.deliveries,
+                earnings: data.earnings,
+                quest: data.quest,
+                is_rainy: false,
+                is_holiday: false,
+                updated_at: new Date().toISOString()
+              }));
+
+              await supabaseClient
+                .from('daily_records')
+                .upsert(recordsToUpsert, {
+                  onConflict: 'user_id,date'
+                });
+            }
+
+            // ローカルステートを更新
+            setDailyData(prev => {
+              const updatedData = { ...prev };
+
+              // 削除
+              datesToDelete.forEach(dateStr => {
+                delete updatedData[dateStr];
+              });
+
+              // 追加/更新
+              datesToSave.forEach(data => {
+                updatedData[data.date] = {
+                  hours: data.hours,
+                  deliveries: data.deliveries,
+                  earnings: data.earnings,
+                  quest: data.quest
+                };
+              });
+
+              return updatedData;
+            });
+          } catch (error) {
+            console.error('Error saving daily data from hours:', error);
+          }
+        };
+
+        saveToSupabase();
+      }, [hours, weekdayQuests, weekendQuests, currentWeekStart, weekdayDeliveriesPerHour, weekendDeliveriesPerHour, useAutoCalculate, weekdayAvgPrice, weekendAvgPrice, session?.user?.id]);
 
       // 週の切り替わり検知（日曜日→月曜日）
       useEffect(() => {
