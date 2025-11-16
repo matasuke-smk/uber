@@ -392,18 +392,19 @@
 
       // 借方科目（勘定科目）
       const accountingSubjects = {
-        vehicle: '車両費',
-        fuel: '燃料費',
-        repair: '修繕費',
-        rent: '地代家賃',
-        communication: '通信費',
-        insurance: '損害保険料',
-        supplies: '消耗品費',
         travel: '旅費交通費',
-        utilities: '水道光熱費',
-        advertising: '広告宣伝費',
-        commission: '支払手数料',
-        misc: '雑費'
+        supplies: '消耗品費',
+        communication: '通信費',
+        misc: '雑費',
+        depreciation: '減価償却費',
+        insurance: '保険料'
+      };
+
+      // 貸方科目（支払方法）
+      const creditAccountSubjects = {
+        cash: '現金',
+        credit: 'クレジット',
+        ordinaryDeposit: '普通預金'
       };
 
       // カテゴリーごとの推奨借方科目
@@ -759,7 +760,7 @@
 
           // ガソリン関連のレシートかチェックして、ガソリンの場合のみ品名を自動入力
           let itemDescription = '';
-          let suggestedCategory = null;
+          let suggestedAccountingSubject = null;
 
           const isGasoline = text.match(/(ガソリン|給油|軽油|レギュラー|ハイオク|ENEOS|出光|昭和シェル|コスモ石油|エッソ|モービル)/i);
 
@@ -815,17 +816,39 @@
               itemDescription = `${gasolineType}${liters}L`;
             }
 
-            // ガソリンの場合はカテゴリーを燃料費に設定
-            suggestedCategory = 'fuel';
+            // ガソリンの場合は借方科目を旅費交通費に設定
+            suggestedAccountingSubject = 'travel';
           }
 
           // ガソリン以外は品名を空にする（日付と金額のみ自動入力）
+
+          // 支払方法を検出
+          let paymentMethod = null;
+
+          // クレジットカード決済の検出
+          const isCreditCard = text.match(/(クレジット|クレジットカード|CREDIT|VISA|MasterCard|MASTER|JCB|AMEX|American Express|Diners|ダイナース|\*{4}\s*\*{4}\s*\*{4}\s*\d{4})/i);
+
+          // 現金決済の検出
+          const isCash = text.match(/(現金|CASH|お預かり|お預り|お釣り|おつり|釣銭|釣り銭)/i);
+
+          // 電子マネー・その他の決済
+          const isElectronic = text.match(/(電子マネー|交通系IC|Suica|PASMO|ICOCA|QRコード|PayPay|LINE\s*Pay|楽天Pay|d払い|au\s*PAY|メルペイ|nanaco|WAON|Edy)/i);
+
+          if (isCreditCard && !isCash) {
+            paymentMethod = 'credit';  // クレジット
+          } else if (isCash && !isCreditCard) {
+            paymentMethod = 'cash';  // 現金
+          } else if (isElectronic) {
+            paymentMethod = 'cash';  // 電子マネーも現金扱い（事前チャージのため）
+          }
+          // どちらも検出されない、または両方検出された場合はnull（手動選択）
 
           return {
             date: extractedDate || formatDateToLocal(new Date()),
             amount: extractedAmount || 0,
             itemName: itemDescription,
-            category: suggestedCategory,
+            accountingSubject: suggestedAccountingSubject,
+            paymentMethod: paymentMethod,
             fullText: text
           };
         } catch (error) {
@@ -858,13 +881,12 @@
             for (const expense of data || []) {
               expensesMap[expense.id] = {
                 date: expense.date,
-                category: expense.category,
-                description: expense.description || '',
                 amount: expense.amount,
                 businessPercentage: expense.business_percentage,
                 accountingSubject: expense.accounting_subject || '',
+                creditAccount: expense.credit_account || '',
                 photo: expense.photo_url || null,
-                memo: expense.memo || ''
+                memo: expense.memo || expense.description || ''
               };
             }
             setExpenses(expensesMap);
@@ -4047,15 +4069,12 @@
                     {/* 新規追加ボタン */}
                     <button
                       onClick={() => {
-                        const defaultCategory = 'fuel';
-                        const defaultSubject = categoryToSubjects[defaultCategory]?.[0] || 'vehicle';
                         setEditingExpense({
                           date: formatDateToLocal(new Date()),
-                          category: defaultCategory,
-                          description: '',
                           amount: 0,
                           photo: null,
-                          accountingSubject: defaultSubject,
+                          accountingSubject: 'travel',
+                          creditAccount: '',
                           businessPercentage: 100,
                           memo: ''
                         });
@@ -4106,7 +4125,8 @@
                                   } else {
                                     setEditingExpense({
                                       ...expense,
-                                      accountingSubject: expense.accountingSubject || 'vehicle',
+                                      accountingSubject: expense.accountingSubject || 'travel',
+                                      creditAccount: expense.creditAccount || '',
                                       businessPercentage: expense.businessPercentage ?? 100,
                                       memo: expense.memo || ''
                                     });
@@ -4125,7 +4145,7 @@
                                       {new Date(expense.date + 'T00:00:00').toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' })}
                                     </div>
                                     <div className="flex-1 min-w-0 font-medium text-gray-800 truncate">
-                                      {expense.description || expenseCategories[expense.category].name}
+                                      {accountingSubjects[expense.accountingSubject] || '旅費交通費'}
                                     </div>
                                     <div className="flex items-center gap-2">
                                       {expense.photo && (
@@ -4269,120 +4289,6 @@
                       />
                     </div>
 
-                    {/* 品名 */}
-                    <div className="relative">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        品名
-                      </label>
-                      <input
-                        type="text"
-                        value={editingExpense?.description || ''}
-                        autoComplete="off"
-                        autoCorrect="off"
-                        autoCapitalize="off"
-                        spellCheck="false"
-                        onChange={(e) => {
-                          setEditingExpense({...editingExpense, description: e.target.value});
-                          // 入力内容に応じて候補をフィルタリング
-                          try {
-                            if (e.target.value.trim() && Array.isArray(descriptionSuggestions)) {
-                              const filtered = descriptionSuggestions.filter(s =>
-                                s && s.toLowerCase().includes(e.target.value.toLowerCase())
-                              );
-                              setShowDescriptionSuggestions(filtered.length > 0);
-                            } else {
-                              setShowDescriptionSuggestions(descriptionSuggestions && descriptionSuggestions.length > 0);
-                            }
-                          } catch (error) {
-                            console.error('フィルタリングエラー:', error);
-                            setShowDescriptionSuggestions(false);
-                          }
-                        }}
-                        onFocus={() => {
-                          try {
-                            // フォーカス時に過去の入力履歴から候補を生成
-                            const descriptionMap = new Map(); // 品名 -> {category, accountingSubject} のマップ
-
-                            // 過去の経費データから候補を追加（ガソリン関連は除外）
-                            if (expenses && typeof expenses === 'object') {
-                              Object.values(expenses).forEach(expense => {
-                                if (expense && expense.description && expense.description.trim()) {
-                                  // ガソリン関連の項目を除外
-                                  const desc = expense.description;
-                                  if (!desc.includes('ガソリン') &&
-                                      !desc.includes('軽油') &&
-                                      !desc.match(/\d+L$/)) {
-                                    // 同じ品名の場合は最新のカテゴリーと借方科目を保持
-                                    descriptionMap.set(desc, {
-                                      category: expense.category,
-                                      accountingSubject: expense.accountingSubject
-                                    });
-                                  }
-                                }
-                              });
-                            }
-
-                            const suggestions = Array.from(descriptionMap.keys()).sort();
-                            setDescriptionSuggestions(suggestions);
-                            setShowDescriptionSuggestions(suggestions.length > 0);
-
-                            // マップを保存して選択時に使用できるようにする
-                            window.descriptionCategoryMap = descriptionMap;
-                          } catch (error) {
-                            console.error('候補生成エラー:', error);
-                            // エラーが発生した場合は候補を表示しない
-                            setDescriptionSuggestions([]);
-                            setShowDescriptionSuggestions(false);
-                          }
-                        }}
-                        onBlur={() => {
-                          // 候補クリックの処理を優先するため、少し遅延を入れる
-                          setTimeout(() => setShowDescriptionSuggestions(false), 200);
-                        }}
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none"
-                        placeholder="例：レギュラーガソリン 30L"
-                      />
-
-                      {/* 候補リスト */}
-                      {showDescriptionSuggestions && Array.isArray(descriptionSuggestions) && descriptionSuggestions.length > 0 && (
-                        <div className="absolute z-50 w-full mt-1 bg-white border-2 border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
-                          {descriptionSuggestions
-                            .filter(s => {
-                              if (!s) return false;
-                              if (!editingExpense || !editingExpense.description) return true;
-                              return s.toLowerCase().includes(editingExpense.description.toLowerCase());
-                            })
-                            .slice(0, 10)
-                            .map((suggestion, index) => (
-                              <div
-                                key={index}
-                                onClick={() => {
-                                  // 品名を設定
-                                  const updateData = {...editingExpense, description: suggestion};
-
-                                  // 過去の同じ品名のカテゴリーと借方科目も設定
-                                  if (window.descriptionCategoryMap && window.descriptionCategoryMap.has(suggestion)) {
-                                    const categoryData = window.descriptionCategoryMap.get(suggestion);
-                                    if (categoryData.category) {
-                                      updateData.category = categoryData.category;
-                                    }
-                                    if (categoryData.accountingSubject) {
-                                      updateData.accountingSubject = categoryData.accountingSubject;
-                                    }
-                                  }
-
-                                  setEditingExpense(updateData);
-                                  setShowDescriptionSuggestions(false);
-                                }}
-                                className="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                              >
-                                {suggestion}
-                              </div>
-                            ))}
-                        </div>
-                      )}
-                    </div>
-
                     {/* メモ欄 */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -4436,58 +4342,43 @@
                       </div>
                     </div>
 
-                    {/* カテゴリーと借方科目 */}
+                    {/* 借方科目と貸方科目 */}
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          カテゴリー
+                          借方科目
                         </label>
                         <select
-                          key={`category-${editingExpense.category}`}
-                          value={editingExpense.category}
+                          value={editingExpense.accountingSubject || 'travel'}
                           onChange={(e) => {
-                            const newCategory = e.target.value;
-                            const defaultSubject = categoryToSubjects[newCategory]?.[0] || 'vehicle';
-                            setTimeout(() => {
-                              setEditingExpense({
-                                ...editingExpense,
-                                category: newCategory,
-                                accountingSubject: defaultSubject
-                              });
-                            }, 0);
+                            setEditingExpense({...editingExpense, accountingSubject: e.target.value});
                           }}
                           className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none"
                         >
-                          {Object.entries(expenseCategories).map(([key, cat]) => (
+                          {Object.entries(accountingSubjects).map(([key, name]) => (
                             <option key={key} value={key}>
-                              {cat.emoji} {cat.name}
+                              {name}
                             </option>
                           ))}
                         </select>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          借方科目
+                          貸方科目
                         </label>
                         <select
-                          key={`subject-${editingExpense.accountingSubject}-${editingExpense.category}`}
-                          value={editingExpense.accountingSubject || 'vehicle'}
+                          value={editingExpense.creditAccount || ''}
                           onChange={(e) => {
-                            const newSubject = e.target.value;
-                            setTimeout(() => {
-                              setEditingExpense({...editingExpense, accountingSubject: newSubject});
-                            }, 0);
+                            setEditingExpense({...editingExpense, creditAccount: e.target.value});
                           }}
                           className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none"
                         >
-                          {(() => {
-                            const allowedSubjects = categoryToSubjects[editingExpense.category] || Object.keys(accountingSubjects);
-                            return allowedSubjects.map((key) => (
-                              <option key={key} value={key}>
-                                {accountingSubjects[key]}
-                              </option>
-                            ));
-                          })()}
+                          <option value="">選択してください</option>
+                          {Object.entries(creditAccountSubjects).map(([key, name]) => (
+                            <option key={key} value={key}>
+                              {name}
+                            </option>
+                          ))}
                         </select>
                       </div>
                     </div>
@@ -4549,23 +4440,28 @@
                                           ...prev,
                                           date: result.date,
                                           amount: result.amount,
-                                          description: result.itemName
+                                          memo: result.itemName ? (prev.memo ? prev.memo + '\n' + result.itemName : result.itemName) : prev.memo
                                         };
 
-                                        // カテゴリーが提案されている場合は設定
-                                        if (result.category) {
-                                          updateData.category = result.category;
-                                          // カテゴリーに応じたデフォルト借方科目を設定
-                                          const defaultSubject = categoryToSubjects[result.category]?.[0] || 'vehicle';
-                                          updateData.accountingSubject = defaultSubject;
+                                        // 借方科目が検出された場合は設定（ガソリンレシート等）
+                                        if (result.accountingSubject) {
+                                          updateData.accountingSubject = result.accountingSubject;
+                                        }
+
+                                        // 支払方法が検出された場合は貸方科目を設定
+                                        if (result.paymentMethod) {
+                                          updateData.creditAccount = result.paymentMethod;
                                         }
 
                                         return updateData;
                                       });
 
                                       // 成功メッセージ
-                                      if (result.amount > 0 || result.itemName) {
-                                        console.log('OCR認識成功:', result);
+                                      if (result.amount > 0 || result.itemName || result.paymentMethod) {
+                                        const paymentMethodName = result.paymentMethod === 'cash' ? '現金' :
+                                                                 result.paymentMethod === 'credit' ? 'クレジット' :
+                                                                 result.paymentMethod === 'ordinaryDeposit' ? '普通預金' : '';
+                                        console.log('OCR認識成功:', result, paymentMethodName ? `支払方法: ${paymentMethodName}` : '');
                                       }
                                     }
                                   });
@@ -4656,11 +4552,10 @@
                                 .from('expenses')
                                 .update({
                                   date: editingExpense.date,
-                                  category: editingExpense.category,
-                                  description: editingExpense.description || '',
                                   amount: editingExpense.amount,
                                   business_percentage: editingExpense.businessPercentage,
                                   accounting_subject: editingExpense.accountingSubject || '',
+                                  credit_account: editingExpense.creditAccount || '',
                                   photo_url: photoUrl || null,
                                   memo: editingExpense.memo || '',
                                   updated_at: new Date().toISOString()
@@ -4681,11 +4576,10 @@
                                 .insert({
                                   user_id: session.user.id,
                                   date: editingExpense.date,
-                                  category: editingExpense.category,
-                                  description: editingExpense.description || '',
                                   amount: editingExpense.amount,
                                   business_percentage: editingExpense.businessPercentage,
                                   accounting_subject: editingExpense.accountingSubject || '',
+                                  credit_account: editingExpense.creditAccount || '',
                                   photo_url: photoUrl || null,
                                   memo: editingExpense.memo || ''
                                 })
@@ -4872,36 +4766,36 @@
         other: { name: 'その他' }
       };
       const accountingSubjects = {
-        vehicle: '車両費',
-        fuel: '燃料費',
-        repair: '修繕費',
-        rent: '地代家賃',
-        communication: '通信費',
-        insurance: '損害保険料',
-        supplies: '消耗品費',
         travel: '旅費交通費',
-        utilities: '水道光熱費',
-        advertising: '広告宣伝費',
-        commission: '支払手数料',
-        misc: '雑費'
+        supplies: '消耗品費',
+        communication: '通信費',
+        misc: '雑費',
+        depreciation: '減価償却費',
+        insurance: '保険料'
+      };
+
+      const creditAccountSubjects = {
+        cash: '現金',
+        credit: 'クレジット',
+        ordinaryDeposit: '普通預金'
       };
 
       let csv = '\uFEFF'; // BOM for UTF-8
-      csv += '日付,カテゴリー,借方科目,品目,支払金額,事業割合(%),経費計上額,写真\n';
+      csv += '日付,借方科目,貸方科目,支払金額,事業割合(%),経費計上額,メモ・備考,写真\n';
 
       Object.entries(expenses)
         .sort(([, a], [, b]) => new Date(a.date) - new Date(b.date))
         .forEach(([id, expense]) => {
           const date = expense.date;
-          const category = expenseCategories[expense.category]?.name || expense.category;
-          const subject = accountingSubjects[expense.accountingSubject] || '車両費';
-          const description = expense.description || '';
+          const debitSubject = accountingSubjects[expense.accountingSubject] || '旅費交通費';
+          const creditSubject = creditAccountSubjects[expense.creditAccount] || '';
           const amount = expense.amount || 0;
           const percentage = expense.businessPercentage ?? 100;
           const businessAmount = Math.floor(amount * percentage / 100);
+          const memo = expense.memo || '';
           const photo = expense.photo ? '有' : '無';
 
-          csv += `${date},${category},${subject},"${description}",${amount},${percentage},${businessAmount},${photo}\n`;
+          csv += `${date},${debitSubject},${creditSubject},${amount},${percentage},${businessAmount},"${memo}",${photo}\n`;
         });
 
       return csv;
