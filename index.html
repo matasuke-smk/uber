@@ -4140,24 +4140,24 @@
                                 style={{ transition: 'transform 0.3s ease' }}
                               >
                                 <div>
-                                  <div className="flex items-center gap-3">
+                                  <div style={{ display: 'grid', gridTemplateColumns: '50px 1fr 30px 100px', gap: '8px', alignItems: 'center' }}>
                                     <div className="text-sm text-gray-500 whitespace-nowrap">
                                       {new Date(expense.date + 'T00:00:00').toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' })}
                                     </div>
-                                    <div className="flex-1 min-w-0 font-medium text-gray-800 truncate">
+                                    <div className="font-medium text-gray-800 truncate">
                                       {accountingSubjects[expense.accountingSubject] || '旅費交通費'}
                                     </div>
-                                    <div className="flex items-center gap-2">
+                                    <div className="text-center">
                                       {expense.photo && (
                                         <span className="text-gray-400 text-lg">📷</span>
                                       )}
-                                      <div className="text-lg font-bold text-gray-800 whitespace-nowrap">
-                                        ¥{expense.amount.toLocaleString()}
-                                      </div>
+                                    </div>
+                                    <div className="text-lg font-bold text-gray-800 whitespace-nowrap text-right">
+                                      ¥{expense.amount.toLocaleString()}
                                     </div>
                                   </div>
                                   {expense.memo && (
-                                    <div className="mt-1 text-sm text-gray-500 truncate pl-12">
+                                    <div className="mt-1 text-sm text-gray-500 truncate" style={{ paddingLeft: '58px' }}>
                                       {expense.memo}
                                     </div>
                                   )}
