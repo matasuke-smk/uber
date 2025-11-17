@@ -4328,6 +4328,20 @@
                       />
                     </div>
 
+                    {/* 取引先 */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        取引先（店舗名等）
+                      </label>
+                      <input
+                        type="text"
+                        value={editingExpense?.vendor || ''}
+                        onChange={(e) => setEditingExpense({...editingExpense, vendor: e.target.value})}
+                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none"
+                        placeholder="例：エネオス〇〇店、Amazon、〇〇モータース"
+                      />
+                    </div>
+
                     {/* メモ欄 */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
