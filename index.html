@@ -473,6 +473,7 @@
       const [showCalendar, setShowCalendar] = useState(false);
       const [showTotalStats, setShowTotalStats] = useState(false);
       const [totalStatsTab, setTotalStatsTab] = useState('summary'); // 'summary' or 'daily'
+      const [showWeeklySalesList, setShowWeeklySalesList] = useState(false);
 
       // モーダルコンテンツのref（スクロール位置リセット用）
       const questModalContentRef = React.useRef(null);
@@ -581,6 +582,7 @@
       const [editingExpense, setEditingExpense] = useState(null);
       const [editingExpenseId, setEditingExpenseId] = useState(null);
       const [expenseFilter, setExpenseFilter] = useState({});
+      const [showExpenseFilter, setShowExpenseFilter] = useState(false);
       const [showImagePreview, setShowImagePreview] = useState(false);
       const [previewImage, setPreviewImage] = useState(null);
       const [swipedExpenseId, setSwipedExpenseId] = useState(null);
@@ -600,6 +602,196 @@
           return '';
         }
       });
+
+      // 店舗名を正規化する関数（表記ゆれを統一）
+      const normalizeVendorName = (vendorName) => {
+        if (!vendorName) return '';
+
+        // 表記ゆれを統一するマッピング
+        const normalizationMap = {
+          // ガソリンスタンド
+          'エネオス': 'ENEOS',
+          'えねおす': 'ENEOS',
+          '出光': '出光興産',
+          'IDEMITSU': '出光興産',
+          '昭和シェル': '昭和シェル石油',
+          'Shell': '昭和シェル石油',
+          'コスモ': 'コスモ石油',
+          'COSMO': 'コスモ石油',
+          'エッソ': 'ESSO',
+          'モービル': 'Mobil',
+          'キグナス': 'KYGNUS',
+
+          // コンビニ
+          'セブン-イレブン': 'セブンイレブン',
+          '7-ELEVEN': 'セブンイレブン',
+          '7-11': 'セブンイレブン',
+          '７－１１': 'セブンイレブン',
+          'ファミマ': 'ファミリーマート',
+          'FamilyMart': 'ファミリーマート',
+          'LAWSON': 'ローソン',
+          'ﾛｰｿﾝ': 'ローソン',
+          'MINISTOP': 'ミニストップ',
+          'Daily': 'デイリーヤマザキ',
+
+          // スーパー・ドラッグストア
+          'AEON': 'イオン',
+          'ｲｵﾝ': 'イオン',
+          'SEIYU': '西友',
+          'せいゆう': '西友',
+          'マツキヨ': 'マツモトキヨシ',
+          'Welcia': 'ウエルシア',
+          'ウェルシア': 'ウエルシア',
+
+          // ファストフード
+          'マクドナルド': 'マクドナルド',
+          'McDonald': 'マクドナルド',
+          "McDonald's": 'マクドナルド',
+          'マック': 'マクドナルド',
+
+          // その他
+          'ドンキ': 'ドン・キホーテ',
+          'ドンキホーテ': 'ドン・キホーテ',
+          'アマゾン': 'Amazon',
+          'amazon': 'Amazon',
+          'AMAZON': 'Amazon',
+          '楽天': '楽天市場',
+          'Rakuten': '楽天市場',
+
+          // カフェ
+          'スタバ': 'スターバックス',
+          'STARBUCKS': 'スターバックス',
+          'Starbucks': 'スターバックス',
+          'ドトール': 'ドトールコーヒー',
+          'DOUTOR': 'ドトールコーヒー',
+
+          // 家電量販店
+          'ヤマダ': 'ヤマダ電機',
+          'ビック': 'ビックカメラ',
+          'BIC': 'ビックカメラ',
+          'ヨドバシ': 'ヨドバシカメラ',
+
+          // ホームセンター
+          'カインズ': 'カインズホーム',
+          'CAINZ': 'カインズホーム',
+          'コーナン': 'コーナン',
+          'KOHNAN': 'コーナン'
+        };
+
+        // 完全一致で正規化
+        for (const [pattern, normalized] of Object.entries(normalizationMap)) {
+          if (vendorName === pattern || vendorName.toUpperCase() === pattern.toUpperCase()) {
+            return normalized;
+          }
+        }
+
+        // 部分一致で正規化（より緩い条件）
+        for (const [pattern, normalized] of Object.entries(normalizationMap)) {
+          if (vendorName.includes(pattern) || vendorName.toUpperCase().includes(pattern.toUpperCase())) {
+            return normalized;
+          }
+        }
+
+        // 正規化対象でない場合は元の名前を返す
+        return vendorName;
+      };
+
+      // テキストから店舗名を抽出する関数
+      const extractVendorFromText = (text) => {
+        let extractedVendor = '';
+
+        // よく知られた店舗チェーンのパターン（正規化後の名前と対応）
+        const knownVendors = [
+          // ガソリンスタンド
+          { pattern: /ENEOS|エネオス|えねおす/i, name: 'ENEOS' },
+          { pattern: /出光|IDEMITSU/i, name: '出光興産' },
+          { pattern: /昭和シェル|Shell/i, name: '昭和シェル石油' },
+          { pattern: /コスモ石油|COSMO|コスモ/i, name: 'コスモ石油' },
+          { pattern: /エッソ|ESSO/i, name: 'ESSO' },
+          { pattern: /モービル|Mobil/i, name: 'Mobil' },
+          { pattern: /キグナス|KYGNUS/i, name: 'KYGNUS' },
+
+          // コンビニ
+          { pattern: /セブンイレブン|セブン-イレブン|7-ELEVEN|7-11|７－１１/i, name: 'セブンイレブン' },
+          { pattern: /ファミリーマート|FamilyMart|ファミマ/i, name: 'ファミリーマート' },
+          { pattern: /ローソン|LAWSON|ﾛｰｿﾝ/i, name: 'ローソン' },
+          { pattern: /ミニストップ|MINISTOP/i, name: 'ミニストップ' },
+          { pattern: /デイリーヤマザキ|Daily/i, name: 'デイリーヤマザキ' },
+
+          // スーパー・ドラッグストア
+          { pattern: /イオン|AEON|ｲｵﾝ/i, name: 'イオン' },
+          { pattern: /西友|SEIYU|せいゆう/i, name: '西友' },
+          { pattern: /イトーヨーカドー/i, name: 'イトーヨーカドー' },
+          { pattern: /マツモトキヨシ|マツキヨ/i, name: 'マツモトキヨシ' },
+          { pattern: /ウエルシア|ウェルシア|Welcia/i, name: 'ウエルシア' },
+          { pattern: /スギ薬局/i, name: 'スギ薬局' },
+
+          // ファストフード
+          { pattern: /マクドナルド|McDonald|マック/i, name: 'マクドナルド' },
+          { pattern: /吉野家/i, name: '吉野家' },
+          { pattern: /すき家/i, name: 'すき家' },
+          { pattern: /松屋/i, name: '松屋' },
+
+          // カフェ
+          { pattern: /スターバックス|スタバ|STARBUCKS|Starbucks/i, name: 'スターバックス' },
+          { pattern: /ドトール|DOUTOR/i, name: 'ドトールコーヒー' },
+
+          // その他
+          { pattern: /ドン・?キホーテ|ドンキ/i, name: 'ドン・キホーテ' },
+          { pattern: /Amazon|アマゾン|amazon|AMAZON/i, name: 'Amazon' },
+          { pattern: /楽天|Rakuten/i, name: '楽天市場' }
+        ];
+
+        // 既知の店舗名を検索して統一された名前を返す
+        for (const vendor of knownVendors) {
+          if (text.match(vendor.pattern)) {
+            extractedVendor = vendor.name;
+            break;
+          }
+        }
+
+        // 見つからない場合は、最初の行や「株式会社」「有限会社」を含む行を探す
+        if (!extractedVendor) {
+          const lines = text.split('\n');
+          for (let i = 0; i < Math.min(lines.length, 5); i++) { // 最初の5行をチェック
+            const line = lines[i].trim();
+
+            // 会社名のパターン
+            if (line.match(/(株式会社|有限会社|合同会社|\(株\)|\(有\)|店|ストア|マート|センター)/)) {
+              // 不要な文字を除去
+              extractedVendor = line
+                .replace(/^\*+|\*+$/g, '') // アスタリスクを除去
+                .replace(/^-+|-+$/g, '') // ハイフンを除去
+                .replace(/TEL[:：].*$/i, '') // 電話番号以降を除去
+                .replace(/〒\d{3}-\d{4}.*$/i, '') // 郵便番号以降を除去
+                .trim();
+
+              // 長すぎる場合は最初の部分だけ
+              if (extractedVendor.length > 30) {
+                extractedVendor = extractedVendor.substring(0, 30);
+              }
+              break;
+            }
+
+            // 短い行で日付や金額でない場合は店舗名の可能性
+            if (line.length > 3 && line.length < 30 &&
+                !line.match(/^\d/) && // 数字で始まらない
+                !line.match(/[年月日時分秒]/) && // 日付時刻を含まない
+                !line.match(/[¥￥円]/) && // 金額を含まない
+                !line.match(/^(領収|レシート|明細)/)) { // 定型文でない
+              extractedVendor = line;
+              break;
+            }
+          }
+
+          // 抽出した店舗名も正規化する
+          if (extractedVendor) {
+            extractedVendor = normalizeVendorName(extractedVendor);
+          }
+        }
+
+        return extractedVendor;
+      };
 
       // Google Cloud Vision APIを使ってレシート画像からOCR処理で情報を抽出
       const extractReceiptData = async (imageDataUrl) => {
@@ -846,6 +1038,9 @@
 
           // ガソリン以外は品名を空にする（日付と金額のみ自動入力）
 
+          // 店舗名（取引先）を抽出
+          const extractedVendor = extractVendorFromText(text);
+
           // 支払方法を検出
           let paymentMethod = null;
 
@@ -873,6 +1068,7 @@
             itemName: itemDescription,
             accountingSubject: suggestedAccountingSubject,
             paymentMethod: paymentMethod,
+            vendor: extractedVendor, // 取引先を追加
             fullText: text
           };
         } catch (error) {
@@ -885,47 +1081,47 @@
       };
 
       // Load expenses from Supabase
+      const loadExpenses = async () => {
+        if (!session?.user?.id) {
+          setExpensesLoading(false);
+          return;
+        }
+
+        try {
+          const { data, error } = await supabaseClient
+            .from('expenses')
+            .select('*')
+            .eq('user_id', session.user.id);
+
+          if (error) throw error;
+
+          // Convert Supabase format to local format
+          const expensesMap = {};
+          for (const expense of data || []) {
+            expensesMap[expense.id] = {
+              date: expense.date,
+              amount: expense.amount,
+              businessPercentage: expense.business_percentage,
+              accountingSubject: expense.accounting_subject || '',
+              creditAccount: expense.credit_account || '',
+              photo: expense.photo_url || null,
+              memo: expense.memo || expense.description || '',
+              vendor: expense.vendor || '',
+              uploadedAt: expense.uploaded_at,
+              isLocked: expense.is_locked || false,
+              lockedAt: expense.locked_at,
+              originalHash: expense.original_hash
+            };
+          }
+          setExpenses(expensesMap);
+        } catch (error) {
+          console.error('Error loading expenses:', error);
+        } finally {
+          setExpensesLoading(false);
+        }
+      };
+
       useEffect(() => {
-        const loadExpenses = async () => {
-          if (!session?.user?.id) {
-            setExpensesLoading(false);
-            return;
-          }
-
-          try {
-            const { data, error } = await supabaseClient
-              .from('expenses')
-              .select('*')
-              .eq('user_id', session.user.id);
-
-            if (error) throw error;
-
-            // Convert Supabase format to local format
-            const expensesMap = {};
-            for (const expense of data || []) {
-              expensesMap[expense.id] = {
-                date: expense.date,
-                amount: expense.amount,
-                businessPercentage: expense.business_percentage,
-                accountingSubject: expense.accounting_subject || '',
-                creditAccount: expense.credit_account || '',
-                photo: expense.photo_url || null,
-                memo: expense.memo || expense.description || '',
-                vendor: expense.vendor || '',
-                uploadedAt: expense.uploaded_at,
-                isLocked: expense.is_locked || false,
-                lockedAt: expense.locked_at,
-                originalHash: expense.original_hash
-              };
-            }
-            setExpenses(expensesMap);
-          } catch (error) {
-            console.error('Error loading expenses:', error);
-          } finally {
-            setExpensesLoading(false);
-          }
-        };
-
         loadExpenses();
       }, [session?.user?.id]);
 
@@ -1295,6 +1491,27 @@
           }
         });
 
+        // 雨の日と祝日の平均単価と平均件数を計算
+        let rainyDeliveries = 0;
+        let rainyEarnings = 0;
+        let holidayDeliveries = 0;
+        let holidayEarnings = 0;
+
+        allEntries.forEach(([dateStr, data]) => {
+          if (data.hours > 0 && data.deliveries > 0 && data.earnings > 0) {
+            if (data.isRainy) {
+              rainyDeliveries += data.deliveries;
+              rainyEarnings += data.earnings;
+            } else if (data.isHoliday) {
+              holidayDeliveries += data.deliveries;
+              holidayEarnings += data.earnings;
+            }
+          }
+        });
+
+        const rainyCount = allEntries.filter(([, data]) => data.isRainy && data.hours > 0).length;
+        const holidayCount = allEntries.filter(([, data]) => data.isHoliday && data.hours > 0).length;
+
         return {
           weekdayAvgPrice: weekdayDeliveries > 0 ? Math.round(weekdayEarnings / weekdayDeliveries) : 400,
           weekendAvgPrice: weekendDeliveries > 0 ? Math.round(weekendEarnings / weekendDeliveries) : 400,
@@ -1303,7 +1520,11 @@
           weekdayQuestPerHour: weekdayHours > 0 ? Math.round(weekdayQuest / weekdayHours) : 0,
           weekendQuestPerHour: weekendHours > 0 ? Math.round(weekendQuest / weekendHours) : 0,
           rainyAvgHourlyWage: rainyHours > 0 ? Math.round(rainyTotalEarnings / rainyHours) : 0,
-          holidayAvgHourlyWage: holidayHours > 0 ? Math.round(holidayTotalEarnings / holidayHours) : 0
+          holidayAvgHourlyWage: holidayHours > 0 ? Math.round(holidayTotalEarnings / holidayHours) : 0,
+          rainyAvgPrice: rainyDeliveries > 0 ? Math.round(rainyEarnings / rainyDeliveries) : 0,
+          rainyAvgDeliveries: rainyHours > 0 ? parseFloat((rainyDeliveries / rainyHours).toFixed(1)) : 0,
+          holidayAvgPrice: holidayDeliveries > 0 ? Math.round(holidayEarnings / holidayDeliveries) : 0,
+          holidayAvgDeliveries: holidayHours > 0 ? parseFloat((holidayDeliveries / holidayHours).toFixed(1)) : 0
         };
       };
 
@@ -1382,7 +1603,7 @@
       // モーダル表示中は背景のスクロールを無効化し、背景を固定
       useEffect(() => {
         try {
-          const isModalOpen = showBasicSettings || showQuestSettings || showCalendar || showTotalStats || showDayEdit || showExpenses || showExpenseInput || showImagePreview || showBalanceSheet || showIncomeStatement;
+          const isModalOpen = showBasicSettings || showQuestSettings || showCalendar || showTotalStats || showDayEdit || showExpenses || showExpenseInput || showExpenseFilter || showImagePreview || showBalanceSheet || showIncomeStatement;
           if (typeof document !== 'undefined' && document.body) {
             if (isModalOpen) {
               // bodyのスクロールと位置を固定
@@ -1413,7 +1634,7 @@
             console.error('モーダルスクロール解除エラー:', error);
           }
         };
-      }, [showBasicSettings, showQuestSettings, showCalendar, showTotalStats, showDayEdit, showExpenses, showExpenseInput, showImagePreview, showBalanceSheet, showIncomeStatement]);
+      }, [showBasicSettings, showQuestSettings, showCalendar, showTotalStats, showDayEdit, showExpenses, showExpenseInput, showExpenseFilter, showImagePreview, showBalanceSheet, showIncomeStatement]);
 
       // 週の稼働時間が変更されたら、クエスト報酬を計算してdailyData（表示用）を更新
       useEffect(() => {
@@ -1532,7 +1753,7 @@
 
           return updatedData;
         });
-      }, [hours, weekdayQuests, weekendQuests, currentWeekStart, weekdayDeliveriesPerHour, weekendDeliveriesPerHour, useAutoCalculate, weekdayAvgPrice, weekendAvgPrice, settingsLoading, dailyDataLoading]);
+      }, [hours, weekdayQuests, weekendQuests, weekdayDeliveriesPerHour, weekendDeliveriesPerHour, useAutoCalculate, weekdayAvgPrice, weekendAvgPrice, settingsLoading, dailyDataLoading]);
 
       // hoursが変更されたら、Supabaseに保存（daily_recordsに）
       useEffect(() => {
@@ -1681,7 +1902,7 @@
         }, 500); // 500ms デバウンス
 
         return () => clearTimeout(timer);
-      }, [hours, currentWeekStart, session?.user?.id, settingsLoading, dailyDataLoading]);
+      }, [hours, session?.user?.id, settingsLoading, dailyDataLoading]);
 
       // 週の切り替わり検知（日曜日→月曜日）
       useEffect(() => {
@@ -1816,24 +2037,89 @@
           if (!file) return;
 
           const reader = new FileReader();
-          reader.onload = (e) => {
+          reader.onload = async (e) => {
             try {
               const data = JSON.parse(e.target.result);
 
-              // データをlocalStorageに保存
-              if (data.weekdayAvgPrice !== undefined) localStorage.setItem('weekdayAvgPrice', String(data.weekdayAvgPrice));
-              if (data.weekendAvgPrice !== undefined) localStorage.setItem('weekendAvgPrice', String(data.weekendAvgPrice));
-              if (data.weekdayDeliveriesPerHour !== undefined) localStorage.setItem('weekdayDeliveriesPerHour', String(data.weekdayDeliveriesPerHour));
-              if (data.weekendDeliveriesPerHour !== undefined) localStorage.setItem('weekendDeliveriesPerHour', String(data.weekendDeliveriesPerHour));
-              if (data.useAutoCalculate !== undefined) localStorage.setItem('useAutoCalculate', JSON.stringify(data.useAutoCalculate));
-              if (data.weekdayQuests) localStorage.setItem('weekdayQuests', JSON.stringify(data.weekdayQuests));
-              if (data.weekendQuests) localStorage.setItem('weekendQuests', JSON.stringify(data.weekendQuests));
-              if (data.hours) localStorage.setItem('hours', JSON.stringify(data.hours));
-              if (data.targetAmount !== undefined) localStorage.setItem('targetAmount', String(data.targetAmount));
-              if (data.dailyData) localStorage.setItem('dailyData', JSON.stringify(data.dailyData));
-              if (data.currentWeekStart) localStorage.setItem('currentWeekStart', data.currentWeekStart);
-              if (data.lastAccessDate) localStorage.setItem('lastAccessDate', data.lastAccessDate);
-              if (data.expenses) localStorage.setItem('expenses', JSON.stringify(data.expenses));
+              if (!session?.user?.id) {
+                alert('ログインが必要です');
+                if (event.target) event.target.value = '';
+                return;
+              }
+
+              // Supabaseにデータを保存
+              try {
+                // 1. 売上データをdaily_recordsに保存
+                if (data.dailyData && Object.keys(data.dailyData).length > 0) {
+                  const recordsToInsert = [];
+                  for (const [date, record] of Object.entries(data.dailyData)) {
+                    recordsToInsert.push({
+                      user_id: session.user.id,
+                      date,
+                      hours: record.hours || 0,
+                      deliveries: record.deliveries || 0,
+                      earnings: record.earnings || 0,
+                      quest: record.quest || 0,
+                      is_rainy: record.isRainy || false,
+                      is_holiday: record.isHoliday || false
+                    });
+                  }
+
+                  if (recordsToInsert.length > 0) {
+                    const { error: dailyError } = await supabaseClient
+                      .from('daily_records')
+                      .upsert(recordsToInsert, {
+                        onConflict: 'user_id,date'
+                      });
+
+                    if (dailyError) throw dailyError;
+                  }
+                }
+
+                // 2. 経費データをexpensesに保存
+                if (data.expenses && data.expenses.length > 0) {
+                  const expensesToInsert = data.expenses.map(exp => ({
+                    ...exp,
+                    user_id: session.user.id
+                  }));
+
+                  const { error: expensesError } = await supabaseClient
+                    .from('expenses')
+                    .upsert(expensesToInsert, {
+                      onConflict: 'id'
+                    });
+
+                  if (expensesError) throw expensesError;
+                }
+
+                // 3. 設定をuser_settingsに保存
+                const { error: settingsError } = await supabaseClient
+                  .from('user_settings')
+                  .upsert({
+                    user_id: session.user.id,
+                    weekday_avg_price: data.weekdayAvgPrice,
+                    weekend_avg_price: data.weekendAvgPrice,
+                    weekday_deliveries_per_hour: data.weekdayDeliveriesPerHour,
+                    weekend_deliveries_per_hour: data.weekendDeliveriesPerHour,
+                    use_auto_calculate: data.useAutoCalculate,
+                    weekday_quests: data.weekdayQuests,
+                    weekend_quests: data.weekendQuests,
+                    target_amount: data.targetAmount,
+                    current_week_start: data.currentWeekStart,
+                    hours: data.hours,
+                    updated_at: new Date().toISOString()
+                  }, {
+                    onConflict: 'user_id'
+                  });
+
+                if (settingsError) throw settingsError;
+
+              } catch (supabaseError) {
+                console.error('Supabase保存エラー:', supabaseError);
+                alert('データベースへの保存に失敗しました: ' + supabaseError.message);
+                if (event.target) event.target.value = '';
+                return;
+              }
 
               // stateを直接更新
               if (data.weekdayAvgPrice !== undefined) setWeekdayAvgPrice(data.weekdayAvgPrice);
@@ -1853,7 +2139,12 @@
               // input要素をリセット
               if (event.target) event.target.value = '';
 
-              alert('データを復元しました！');
+              alert('データを復元しました！ページをリロードしてください。');
+
+              // 自動リロード
+              setTimeout(() => {
+                window.location.reload();
+              }, 1000);
             } catch (error) {
               console.error('インポートエラー:', error);
               alert('データの読み込みに失敗しました: ' + error.message);
@@ -2487,7 +2778,20 @@
             
             {/* 結果表示 */}
             <div className="bg-gradient-to-br from-green-500 to-blue-500 rounded-2xl shadow-xl p-6 text-white">
-              <h2 className="text-xl font-bold mb-6">週間売上予測</h2>
+              <button
+                onClick={() => setShowWeeklySalesList(true)}
+                className="w-full mb-6 bg-white/20 hover:bg-white/30 px-4 py-3 rounded-xl transition-colors"
+              >
+                <h2 className="text-xl font-bold">週間売上</h2>
+                <div className="text-xs opacity-80 mt-1">
+                  {(() => {
+                    const start = new Date(currentWeekStart);
+                    const end = new Date(start);
+                    end.setDate(end.getDate() + 6);
+                    return `今週: ${start.getMonth() + 1}/${start.getDate()} - ${end.getMonth() + 1}/${end.getDate()} (タップで一覧表示)`;
+                  })()}
+                </div>
+              </button>
               
               <div className="space-y-4">
                 {/* 合計稼働時間と合計配達件数 */}
@@ -3055,7 +3359,7 @@
                 >
                   <button
                     onClick={() => setShowTotalStats(false)}
-                    className="w-full bg-green-500 text-white py-3 rounded-xl font-medium hover:bg-green-600 transition-colors"
+                    className="w-full bg-gray-500 text-white py-3 rounded-xl font-medium hover:bg-gray-600 transition-colors"
                     style={{touchAction: 'auto'}}
                   >
                     閉じる
@@ -3155,49 +3459,62 @@
                       const calcValues = calculateFromHistory();
                       return (
                         <>
-                          <div className="bg-blue-50 rounded-xl p-4 border-2 border-blue-200">
-                            <div className="text-sm font-medium text-blue-800 mb-3">📊 月～木（履歴から算出）</div>
-                            <div className="space-y-2">
-                              <div className="flex justify-between items-center">
-                                <span className="text-sm text-gray-700">平均単価:</span>
-                                <span className="text-lg font-bold text-blue-600">¥{calcValues.weekdayAvgPrice}/件</span>
-                              </div>
-                              <div className="flex justify-between items-center">
-                                <span className="text-sm text-gray-700">平均配達件数:</span>
-                                <span className="text-lg font-bold text-blue-600">{calcValues.weekdayDeliveriesPerHour}件/時間</span>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="bg-blue-50 rounded-xl p-4 border-2 border-blue-200">
+                              <div className="text-sm font-medium text-blue-800 mb-3">📊 月～木</div>
+                              <div className="space-y-2">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm text-gray-700">平均単価:</span>
+                                  <span className="text-lg font-bold text-blue-600">¥{calcValues.weekdayAvgPrice}/件</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm text-gray-700">平均件数:</span>
+                                  <span className="text-lg font-bold text-blue-600">{calcValues.weekdayDeliveriesPerHour}件/時間</span>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                          <div className="bg-purple-50 rounded-xl p-4 border-2 border-purple-200">
-                            <div className="text-sm font-medium text-purple-800 mb-3">📊 金～日（履歴から算出）</div>
-                            <div className="space-y-2">
-                              <div className="flex justify-between items-center">
-                                <span className="text-sm text-gray-700">平均単価:</span>
-                                <span className="text-lg font-bold text-purple-600">¥{calcValues.weekendAvgPrice}/件</span>
-                              </div>
-                              <div className="flex justify-between items-center">
-                                <span className="text-sm text-gray-700">平均配達件数:</span>
-                                <span className="text-lg font-bold text-purple-600">{calcValues.weekendDeliveriesPerHour}件/時間</span>
+                            <div className="bg-purple-50 rounded-xl p-4 border-2 border-purple-200">
+                              <div className="text-sm font-medium text-purple-800 mb-3">📊 金～日</div>
+                              <div className="space-y-2">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm text-gray-700">平均単価:</span>
+                                  <span className="text-lg font-bold text-purple-600">¥{calcValues.weekendAvgPrice}/件</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm text-gray-700">平均件数:</span>
+                                  <span className="text-lg font-bold text-purple-600">{calcValues.weekendDeliveriesPerHour}件/時間</span>
+                                </div>
                               </div>
                             </div>
                           </div>
 
-                          {/* 雨の日・祝日の平均時給 */}
                           <div className="grid grid-cols-2 gap-2">
-                            {calcValues.rainyAvgHourlyWage > 0 && (
-                              <div className="bg-cyan-50 rounded-xl p-3 border-2 border-cyan-200">
-                                <div className="text-xs font-medium text-cyan-800 mb-1">🌧️ 雨の日</div>
-                                <div className="text-sm text-gray-600">平均時給</div>
-                                <div className="text-lg font-bold text-cyan-600">¥{calcValues.rainyAvgHourlyWage}/h</div>
+                            <div className="bg-cyan-50 rounded-xl p-4 border-2 border-cyan-200">
+                              <div className="text-sm font-medium text-cyan-800 mb-3">🌧️ 雨の日</div>
+                              <div className="space-y-2">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm text-gray-700">平均単価:</span>
+                                  <span className="text-lg font-bold text-cyan-600">¥{calcValues.rainyAvgPrice}/件</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm text-gray-700">平均件数:</span>
+                                  <span className="text-lg font-bold text-cyan-600">{calcValues.rainyAvgDeliveries}件/時間</span>
+                                </div>
                               </div>
-                            )}
-                            {calcValues.holidayAvgHourlyWage > 0 && (
-                              <div className="bg-orange-50 rounded-xl p-3 border-2 border-orange-200">
-                                <div className="text-xs font-medium text-orange-800 mb-1">🎌 祝日</div>
-                                <div className="text-sm text-gray-600">平均時給</div>
-                                <div className="text-lg font-bold text-orange-600">¥{calcValues.holidayAvgHourlyWage}/h</div>
+                            </div>
+                            <div className="bg-orange-50 rounded-xl p-4 border-2 border-orange-200">
+                              <div className="text-sm font-medium text-orange-800 mb-3">🎌 祝日</div>
+                              <div className="space-y-2">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm text-gray-700">平均単価:</span>
+                                  <span className="text-lg font-bold text-orange-600">¥{calcValues.holidayAvgPrice}/件</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm text-gray-700">平均件数:</span>
+                                  <span className="text-lg font-bold text-orange-600">{calcValues.holidayAvgDeliveries}件/時間</span>
+                                </div>
                               </div>
-                            )}
+                            </div>
                           </div>
                         </>
                       );
@@ -3323,24 +3640,290 @@
                       </div>
                     </div>
 
+                    {/* 店舗情報一括取得 */}
+                    <div className="bg-blue-50 rounded-xl p-4 border-2 border-blue-200 mt-4">
+                      <h3 className="font-bold text-gray-800 mb-3">🏪 店舗情報一括取得</h3>
+                      <div className="text-xs text-gray-600 mb-3">
+                        既存の写真から店舗名を一括で取得し、空欄の店舗情報を自動補完します
+                      </div>
+                      <button
+                        onClick={async () => {
+                          if (!visionApiKey) {
+                            alert('Vision APIキーが設定されていません。\nまずAPIキーを設定してください。');
+                            return;
+                          }
+
+                          if (!confirm('既存の写真から店舗情報を一括取得します。\n処理には時間がかかる場合があります。続行しますか？')) {
+                            return;
+                          }
+
+                          const progressDiv = document.createElement('div');
+                          progressDiv.innerHTML = `
+                            <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+                                        background: white; padding: 20px; border-radius: 10px;
+                                        box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 10000;">
+                              <div style="font-weight: bold; margin-bottom: 10px;">処理中...</div>
+                              <div id="batch-progress">準備中...</div>
+                              <div style="margin-top: 10px;">
+                                <div style="width: 200px; height: 20px; background: #f0f0f0; border-radius: 10px; overflow: hidden;">
+                                  <div id="batch-progress-bar" style="width: 0%; height: 100%; background: #3b82f6; transition: width 0.3s;"></div>
+                                </div>
+                              </div>
+                            </div>
+                          `;
+                          document.body.appendChild(progressDiv);
+
+                          try {
+                            // 画像付きで店舗名が空の経費を取得
+                            const { data: expenses, error } = await supabaseClient
+                              .from('expenses')
+                              .select('id, photo_url, vendor')
+                              .not('photo_url', 'is', null)
+                              .or('vendor.is.null,vendor.eq.""');
+
+                            if (error) throw error;
+
+                            if (!expenses || expenses.length === 0) {
+                              alert('処理対象となる経費がありません。\n（写真があり、店舗名が未設定のデータ）');
+                              document.body.removeChild(progressDiv);
+                              return;
+                            }
+
+                            let processed = 0;
+                            let updated = 0;
+                            const errors = [];
+
+                            for (const expense of expenses) {
+                              try {
+                                document.getElementById('batch-progress').textContent =
+                                  `処理中: ${processed + 1} / ${expenses.length}`;
+                                document.getElementById('batch-progress-bar').style.width =
+                                  `${((processed + 1) / expenses.length * 100)}%`;
+
+                                // 画像をダウンロード
+                                const response = await fetch(expense.photo_url);
+                                const blob = await response.blob();
+
+                                // データURLに変換
+                                const reader = new FileReader();
+                                const dataUrl = await new Promise((resolve) => {
+                                  reader.onloadend = () => resolve(reader.result);
+                                  reader.readAsDataURL(blob);
+                                });
+
+                                // OCR処理
+                                const result = await extractReceiptData(dataUrl);
+
+                                if (result && result.vendor) {
+                                  // 店舗名を更新
+                                  const { error: updateError } = await supabaseClient
+                                    .from('expenses')
+                                    .update({ vendor: result.vendor })
+                                    .eq('id', expense.id);
+
+                                  if (updateError) {
+                                    throw updateError;
+                                  }
+                                  updated++;
+                                }
+                              } catch (err) {
+                                console.error(`Error processing expense ${expense.id}:`, err);
+                                errors.push(`ID ${expense.id}: ${err.message}`);
+                              }
+
+                              processed++;
+
+                              // APIレート制限を避けるため少し待つ
+                              await new Promise(resolve => setTimeout(resolve, 500));
+                            }
+
+                            document.body.removeChild(progressDiv);
+
+                            let resultMessage = `処理完了:\n${processed}件中${updated}件の店舗情報を更新しました。`;
+                            if (errors.length > 0) {
+                              resultMessage += `\n\nエラー:\n${errors.slice(0, 5).join('\n')}`;
+                              if (errors.length > 5) {
+                                resultMessage += `\n... 他${errors.length - 5}件のエラー`;
+                              }
+                            }
+
+                            alert(resultMessage);
+
+                            // データを再取得して画面を更新
+                            await loadExpenses();
+
+                          } catch (error) {
+                            console.error('Batch processing error:', error);
+                            alert(`エラーが発生しました:\n${error.message}`);
+                            if (progressDiv.parentNode) {
+                              document.body.removeChild(progressDiv);
+                            }
+                          }
+                        }}
+                        className="w-full bg-blue-500 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-600 transition-colors"
+                      >
+                        🔄 店舗情報を一括取得
+                      </button>
+
+                      <button
+                        onClick={async () => {
+                          if (!confirm('既存の店舗名の表記ゆれを統一します。\n例: アマゾン → Amazon、ファミマ → ファミリーマート\n続行しますか？')) {
+                            return;
+                          }
+
+                          try {
+                            // 店舗名が設定されている経費を取得
+                            const { data: expenses, error } = await supabaseClient
+                              .from('expenses')
+                              .select('id, vendor')
+                              .not('vendor', 'is', null)
+                              .neq('vendor', '');
+
+                            if (error) throw error;
+
+                            if (!expenses || expenses.length === 0) {
+                              alert('処理対象となる経費がありません。');
+                              return;
+                            }
+
+                            let updated = 0;
+                            const updates = [];
+
+                            for (const expense of expenses) {
+                              const normalizedVendor = normalizeVendorName(expense.vendor);
+                              if (normalizedVendor !== expense.vendor) {
+                                updates.push({
+                                  id: expense.id,
+                                  old: expense.vendor,
+                                  new: normalizedVendor
+                                });
+                              }
+                            }
+
+                            if (updates.length === 0) {
+                              alert('統一が必要な店舗名はありませんでした。');
+                              return;
+                            }
+
+                            // 更新内容を確認
+                            let confirmMessage = `以下の${updates.length}件の店舗名を統一します：\n\n`;
+                            confirmMessage += updates.slice(0, 10).map(u => `${u.old} → ${u.new}`).join('\n');
+                            if (updates.length > 10) {
+                              confirmMessage += `\n... 他${updates.length - 10}件`;
+                            }
+                            confirmMessage += '\n\n本当に続行しますか？';
+
+                            if (!confirm(confirmMessage)) {
+                              return;
+                            }
+
+                            // バッチ更新
+                            for (const update of updates) {
+                              const { error: updateError } = await supabaseClient
+                                .from('expenses')
+                                .update({ vendor: update.new })
+                                .eq('id', update.id);
+
+                              if (!updateError) {
+                                updated++;
+                              } else {
+                                console.error(`Failed to update expense ${update.id}:`, updateError);
+                              }
+                            }
+
+                            alert(`処理完了:\n${updated}件の店舗名を統一しました。`);
+
+                            // データを再取得して画面を更新
+                            await loadExpenses();
+
+                          } catch (error) {
+                            console.error('Normalization error:', error);
+                            alert(`エラーが発生しました:\n${error.message}`);
+                          }
+                        }}
+                        className="w-full bg-green-500 text-white py-2 px-4 rounded-lg font-medium hover:bg-green-600 transition-colors mt-2"
+                      >
+                        ✨ 店舗名の表記を統一
+                      </button>
+                    </div>
+
+                    {/* CSV出力 */}
+                    <div className="bg-purple-50 rounded-xl p-4 border-2 border-purple-200 mt-4">
+                      <h3 className="font-bold text-gray-800 mb-3">📊 データ出力</h3>
+                      <div className="text-xs text-gray-600 mb-3">
+                        売上データや経費データをCSV形式でダウンロードできます
+                      </div>
+                      <div className="space-y-2">
+                        <button
+                          onClick={() => {
+                            const csvContent = generateSalesCSV();
+                            if (csvContent) {
+                              const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                              const url = URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = `売上データ_${formatDateToLocal(new Date())}.csv`;
+                              document.body.appendChild(a);
+                              a.click();
+                              document.body.removeChild(a);
+                              URL.revokeObjectURL(url);
+                            }
+                          }}
+                          className="w-full bg-green-500 text-white py-2 px-4 rounded-lg font-medium hover:bg-green-600 transition-colors"
+                        >
+                          📅 売上データをCSV出力
+                        </button>
+                        <button
+                          onClick={() => {
+                            const csvContent = generateExpenseCSV();
+                            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `expenses_${formatDateToLocal(new Date())}.csv`;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(url);
+                          }}
+                          className="w-full bg-green-500 text-white py-2 px-4 rounded-lg font-medium hover:bg-green-600 transition-colors"
+                        >
+                          💰 経費データをCSV出力
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* ログアウト */}
+                    <div className="mt-4">
+                      <button
+                        onClick={async () => {
+                          if (confirm('ログアウトしますか？')) {
+                            await supabaseClient.auth.signOut();
+                          }
+                        }}
+                        className="w-full bg-red-500 text-white py-3 rounded-xl font-medium hover:bg-red-600 transition-colors"
+                      >
+                        ログアウト
+                      </button>
+                    </div>
+
+                    {/* 電子帳簿保存法準拠表示 */}
+                    <div className="bg-green-50 rounded-lg p-3 mt-4 border border-green-200">
+                      <div className="flex items-center gap-2">
+                        <span className="text-green-600 text-sm">✅</span>
+                        <span className="text-xs text-green-700">
+                          電子帳簿保存法準拠システム（アップロード後3営業日で自動確定）
+                        </span>
+                      </div>
+                    </div>
+
                   </div>
                 </div>
 
                 <div
-                  className="p-4 border-t border-gray-200 space-y-2"
+                  className="p-4 border-t border-gray-200"
                   style={{flexShrink: 0, touchAction: 'none'}}
                 >
-                  <button
-                    onClick={async () => {
-                      if (confirm('ログアウトしますか？')) {
-                        await supabaseClient.auth.signOut();
-                      }
-                    }}
-                    className="w-full bg-red-500 text-white py-3 rounded-xl font-medium hover:bg-red-600 transition-colors"
-                    style={{touchAction: 'auto'}}
-                  >
-                    ログアウト
-                  </button>
                   <button
                     onClick={() => setShowBasicSettings(false)}
                     className="w-full bg-gray-500 text-white py-3 rounded-xl font-medium hover:bg-gray-600 transition-colors"
@@ -3370,35 +3953,13 @@
                       <Calendar />
                       カレンダー
                     </h2>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => {
-                          const csvContent = generateSalesCSV();
-                          if (csvContent) {
-                            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                            const url = URL.createObjectURL(blob);
-                            const a = document.createElement('a');
-                            a.href = url;
-                            a.download = `売上データ_${formatDateToLocal(new Date())}.csv`;
-                            document.body.appendChild(a);
-                            a.click();
-                            document.body.removeChild(a);
-                            URL.revokeObjectURL(url);
-                          }
-                        }}
-                        className="bg-green-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-600 transition-colors text-sm"
-                        style={{touchAction: 'auto'}}
-                      >
-                        📊 CSV
-                      </button>
-                      <button
-                        onClick={() => setShowCalendar(false)}
-                        className="text-gray-500 hover:text-gray-700 text-2xl"
-                        style={{touchAction: 'auto'}}
-                      >
-                        ×
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => setShowCalendar(false)}
+                      className="text-gray-500 hover:text-gray-700 text-2xl"
+                      style={{touchAction: 'auto'}}
+                    >
+                      ✕
+                    </button>
                 </div>
 
                 <div
@@ -3586,7 +4147,7 @@
                 >
                   <button
                     onClick={() => setShowCalendar(false)}
-                    className="w-full bg-purple-500 text-white py-3 rounded-xl font-medium hover:bg-purple-600 transition-colors"
+                    className="w-full bg-gray-500 text-white py-3 rounded-xl font-medium hover:bg-gray-600 transition-colors"
                     style={{touchAction: 'auto'}}
                   >
                     閉じる
@@ -4043,37 +4604,26 @@
                   className="bg-white border-b border-gray-200 p-4 flex items-center justify-between"
                   style={{flexShrink: 0, touchAction: 'none'}}
                 >
-                  <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                    <Receipt />
-                    経費管理
-                  </h2>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                      <Receipt />
+                      経費管理
+                    </h2>
                     <button
-                      onClick={() => {
-                        const csvContent = generateExpenseCSV();
-                        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `expenses_${formatDateToLocal(new Date())}.csv`;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        URL.revokeObjectURL(url);
-                      }}
-                      className="bg-green-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-600 transition-colors text-sm"
+                      onClick={() => setShowExpenseFilter(true)}
+                      className="bg-blue-500 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors"
                       style={{touchAction: 'auto'}}
                     >
-                      📊 CSV
-                    </button>
-                    <button
-                      onClick={() => setShowExpenses(false)}
-                      className="text-gray-500 hover:text-gray-700 text-2xl"
-                      style={{touchAction: 'auto'}}
-                    >
-                      ×
+                      🔍 フィルター
                     </button>
                   </div>
+                  <button
+                    onClick={() => setShowExpenses(false)}
+                    className="text-gray-500 hover:text-gray-700 text-2xl"
+                    style={{touchAction: 'auto'}}
+                  >
+                    ✕
+                  </button>
                 </div>
 
                 <div
@@ -4085,74 +4635,6 @@
                   }}
                 >
                   <div className="p-4">
-                    {/* 検索フィルター */}
-                    <div className="bg-gray-50 rounded-xl p-4 mb-4">
-                      <h3 className="text-sm font-bold text-gray-700 mb-3">🔍 検索フィルター</h3>
-                      <div className="space-y-3">
-                        {/* 日付範囲 */}
-                        <div className="grid grid-cols-2 gap-2">
-                          <input
-                            type="date"
-                            value={expenseFilter.startDate || ''}
-                            onChange={(e) => setExpenseFilter({...expenseFilter, startDate: e.target.value})}
-                            className="px-3 py-2 border rounded-lg text-sm"
-                            placeholder="開始日"
-                          />
-                          <input
-                            type="date"
-                            value={expenseFilter.endDate || ''}
-                            onChange={(e) => setExpenseFilter({...expenseFilter, endDate: e.target.value})}
-                            className="px-3 py-2 border rounded-lg text-sm"
-                            placeholder="終了日"
-                          />
-                        </div>
-                        {/* 金額範囲 */}
-                        <div className="grid grid-cols-2 gap-2">
-                          <input
-                            type="number"
-                            value={expenseFilter.minAmount || ''}
-                            onChange={(e) => setExpenseFilter({...expenseFilter, minAmount: e.target.value})}
-                            className="px-3 py-2 border rounded-lg text-sm"
-                            placeholder="最小金額"
-                          />
-                          <input
-                            type="number"
-                            value={expenseFilter.maxAmount || ''}
-                            onChange={(e) => setExpenseFilter({...expenseFilter, maxAmount: e.target.value})}
-                            className="px-3 py-2 border rounded-lg text-sm"
-                            placeholder="最大金額"
-                          />
-                        </div>
-                        {/* 取引先 */}
-                        <input
-                          type="text"
-                          value={expenseFilter.vendor || ''}
-                          onChange={(e) => setExpenseFilter({...expenseFilter, vendor: e.target.value})}
-                          className="w-full px-3 py-2 border rounded-lg text-sm"
-                          placeholder="取引先名で検索"
-                        />
-                        {/* クリアボタン */}
-                        <button
-                          onClick={() => setExpenseFilter({})}
-                          className="w-full bg-gray-200 text-gray-700 py-2 rounded-lg text-sm hover:bg-gray-300"
-                        >
-                          フィルターをクリア
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* 電子帳簿保存法準拠表示 */}
-                    <div className="bg-green-50 rounded-xl p-4 mb-4 border-2 border-green-200">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-green-600 text-lg">✅</span>
-                        <span className="font-bold text-green-800">電子帳簿保存法準拠システム</span>
-                      </div>
-                      <p className="text-xs text-green-700">
-                        このシステムは電子帳簿保存法の要件を満たしています。
-                        アップロード後3営業日で自動確定され、原本の破棄が可能です。
-                      </p>
-                    </div>
-
                     {/* 年間集計 */}
                     {(() => {
                       const currentYear = new Date().getFullYear();
@@ -4723,7 +5205,7 @@
                                   credit_account: editingExpense.creditAccount || '',
                                   photo_url: photoUrl || null,
                                   memo: editingExpense.memo || '',
-                                  vendor: editingExpense.vendor || '',
+                                  vendor: normalizeVendorName(editingExpense.vendor || ''),
                                   updated_at: new Date().toISOString()
                                 })
                                 .eq('id', editingExpenseId)
@@ -4740,7 +5222,7 @@
                               const dataToHash = {
                                 date: editingExpense.date,
                                 amount: editingExpense.amount,
-                                vendor: editingExpense.vendor,
+                                vendor: normalizeVendorName(editingExpense.vendor || ''),
                                 photo: photoUrl
                               };
                               const originalHash = await calculateHash(dataToHash);
@@ -4757,7 +5239,7 @@
                                   credit_account: editingExpense.creditAccount || '',
                                   photo_url: photoUrl || null,
                                   memo: editingExpense.memo || '',
-                                  vendor: editingExpense.vendor || '',
+                                  vendor: normalizeVendorName(editingExpense.vendor || ''),
                                   uploaded_at: new Date().toISOString(),
                                   original_hash: originalHash
                                 })
@@ -4794,6 +5276,133 @@
               </div>
             )}
 
+            {/* 経費フィルターモーダル */}
+            {showExpenseFilter && (
+              <div
+                className="fixed inset-0 bg-white z-[60]"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  overflow: 'hidden'
+                }}
+              >
+                <div
+                  className="bg-white border-b border-gray-200 p-4 flex items-center justify-between"
+                  style={{flexShrink: 0, touchAction: 'none'}}
+                >
+                  <h2 className="text-xl font-bold text-gray-800">🔍 検索フィルター</h2>
+                  <button
+                    onClick={() => setShowExpenseFilter(false)}
+                    className="text-gray-500 hover:text-gray-700 text-2xl"
+                    style={{touchAction: 'auto'}}
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div
+                  className="flex-1 overflow-y-auto"
+                  style={{touchAction: 'auto'}}
+                >
+                  <div className="p-4 space-y-4">
+                    {/* 日付範囲 */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">📅 日付範囲</label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <input
+                          type="date"
+                          value={expenseFilter.startDate || ''}
+                          onChange={(e) => setExpenseFilter({...expenseFilter, startDate: e.target.value})}
+                          className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none"
+                          placeholder="開始日"
+                        />
+                        <input
+                          type="date"
+                          value={expenseFilter.endDate || ''}
+                          onChange={(e) => setExpenseFilter({...expenseFilter, endDate: e.target.value})}
+                          className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none"
+                          placeholder="終了日"
+                        />
+                      </div>
+                    </div>
+
+                    {/* 金額範囲 */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">💰 金額範囲</label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <input
+                          type="number"
+                          value={expenseFilter.minAmount || ''}
+                          onChange={(e) => setExpenseFilter({...expenseFilter, minAmount: e.target.value})}
+                          className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none"
+                          placeholder="最小金額"
+                        />
+                        <input
+                          type="number"
+                          value={expenseFilter.maxAmount || ''}
+                          onChange={(e) => setExpenseFilter({...expenseFilter, maxAmount: e.target.value})}
+                          className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none"
+                          placeholder="最大金額"
+                        />
+                      </div>
+                    </div>
+
+                    {/* 取引先 */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">🏪 取引先</label>
+                      <input
+                        type="text"
+                        value={expenseFilter.vendor || ''}
+                        onChange={(e) => setExpenseFilter({...expenseFilter, vendor: e.target.value})}
+                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none"
+                        placeholder="取引先名で検索"
+                      />
+                    </div>
+
+                    {/* フィルター適用中の表示 */}
+                    {(expenseFilter.startDate || expenseFilter.endDate || expenseFilter.minAmount || expenseFilter.maxAmount || expenseFilter.vendor) && (
+                      <div className="bg-blue-50 rounded-xl p-4 border-2 border-blue-200">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-blue-600 text-lg">🔍</span>
+                          <span className="font-bold text-blue-800">フィルター適用中</span>
+                        </div>
+                        <div className="text-xs text-blue-700 space-y-1">
+                          {expenseFilter.startDate && <div>開始日: {expenseFilter.startDate}</div>}
+                          {expenseFilter.endDate && <div>終了日: {expenseFilter.endDate}</div>}
+                          {expenseFilter.minAmount && <div>最小金額: ¥{parseInt(expenseFilter.minAmount).toLocaleString()}</div>}
+                          {expenseFilter.maxAmount && <div>最大金額: ¥{parseInt(expenseFilter.maxAmount).toLocaleString()}</div>}
+                          {expenseFilter.vendor && <div>取引先: {expenseFilter.vendor}</div>}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div
+                  className="p-4 border-t border-gray-200 space-y-2"
+                  style={{flexShrink: 0, touchAction: 'none'}}
+                >
+                  <button
+                    onClick={() => {
+                      setExpenseFilter({});
+                      setShowExpenseFilter(false);
+                    }}
+                    className="w-full bg-gray-200 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-300 transition-colors"
+                    style={{touchAction: 'auto'}}
+                  >
+                    フィルターをクリア
+                  </button>
+                  <button
+                    onClick={() => setShowExpenseFilter(false)}
+                    className="w-full bg-blue-500 text-white py-3 rounded-xl font-medium hover:bg-blue-600 transition-colors"
+                    style={{touchAction: 'auto'}}
+                  >
+                    フィルターを適用
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* 画像プレビューモーダル */}
             {showImagePreview && previewImage && (
               <div
@@ -4821,25 +5430,32 @@
             {/* 貸借対照表モーダル */}
             {showBalanceSheet && (
               <div
-                className="fixed inset-0 bg-black bg-opacity-50 flex items-end z-50"
-                onClick={() => setShowBalanceSheet(false)}
+                className="fixed inset-0 bg-white z-50"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  overflow: 'hidden'
+                }}
               >
                 <div
-                  className="bg-white w-full rounded-t-3xl shadow-lg flex flex-col"
-                  style={{ height: '90vh', touchAction: 'none' }}
-                  onClick={(e) => e.stopPropagation()}
+                  className="bg-white border-b border-gray-200 p-4 flex items-center justify-between"
+                  style={{flexShrink: 0, touchAction: 'none'}}
                 >
-                  <div className="flex items-center justify-between p-4 border-b border-gray-200" style={{flexShrink: 0}}>
-                    <h2 className="text-lg font-bold text-gray-800">📊 貸借対照表</h2>
-                    <button
-                      onClick={() => setShowBalanceSheet(false)}
-                      className="text-gray-500 hover:text-gray-700"
-                    >
-                      ✕
-                    </button>
-                  </div>
+                  <h2 className="text-xl font-bold text-gray-800">📊 貸借対照表</h2>
+                  <button
+                    onClick={() => setShowBalanceSheet(false)}
+                    className="text-gray-500 hover:text-gray-700 text-2xl"
+                    style={{touchAction: 'auto'}}
+                  >
+                    ✕
+                  </button>
+                </div>
 
-                  <div className="flex-1 overflow-y-auto p-4">
+                <div
+                  className="flex-1 overflow-y-auto"
+                  style={{touchAction: 'auto'}}
+                >
+                  <div className="p-4">
                     {(() => {
                       // 全期間の集計を計算
                       const allTimeEarnings = Object.entries(dailyData).reduce((sum, [date, data]) => {
@@ -4941,31 +5557,51 @@
                     })()}
                   </div>
                 </div>
+
+                <div
+                  className="p-4 border-t border-gray-200"
+                  style={{flexShrink: 0, touchAction: 'none'}}
+                >
+                  <button
+                    onClick={() => setShowBalanceSheet(false)}
+                    className="w-full bg-gray-500 text-white py-3 rounded-xl font-medium hover:bg-gray-600 transition-colors"
+                    style={{touchAction: 'auto'}}
+                  >
+                    閉じる
+                  </button>
+                </div>
               </div>
             )}
 
             {/* 損益計算書モーダル */}
             {showIncomeStatement && (
               <div
-                className="fixed inset-0 bg-black bg-opacity-50 flex items-end z-50"
-                onClick={() => setShowIncomeStatement(false)}
+                className="fixed inset-0 bg-white z-50"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  overflow: 'hidden'
+                }}
               >
                 <div
-                  className="bg-white w-full rounded-t-3xl shadow-lg flex flex-col"
-                  style={{ height: '90vh', touchAction: 'none' }}
-                  onClick={(e) => e.stopPropagation()}
+                  className="bg-white border-b border-gray-200 p-4 flex items-center justify-between"
+                  style={{flexShrink: 0, touchAction: 'none'}}
                 >
-                  <div className="flex items-center justify-between p-4 border-b border-gray-200" style={{flexShrink: 0}}>
-                    <h2 className="text-lg font-bold text-gray-800">📈 損益計算書</h2>
-                    <button
-                      onClick={() => setShowIncomeStatement(false)}
-                      className="text-gray-500 hover:text-gray-700"
-                    >
-                      ✕
-                    </button>
-                  </div>
+                  <h2 className="text-xl font-bold text-gray-800">📈 損益計算書</h2>
+                  <button
+                    onClick={() => setShowIncomeStatement(false)}
+                    className="text-gray-500 hover:text-gray-700 text-2xl"
+                    style={{touchAction: 'auto'}}
+                  >
+                    ✕
+                  </button>
+                </div>
 
-                  <div className="flex-1 overflow-y-auto p-4">
+                <div
+                  className="flex-1 overflow-y-auto"
+                  style={{touchAction: 'auto'}}
+                >
+                  <div className="p-4">
                     {(() => {
                       // 期間選択（年間ベース）
                       const periodType = incomeStatementPeriod;
@@ -5184,6 +5820,235 @@
                       );
                     })()}
                   </div>
+                </div>
+
+                <div
+                  className="p-4 border-t border-gray-200"
+                  style={{flexShrink: 0, touchAction: 'none'}}
+                >
+                  <button
+                    onClick={() => setShowIncomeStatement(false)}
+                    className="w-full bg-gray-500 text-white py-3 rounded-xl font-medium hover:bg-gray-600 transition-colors"
+                    style={{touchAction: 'auto'}}
+                  >
+                    閉じる
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* 週間売上一覧モーダル */}
+            {showWeeklySalesList && (
+              <div
+                className="fixed inset-0 bg-white z-50"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  overflow: 'hidden'
+                }}
+              >
+                <div
+                  className="bg-white border-b border-gray-200 p-4 flex items-center justify-between"
+                  style={{flexShrink: 0, touchAction: 'none'}}
+                >
+                  <h2 className="text-xl font-bold text-gray-800">📊 週間売上一覧</h2>
+                  <button
+                    onClick={() => setShowWeeklySalesList(false)}
+                    className="text-gray-500 hover:text-gray-700 text-2xl"
+                    style={{touchAction: 'auto'}}
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div
+                  style={{
+                    flex: 1,
+                    overflowY: 'auto',
+                    WebkitOverflowScrolling: 'touch',
+                    minHeight: 0
+                  }}
+                >
+                  <div className="p-4 space-y-3">
+                    {(() => {
+                      // dailyDataから週ごとに集計
+                      const weeklyData = {};
+
+                      Object.entries(dailyData).forEach(([dateStr, data]) => {
+                        const date = new Date(dateStr);
+                        const dayOfWeek = date.getDay();
+
+                        // その日の週の月曜日を計算
+                        const monday = new Date(date);
+                        monday.setDate(date.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+                        const mondayStr = formatDateToLocal(monday);
+
+                        if (!weeklyData[mondayStr]) {
+                          weeklyData[mondayStr] = {
+                            hours: 0,
+                            deliveries: 0,
+                            earnings: 0,
+                            quest: 0,
+                            days: 0
+                          };
+                        }
+
+                        weeklyData[mondayStr].hours += data.hours || 0;
+                        weeklyData[mondayStr].deliveries += data.deliveries || 0;
+                        weeklyData[mondayStr].earnings += data.earnings || 0;
+                        weeklyData[mondayStr].quest += data.quest || 0;
+                        weeklyData[mondayStr].days += 1;
+                      });
+
+                      // 今週のデータを追加
+                      const today = new Date();
+                      const mondayOfThisWeek = new Date(today);
+                      mondayOfThisWeek.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1));
+                      mondayOfThisWeek.setHours(0, 0, 0, 0);
+                      const thisMondayStr = formatDateToLocal(mondayOfThisWeek);
+
+                      // 今週のhoursから計算
+                      const thisWeekData = {
+                        hours: 0,
+                        deliveries: 0,
+                        earnings: 0,
+                        quest: 0,
+                        days: 0
+                      };
+
+                      Object.values(hours).forEach(dayData => {
+                        if (dayData.hours > 0) {
+                          thisWeekData.hours += dayData.hours;
+                          thisWeekData.deliveries += dayData.deliveries || 0;
+                          thisWeekData.earnings += dayData.earnings || 0;
+                          thisWeekData.days += 1;
+                        }
+                      });
+
+                      // 今週のクエストを計算
+                      const effectiveValues = getEffectiveValues();
+                      let weekdayDeliveries = 0;
+                      let weekdayQuest = 0;
+                      weekdays.forEach(day => {
+                        const dayData = hours[day];
+                        if (dayData.hours > 0) {
+                          const deliveries = dayData.deliveries > 0 ? dayData.deliveries : dayData.hours * effectiveValues.weekdayDeliveriesPerHour;
+                          weekdayDeliveries += deliveries;
+                        }
+                      });
+
+                      let cumulative = 0;
+                      weekdayQuests.forEach(quest => {
+                        if (weekdayDeliveries >= cumulative + quest.count) {
+                          weekdayQuest += quest.reward;
+                          cumulative += quest.count;
+                        }
+                      });
+
+                      let weekendDeliveries = 0;
+                      let weekendQuest = 0;
+                      weekends.forEach(day => {
+                        const dayData = hours[day];
+                        if (dayData.hours > 0) {
+                          const deliveries = dayData.deliveries > 0 ? dayData.deliveries : dayData.hours * effectiveValues.weekendDeliveriesPerHour;
+                          weekendDeliveries += deliveries;
+                        }
+                      });
+
+                      cumulative = 0;
+                      weekendQuests.forEach(quest => {
+                        if (weekendDeliveries >= cumulative + quest.count) {
+                          weekendQuest += quest.reward;
+                          cumulative += quest.count;
+                        }
+                      });
+
+                      thisWeekData.quest = weekdayQuest + weekendQuest;
+
+                      if (thisWeekData.hours > 0) {
+                        weeklyData[thisMondayStr] = thisWeekData;
+                      }
+
+                      // 週を新しい順にソート
+                      const sortedWeeks = Object.entries(weeklyData).sort((a, b) => b[0].localeCompare(a[0]));
+
+                      if (sortedWeeks.length === 0) {
+                        return <div className="text-center text-gray-500 py-8">データがありません</div>;
+                      }
+
+                      return sortedWeeks.map(([mondayStr, data]) => {
+                        const monday = new Date(mondayStr);
+                        const sunday = new Date(monday);
+                        sunday.setDate(monday.getDate() + 6);
+
+                        const totalEarnings = data.earnings + data.quest;
+                        const avgHourlyWage = data.hours > 0 ? Math.round(totalEarnings / data.hours) : 0;
+
+                        const isThisWeek = mondayStr === thisMondayStr;
+
+                        return (
+                          <div
+                            key={mondayStr}
+                            className={`rounded-xl p-4 border-2 ${isThisWeek ? 'bg-green-50 border-green-300' : 'bg-gray-50 border-gray-200'}`}
+                          >
+                            <div className="flex justify-between items-center mb-3">
+                              <div>
+                                <div className="font-bold text-gray-800">
+                                  {monday.getMonth() + 1}/{monday.getDate()} - {sunday.getMonth() + 1}/{sunday.getDate()}
+                                </div>
+                                {isThisWeek && (
+                                  <div className="text-xs text-green-600 font-medium">今週</div>
+                                )}
+                              </div>
+                              <div className="text-right">
+                                <div className="text-2xl font-bold text-green-600">
+                                  ¥{totalEarnings.toLocaleString()}
+                                </div>
+                                <div className="text-xs text-gray-500">
+                                  {data.days}日稼働
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-2 text-sm">
+                              <div className="bg-white rounded-lg p-2">
+                                <div className="text-xs text-gray-600">稼働時間</div>
+                                <div className="font-bold text-gray-800">{data.hours.toFixed(1)}h</div>
+                              </div>
+                              <div className="bg-white rounded-lg p-2">
+                                <div className="text-xs text-gray-600">配達件数</div>
+                                <div className="font-bold text-gray-800">{data.deliveries}件</div>
+                              </div>
+                              <div className="bg-white rounded-lg p-2">
+                                <div className="text-xs text-gray-600">平均時給</div>
+                                <div className="font-bold text-gray-800">¥{avgHourlyWage}</div>
+                              </div>
+                            </div>
+
+                            {data.quest > 0 && (
+                              <div className="mt-2 text-xs text-gray-600 flex justify-between">
+                                <span>基本売上: ¥{data.earnings.toLocaleString()}</span>
+                                <span>クエスト: ¥{data.quest.toLocaleString()}</span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                </div>
+
+                <div
+                  className="p-4 border-t border-gray-200"
+                  style={{flexShrink: 0, touchAction: 'none'}}
+                >
+                  <button
+                    onClick={() => setShowWeeklySalesList(false)}
+                    className="w-full bg-gray-500 text-white py-3 rounded-xl font-medium hover:bg-gray-600 transition-colors"
+                    style={{touchAction: 'auto'}}
+                  >
+                    閉じる
+                  </button>
                 </div>
               </div>
             )}
