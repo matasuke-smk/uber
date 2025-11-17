@@ -608,6 +608,11 @@
 
       // 店舗名候補を生成する関数（使用回数順にソート）
       const getVendorSuggestions = (inputValue) => {
+        // expensesが未定義または空の場合は空配列を返す
+        if (!expenses || expenses.length === 0) {
+          return [];
+        }
+
         if (!inputValue || inputValue.trim().length === 0) {
           // 入力がない場合は、全店舗名を使用回数順に表示
           const vendorCounts = {};
@@ -4967,6 +4972,11 @@
                                         // 支払方法が検出された場合は貸方科目を設定
                                         if (result.paymentMethod) {
                                           updateData.creditAccount = result.paymentMethod;
+                                        }
+
+                                        // 店舗名が検出された場合は設定
+                                        if (result.vendor) {
+                                          updateData.vendor = result.vendor;
                                         }
 
                                         return updateData;
