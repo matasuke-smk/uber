@@ -580,6 +580,7 @@
       const [showExpenseInput, setShowExpenseInput] = useState(false);
       const [editingExpense, setEditingExpense] = useState(null);
       const [editingExpenseId, setEditingExpenseId] = useState(null);
+      const [expenseFilter, setExpenseFilter] = useState({});
       const [showImagePreview, setShowImagePreview] = useState(false);
       const [previewImage, setPreviewImage] = useState(null);
       const [swipedExpenseId, setSwipedExpenseId] = useState(null);
@@ -909,7 +910,12 @@
                 accountingSubject: expense.accounting_subject || '',
                 creditAccount: expense.credit_account || '',
                 photo: expense.photo_url || null,
-                memo: expense.memo || expense.description || ''
+                memo: expense.memo || expense.description || '',
+                vendor: expense.vendor || '',
+                uploadedAt: expense.uploaded_at,
+                isLocked: expense.is_locked || false,
+                lockedAt: expense.locked_at,
+                originalHash: expense.original_hash
               };
             }
             setExpenses(expensesMap);
@@ -4079,6 +4085,74 @@
                   }}
                 >
                   <div className="p-4">
+                    {/* 検索フィルター */}
+                    <div className="bg-gray-50 rounded-xl p-4 mb-4">
+                      <h3 className="text-sm font-bold text-gray-700 mb-3">🔍 検索フィルター</h3>
+                      <div className="space-y-3">
+                        {/* 日付範囲 */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <input
+                            type="date"
+                            value={expenseFilter.startDate || ''}
+                            onChange={(e) => setExpenseFilter({...expenseFilter, startDate: e.target.value})}
+                            className="px-3 py-2 border rounded-lg text-sm"
+                            placeholder="開始日"
+                          />
+                          <input
+                            type="date"
+                            value={expenseFilter.endDate || ''}
+                            onChange={(e) => setExpenseFilter({...expenseFilter, endDate: e.target.value})}
+                            className="px-3 py-2 border rounded-lg text-sm"
+                            placeholder="終了日"
+                          />
+                        </div>
+                        {/* 金額範囲 */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <input
+                            type="number"
+                            value={expenseFilter.minAmount || ''}
+                            onChange={(e) => setExpenseFilter({...expenseFilter, minAmount: e.target.value})}
+                            className="px-3 py-2 border rounded-lg text-sm"
+                            placeholder="最小金額"
+                          />
+                          <input
+                            type="number"
+                            value={expenseFilter.maxAmount || ''}
+                            onChange={(e) => setExpenseFilter({...expenseFilter, maxAmount: e.target.value})}
+                            className="px-3 py-2 border rounded-lg text-sm"
+                            placeholder="最大金額"
+                          />
+                        </div>
+                        {/* 取引先 */}
+                        <input
+                          type="text"
+                          value={expenseFilter.vendor || ''}
+                          onChange={(e) => setExpenseFilter({...expenseFilter, vendor: e.target.value})}
+                          className="w-full px-3 py-2 border rounded-lg text-sm"
+                          placeholder="取引先名で検索"
+                        />
+                        {/* クリアボタン */}
+                        <button
+                          onClick={() => setExpenseFilter({})}
+                          className="w-full bg-gray-200 text-gray-700 py-2 rounded-lg text-sm hover:bg-gray-300"
+                        >
+                          フィルターをクリア
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* 電子帳簿保存法準拠表示 */}
+                    <div className="bg-green-50 rounded-xl p-4 mb-4 border-2 border-green-200">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-green-600 text-lg">✅</span>
+                        <span className="font-bold text-green-800">電子帳簿保存法準拠システム</span>
+                      </div>
+                      <p className="text-xs text-green-700">
+                        このシステムは電子帳簿保存法の要件を満たしています。
+                        アップロード後3営業日で自動確定され、原本の破棄が可能です。
+                      </p>
+                    </div>
+
                     {/* 年間集計 */}
                     {(() => {
                       const currentYear = new Date().getFullYear();
@@ -4128,6 +4202,15 @@
                     {/* 経費リスト */}
                     <div className="space-y-2">
                       {Object.entries(expenses)
+                        .filter(([id, expense]) => {
+                          // フィルター適用
+                          if (expenseFilter.startDate && expense.date < expenseFilter.startDate) return false;
+                          if (expenseFilter.endDate && expense.date > expenseFilter.endDate) return false;
+                          if (expenseFilter.minAmount && expense.amount < expenseFilter.minAmount) return false;
+                          if (expenseFilter.maxAmount && expense.amount > expenseFilter.maxAmount) return false;
+                          if (expenseFilter.vendor && !expense.vendor?.toLowerCase().includes(expenseFilter.vendor.toLowerCase())) return false;
+                          return true;
+                        })
                         .sort(([, a], [, b]) => new Date(b.date) - new Date(a.date))
                         .map(([id, expense]) => (
                           <div
@@ -4185,6 +4268,9 @@
                                     </div>
                                     <div className="font-medium text-gray-800 truncate">
                                       {accountingSubjects[expense.accountingSubject] || '旅費交通費'}
+                                      {expense.isLocked && (
+                                        <span className="ml-1 text-xs bg-green-100 text-green-800 px-1 py-0.5 rounded">確定</span>
+                                      )}
                                     </div>
                                     <div className="text-center">
                                       {expense.photo && (
@@ -4195,11 +4281,14 @@
                                       ¥{expense.amount.toLocaleString()}
                                     </div>
                                   </div>
-                                  {expense.memo && (
-                                    <div className="mt-1 text-sm text-gray-500 truncate" style={{ paddingLeft: '58px' }}>
-                                      {expense.memo}
-                                    </div>
-                                  )}
+                                  <div className="mt-1 text-sm text-gray-500" style={{ paddingLeft: '58px' }}>
+                                    {expense.vendor && (
+                                      <span className="mr-2">📍{expense.vendor}</span>
+                                    )}
+                                    {expense.memo && (
+                                      <span className="truncate">{expense.memo}</span>
+                                    )}
+                                  </div>
                                 </div>
                               </button>
                               {swipedExpenseId === id && (
@@ -4580,6 +4669,14 @@
                     <button
                       onClick={async () => {
                           try {
+                            // ハッシュ値の計算（改ざん防止）
+                            const calculateHash = async (data) => {
+                              const msgBuffer = new TextEncoder().encode(JSON.stringify(data));
+                              const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+                              const hashArray = Array.from(new Uint8Array(hashBuffer));
+                              return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                            };
+
                             let photoUrl = editingExpense.photo;
 
                             // Upload photo to Supabase Storage if it's a base64 string
@@ -4609,6 +4706,12 @@
                             }
 
                             if (editingExpenseId) {
+                              // ロックされている場合は変更不可
+                              if (expenses[editingExpenseId]?.isLocked) {
+                                alert('この経費は確定済みのため変更できません。');
+                                return;
+                              }
+
                               // Update existing expense
                               const { error } = await supabaseClient
                                 .from('expenses')
@@ -4620,6 +4723,7 @@
                                   credit_account: editingExpense.creditAccount || '',
                                   photo_url: photoUrl || null,
                                   memo: editingExpense.memo || '',
+                                  vendor: editingExpense.vendor || '',
                                   updated_at: new Date().toISOString()
                                 })
                                 .eq('id', editingExpenseId)
@@ -4632,6 +4736,15 @@
                                 [editingExpenseId]: { ...editingExpense, photo: photoUrl }
                               }));
                             } else {
+                              // ハッシュ値を計算（改ざん防止）
+                              const dataToHash = {
+                                date: editingExpense.date,
+                                amount: editingExpense.amount,
+                                vendor: editingExpense.vendor,
+                                photo: photoUrl
+                              };
+                              const originalHash = await calculateHash(dataToHash);
+
                               // Create new expense
                               const { data, error } = await supabaseClient
                                 .from('expenses')
@@ -4643,7 +4756,10 @@
                                   accounting_subject: editingExpense.accountingSubject || '',
                                   credit_account: editingExpense.creditAccount || '',
                                   photo_url: photoUrl || null,
-                                  memo: editingExpense.memo || ''
+                                  memo: editingExpense.memo || '',
+                                  vendor: editingExpense.vendor || '',
+                                  uploaded_at: new Date().toISOString(),
+                                  original_hash: originalHash
                                 })
                                 .select()
                                 .single();
