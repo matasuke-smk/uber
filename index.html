@@ -590,6 +590,8 @@
       const [isProcessingOCR, setIsProcessingOCR] = useState(false);
       const [showDescriptionSuggestions, setShowDescriptionSuggestions] = useState(false);
       const [descriptionSuggestions, setDescriptionSuggestions] = useState([]);
+      const [showVendorSuggestions, setShowVendorSuggestions] = useState(false);
+      const [vendorSuggestions, setVendorSuggestions] = useState([]);
 
       // 財務諸表関連のstate
       const [showBalanceSheet, setShowBalanceSheet] = useState(false);
@@ -603,6 +605,52 @@
           return '';
         }
       });
+
+      // 店舗名候補を生成する関数（使用回数順にソート）
+      const getVendorSuggestions = (inputValue) => {
+        if (!inputValue || inputValue.trim().length === 0) {
+          // 入力がない場合は、全店舗名を使用回数順に表示
+          const vendorCounts = {};
+          expenses.forEach(expense => {
+            if (expense.vendor && expense.vendor.trim()) {
+              const vendor = expense.vendor.trim();
+              vendorCounts[vendor] = (vendorCounts[vendor] || 0) + 1;
+            }
+          });
+
+          // 使用回数順にソート
+          const sortedVendors = Object.entries(vendorCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 10) // 上位10件
+            .map(([vendor, count]) => ({ vendor, count }));
+
+          return sortedVendors;
+        }
+
+        // 入力値でフィルタリング
+        const inputLower = inputValue.toLowerCase();
+        const vendorCounts = {};
+
+        expenses.forEach(expense => {
+          if (expense.vendor && expense.vendor.trim()) {
+            const vendor = expense.vendor.trim();
+            const vendorLower = vendor.toLowerCase();
+
+            // 部分一致で候補を抽出
+            if (vendorLower.includes(inputLower)) {
+              vendorCounts[vendor] = (vendorCounts[vendor] || 0) + 1;
+            }
+          }
+        });
+
+        // 使用回数順にソート
+        const sortedVendors = Object.entries(vendorCounts)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 10) // 上位10件
+          .map(([vendor, count]) => ({ vendor, count }));
+
+        return sortedVendors;
+      };
 
       // 店舗名を正規化する関数（表記ゆれを統一）
       const normalizeVendorName = (vendorName) => {
@@ -753,35 +801,62 @@
 
         // 見つからない場合は、最初の行や「株式会社」「有限会社」を含む行を探す
         if (!extractedVendor) {
-          const lines = text.split('\n');
-          for (let i = 0; i < Math.min(lines.length, 5); i++) { // 最初の5行をチェック
-            const line = lines[i].trim();
+          const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
 
-            // 会社名のパターン
-            if (line.match(/(株式会社|有限会社|合同会社|\(株\)|\(有\)|店|ストア|マート|センター)/)) {
-              // 不要な文字を除去
+          // 最初の10行をチェック（範囲を拡大）
+          for (let i = 0; i < Math.min(lines.length, 10); i++) {
+            const line = lines[i];
+
+            // 除外パターン（これらを含む行はスキップ）
+            const skipPatterns = [
+              /^[0-9０-９]+$/, // 数字のみの行
+              /^\d{4}[-/年]\d{1,2}[-/月]\d{1,2}/, // 日付で始まる行
+              /^(領収|レシート|明細|納品|請求|合計|小計|税込|税抜|現金|クレジット|お預り|お釣り|ポイント|割引|値引|TEL|FAX|電話|住所|〒)/,
+              /[¥￥＄$]\s*[0-9,０-９，]+/, // 金額を含む
+              /^\d+[:：時]\d+[:：分]/, // 時刻
+              /^www\.|@|\.com|\.jp|\.co\.jp/, // URL/メールアドレス
+            ];
+
+            let shouldSkip = false;
+            for (const pattern of skipPatterns) {
+              if (line.match(pattern)) {
+                shouldSkip = true;
+                break;
+              }
+            }
+            if (shouldSkip) continue;
+
+            // 会社名のパターン（優先度高）
+            if (line.match(/(株式会社|有限会社|合同会社|\(株\)|\(有\))/)) {
               extractedVendor = line
-                .replace(/^\*+|\*+$/g, '') // アスタリスクを除去
-                .replace(/^-+|-+$/g, '') // ハイフンを除去
-                .replace(/TEL[:：].*$/i, '') // 電話番号以降を除去
-                .replace(/〒\d{3}-\d{4}.*$/i, '') // 郵便番号以降を除去
+                .replace(/^\*+|\*+$/g, '')
+                .replace(/^-+|-+$/g, '')
+                .replace(/TEL[:：].*$/i, '')
+                .replace(/〒\d{3}-\d{4}.*$/i, '')
                 .trim();
 
-              // 長すぎる場合は最初の部分だけ
               if (extractedVendor.length > 30) {
                 extractedVendor = extractedVendor.substring(0, 30);
               }
               break;
             }
 
-            // 短い行で日付や金額でない場合は店舗名の可能性
-            if (line.length > 3 && line.length < 30 &&
-                !line.match(/^\d/) && // 数字で始まらない
-                !line.match(/[年月日時分秒]/) && // 日付時刻を含まない
-                !line.match(/[¥￥円]/) && // 金額を含まない
-                !line.match(/^(領収|レシート|明細)/)) { // 定型文でない
-              extractedVendor = line;
+            // 店舗を示すキーワード（優先度中）
+            if (line.match(/(店|ストア|マート|センター|ショップ|サービス)/) && line.length < 30) {
+              extractedVendor = line
+                .replace(/^\*+|\*+$/g, '')
+                .replace(/^-+|-+$/g, '')
+                .trim();
               break;
+            }
+
+            // 2文字以上20文字以下の行（優先度低）- 最初の候補として保存
+            if (!extractedVendor && line.length >= 2 && line.length <= 20) {
+              // アルファベットや日本語が含まれているか確認
+              if (line.match(/[a-zA-Zぁ-んァ-ヶー一-龠]/)) {
+                extractedVendor = line;
+                // まだ続けて、より良い候補を探す
+              }
             }
           }
 
@@ -4676,17 +4751,49 @@
                     </div>
 
                     {/* 取引先 */}
-                    <div>
+                    <div className="relative">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         取引先（店舗名等）
                       </label>
                       <input
                         type="text"
                         value={editingExpense?.vendor || ''}
-                        onChange={(e) => setEditingExpense({...editingExpense, vendor: e.target.value})}
+                        onChange={(e) => {
+                          setEditingExpense({...editingExpense, vendor: e.target.value});
+                          const suggestions = getVendorSuggestions(e.target.value);
+                          setVendorSuggestions(suggestions);
+                          setShowVendorSuggestions(suggestions.length > 0);
+                        }}
+                        onFocus={(e) => {
+                          const suggestions = getVendorSuggestions(e.target.value);
+                          setVendorSuggestions(suggestions);
+                          setShowVendorSuggestions(suggestions.length > 0);
+                        }}
+                        onBlur={() => {
+                          // 候補選択のために少し遅延
+                          setTimeout(() => setShowVendorSuggestions(false), 200);
+                        }}
                         className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none"
                         placeholder="例：エネオス〇〇店、Amazon、〇〇モータース"
                       />
+
+                      {/* 店舗名候補リスト */}
+                      {showVendorSuggestions && vendorSuggestions.length > 0 && (
+                        <div className="absolute z-10 w-full mt-1 bg-white border-2 border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                          {vendorSuggestions.map((suggestion, index) => (
+                            <div
+                              key={index}
+                              className="px-4 py-3 hover:bg-red-50 cursor-pointer"
+                              onClick={() => {
+                                setEditingExpense({...editingExpense, vendor: suggestion.vendor});
+                                setShowVendorSuggestions(false);
+                              }}
+                            >
+                              <span className="text-gray-800">{suggestion.vendor}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     {/* メモ欄 */}
