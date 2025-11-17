@@ -3459,59 +3459,51 @@
                       const calcValues = calculateFromHistory();
                       return (
                         <>
-                          <div className="grid grid-cols-2 gap-2">
+                          <div className="grid grid-cols-2 gap-3">
                             <div className="bg-blue-50 rounded-xl p-4 border-2 border-blue-200">
-                              <div className="text-sm font-medium text-blue-800 mb-3">📊 月～木</div>
+                              <div className="text-base font-medium text-blue-800 mb-3">📊 月～木</div>
                               <div className="space-y-2">
-                                <div className="flex justify-between items-center">
-                                  <span className="text-sm text-gray-700">平均単価:</span>
-                                  <span className="text-lg font-bold text-blue-600">¥{calcValues.weekdayAvgPrice}/件</span>
+                                <div className="text-sm text-gray-700 whitespace-nowrap">
+                                  平均単価: <span className="text-lg font-bold text-blue-600">¥{calcValues.weekdayAvgPrice}/件</span>
                                 </div>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-sm text-gray-700">平均件数:</span>
-                                  <span className="text-lg font-bold text-blue-600">{calcValues.weekdayDeliveriesPerHour}件/時間</span>
+                                <div className="text-sm text-gray-700 whitespace-nowrap">
+                                  平均件数: <span className="text-lg font-bold text-blue-600">{calcValues.weekdayDeliveriesPerHour}件/h</span>
                                 </div>
                               </div>
                             </div>
                             <div className="bg-purple-50 rounded-xl p-4 border-2 border-purple-200">
-                              <div className="text-sm font-medium text-purple-800 mb-3">📊 金～日</div>
+                              <div className="text-base font-medium text-purple-800 mb-3">📊 金～日</div>
                               <div className="space-y-2">
-                                <div className="flex justify-between items-center">
-                                  <span className="text-sm text-gray-700">平均単価:</span>
-                                  <span className="text-lg font-bold text-purple-600">¥{calcValues.weekendAvgPrice}/件</span>
+                                <div className="text-sm text-gray-700 whitespace-nowrap">
+                                  平均単価: <span className="text-lg font-bold text-purple-600">¥{calcValues.weekendAvgPrice}/件</span>
                                 </div>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-sm text-gray-700">平均件数:</span>
-                                  <span className="text-lg font-bold text-purple-600">{calcValues.weekendDeliveriesPerHour}件/時間</span>
+                                <div className="text-sm text-gray-700 whitespace-nowrap">
+                                  平均件数: <span className="text-lg font-bold text-purple-600">{calcValues.weekendDeliveriesPerHour}件/h</span>
                                 </div>
                               </div>
                             </div>
                           </div>
 
-                          <div className="grid grid-cols-2 gap-2">
+                          <div className="grid grid-cols-2 gap-3">
                             <div className="bg-cyan-50 rounded-xl p-4 border-2 border-cyan-200">
-                              <div className="text-sm font-medium text-cyan-800 mb-3">🌧️ 雨の日</div>
+                              <div className="text-base font-medium text-cyan-800 mb-3">🌧️ 雨の日</div>
                               <div className="space-y-2">
-                                <div className="flex justify-between items-center">
-                                  <span className="text-sm text-gray-700">平均単価:</span>
-                                  <span className="text-lg font-bold text-cyan-600">¥{calcValues.rainyAvgPrice}/件</span>
+                                <div className="text-sm text-gray-700 whitespace-nowrap">
+                                  平均単価: <span className="text-lg font-bold text-cyan-600">¥{calcValues.rainyAvgPrice}/件</span>
                                 </div>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-sm text-gray-700">平均件数:</span>
-                                  <span className="text-lg font-bold text-cyan-600">{calcValues.rainyAvgDeliveries}件/時間</span>
+                                <div className="text-sm text-gray-700 whitespace-nowrap">
+                                  平均件数: <span className="text-lg font-bold text-cyan-600">{calcValues.rainyAvgDeliveries}件/h</span>
                                 </div>
                               </div>
                             </div>
                             <div className="bg-orange-50 rounded-xl p-4 border-2 border-orange-200">
-                              <div className="text-sm font-medium text-orange-800 mb-3">🎌 祝日</div>
+                              <div className="text-base font-medium text-orange-800 mb-3">🎌 祝日</div>
                               <div className="space-y-2">
-                                <div className="flex justify-between items-center">
-                                  <span className="text-sm text-gray-700">平均単価:</span>
-                                  <span className="text-lg font-bold text-orange-600">¥{calcValues.holidayAvgPrice}/件</span>
+                                <div className="text-sm text-gray-700 whitespace-nowrap">
+                                  平均単価: <span className="text-lg font-bold text-orange-600">¥{calcValues.holidayAvgPrice}/件</span>
                                 </div>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-sm text-gray-700">平均件数:</span>
-                                  <span className="text-lg font-bold text-orange-600">{calcValues.holidayAvgDeliveries}件/時間</span>
+                                <div className="text-sm text-gray-700 whitespace-nowrap">
+                                  平均件数: <span className="text-lg font-bold text-orange-600">{calcValues.holidayAvgDeliveries}件/h</span>
                                 </div>
                               </div>
                             </div>
