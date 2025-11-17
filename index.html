@@ -390,14 +390,27 @@
         other: { name: 'その他', emoji: '📝' }
       };
 
-      // 借方科目（勘定科目）
+      // 借方科目（勘定科目）- 青色申告用
       const accountingSubjects = {
         travel: '旅費交通費',
         supplies: '消耗品費',
         communication: '通信費',
         misc: '雑費',
         depreciation: '減価償却費',
-        insurance: '保険料'
+        insurance: '保険料',
+        repairs: '修繕費',
+        utilities: '水道光熱費',
+        rent: '地代家賃',
+        welfare: '福利厚生費',
+        // 旧カテゴリからのマッピング
+        fuel: '旅費交通費',
+        maintenance: '修繕費',
+        parking: '旅費交通費',
+        phone: '通信費',
+        equipment: '消耗品費',
+        other: '雑費',
+        repair: '修繕費',
+        vehicle: '車両費'
       };
 
       // 貸方科目（支払方法）
@@ -4377,11 +4390,16 @@
                           }}
                           className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none"
                         >
-                          {Object.entries(accountingSubjects).map(([key, name]) => (
-                            <option key={key} value={key}>
-                              {name}
-                            </option>
-                          ))}
+                          <option value="travel">旅費交通費（ガソリン・駐車場等）</option>
+                          <option value="supplies">消耗品費（装備品等）</option>
+                          <option value="communication">通信費（携帯電話等）</option>
+                          <option value="repairs">修繕費（車両整備等）</option>
+                          <option value="insurance">保険料</option>
+                          <option value="depreciation">減価償却費</option>
+                          <option value="rent">地代家賃</option>
+                          <option value="utilities">水道光熱費</option>
+                          <option value="welfare">福利厚生費</option>
+                          <option value="misc">雑費（その他）</option>
                         </select>
                       </div>
                       <div>
@@ -4706,15 +4724,6 @@
                         expensesByCategory[category] += Math.floor((expense.amount || 0) * (expense.businessPercentage ?? 100) / 100);
                       });
 
-                      const accountingSubjects = {
-                        travel: '旅費交通費',
-                        supplies: '消耗品費',
-                        communication: '通信費',
-                        misc: '雑費',
-                        depreciation: '減価償却費',
-                        insurance: '保険料'
-                      };
-
                       return (
                         <div className="space-y-6">
                           {/* 資産の部 */}
@@ -4893,15 +4902,6 @@
 
                       const netIncome = totalRevenue - totalPeriodExpenses;
                       const profitMargin = totalRevenue > 0 ? (netIncome / totalRevenue * 100).toFixed(1) : 0;
-
-                      const accountingSubjects = {
-                        travel: '旅費交通費',
-                        supplies: '消耗品費',
-                        communication: '通信費',
-                        misc: '雑費',
-                        depreciation: '減価償却費',
-                        insurance: '保険料'
-                      };
 
                       return (
                         <div className="space-y-6">
@@ -5174,23 +5174,6 @@
     // CSV生成関数
     function generateExpenseCSV() {
       const expenses = JSON.parse(localStorage.getItem('expenses') || '{}');
-      const expenseCategories = {
-        fuel: { name: 'ガソリン代' },
-        maintenance: { name: '車両整備' },
-        parking: { name: '駐車場代' },
-        phone: { name: '通信費' },
-        insurance: { name: '保険料' },
-        equipment: { name: '装備品' },
-        other: { name: 'その他' }
-      };
-      const accountingSubjects = {
-        travel: '旅費交通費',
-        supplies: '消耗品費',
-        communication: '通信費',
-        misc: '雑費',
-        depreciation: '減価償却費',
-        insurance: '保険料'
-      };
 
       const creditAccountSubjects = {
         cash: '現金',
