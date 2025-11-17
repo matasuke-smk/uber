@@ -987,11 +987,11 @@
 
             // ガソリンの種類を判定
             if (text.match(/ハイオク|ハイオクタン|HIGH|プレミアム/i)) {
-              gasolineType = 'ハイオクガソリン';
+              gasolineType = 'ハイオク';
             } else if (text.match(/軽油|ディーゼル|DIESEL/i)) {
               gasolineType = '軽油';
             } else if (text.match(/レギュラー|REGULAR|ガソリン/i)) {
-              gasolineType = 'レギュラーガソリン';
+              gasolineType = 'レギュラー';
             }
 
             // リッター数を探す（複数のパターンに対応）
@@ -4531,12 +4531,12 @@
                                       )}
                                     </div>
                                   </div>
-                                  <div className="mt-1 text-sm text-gray-500" style={{ paddingLeft: '58px' }}>
-                                    {expense.vendor && (
-                                      <span className="mr-2">📍{expense.vendor}</span>
-                                    )}
+                                  <div className="mt-1 text-sm text-gray-500 flex items-start gap-2" style={{ paddingLeft: '58px' }}>
+                                    <div className="flex-shrink-0" style={{ minWidth: '120px' }}>
+                                      {expense.vendor ? `📍${expense.vendor}` : ''}
+                                    </div>
                                     {expense.memo && (
-                                      <span className="truncate">{expense.memo}</span>
+                                      <div className="flex-1 truncate">{expense.memo}</div>
                                     )}
                                   </div>
                                 </div>
