@@ -4882,8 +4882,8 @@
 
                       const totalRevenue = periodEarnings + periodQuest;
 
-                      // 期間内の経費を集計
-                      const periodExpensesByCategory = {};
+                      // 期間内の経費を集計（日本語の勘定科目名でグルーピング）
+                      const periodExpensesByJapanese = {};
                       let totalPeriodExpenses = 0;
 
                       Object.entries(expenses || {}).forEach(([id, expense]) => {
@@ -4892,10 +4892,13 @@
                           const category = expense.accountingSubject || 'misc';
                           const amount = Math.floor((expense.amount || 0) * (expense.businessPercentage ?? 100) / 100);
 
-                          if (!periodExpensesByCategory[category]) {
-                            periodExpensesByCategory[category] = 0;
+                          // カテゴリを日本語名に変換
+                          const japaneseName = accountingSubjects[category] || accountingSubjects.misc;
+
+                          if (!periodExpensesByJapanese[japaneseName]) {
+                            periodExpensesByJapanese[japaneseName] = 0;
                           }
-                          periodExpensesByCategory[category] += amount;
+                          periodExpensesByJapanese[japaneseName] += amount;
                           totalPeriodExpenses += amount;
                         }
                       });
@@ -4979,13 +4982,13 @@
                           <div className="bg-red-50 rounded-xl p-4">
                             <h3 className="font-bold text-red-800 text-lg mb-4">売上原価・経費</h3>
                             <div className="space-y-2">
-                              {Object.entries(periodExpensesByCategory).map(([category, amount]) => (
-                                <div key={category} className="flex justify-between items-center p-2 bg-white rounded-lg">
-                                  <span className="text-gray-700">{accountingSubjects[category] || category}</span>
+                              {Object.entries(periodExpensesByJapanese).map(([japaneseName, amount]) => (
+                                <div key={japaneseName} className="flex justify-between items-center p-2 bg-white rounded-lg">
+                                  <span className="text-gray-700">{japaneseName}</span>
                                   <span className="font-bold text-gray-700">¥{amount.toLocaleString()}</span>
                                 </div>
                               ))}
-                              {Object.keys(periodExpensesByCategory).length === 0 && (
+                              {Object.keys(periodExpensesByJapanese).length === 0 && (
                                 <div className="text-center text-gray-500 py-2">経費データなし</div>
                               )}
                               <div className="border-t-2 border-red-300 pt-2 mt-3">
