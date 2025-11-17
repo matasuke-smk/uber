@@ -579,6 +579,7 @@
       const [expensesLoading, setExpensesLoading] = useState(true);
       const [showExpenses, setShowExpenses] = useState(false);
       const [showExpenseInput, setShowExpenseInput] = useState(false);
+      const [showExpenseGuide, setShowExpenseGuide] = useState(false);
       const [editingExpense, setEditingExpense] = useState(null);
       const [editingExpenseId, setEditingExpenseId] = useState(null);
       const [expenseFilter, setExpenseFilter] = useState({});
@@ -4369,6 +4370,14 @@
                     <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                       <Receipt />
                       経費管理
+                      <button
+                        onClick={() => setShowExpenseGuide(true)}
+                        className="text-blue-500 hover:text-blue-700 text-lg"
+                        style={{touchAction: 'auto'}}
+                        title="科目の説明を表示"
+                      >
+                        ℹ️
+                      </button>
                     </h2>
                     <button
                       onClick={() => setShowExpenseFilter(true)}
@@ -4449,8 +4458,7 @@
                           // フィルター適用
                           if (expenseFilter.startDate && expense.date < expenseFilter.startDate) return false;
                           if (expenseFilter.endDate && expense.date > expenseFilter.endDate) return false;
-                          if (expenseFilter.minAmount && expense.amount < expenseFilter.minAmount) return false;
-                          if (expenseFilter.maxAmount && expense.amount > expenseFilter.maxAmount) return false;
+                          if (expenseFilter.accountingSubject && expense.accountingSubject !== expenseFilter.accountingSubject) return false;
                           if (expenseFilter.vendor && !expense.vendor?.toLowerCase().includes(expenseFilter.vendor.toLowerCase())) return false;
                           return true;
                         })
@@ -4751,6 +4759,7 @@
                           <option value="supplies">消耗品費（装備品等）</option>
                           <option value="communication">通信費（携帯電話等）</option>
                           <option value="repairs">修繕費（車両整備等）</option>
+                          <option value="entertainment">接待交際費（会食等）</option>
                           <option value="insurance">損害保険料（車両保険等）</option>
                           <option value="depreciation">減価償却費（車両・バイク）</option>
                           <option value="rent">地代家賃（駐車場月極等）</option>
@@ -4758,7 +4767,6 @@
                           <option value="welfare">福利厚生費</option>
                           <option value="tax">租税公課（自動車税等）</option>
                           <option value="advertising">広告宣伝費</option>
-                          <option value="entertainment">接待交際費</option>
                           <option value="shipping">荷造運賃</option>
                           <option value="misc">雑費（その他）</option>
                         </select>
@@ -5094,25 +5102,25 @@
                       </div>
                     </div>
 
-                    {/* 金額範囲 */}
+                    {/* 借方科目 */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">💰 金額範囲</label>
-                      <div className="grid grid-cols-2 gap-3">
-                        <input
-                          type="number"
-                          value={expenseFilter.minAmount || ''}
-                          onChange={(e) => setExpenseFilter({...expenseFilter, minAmount: e.target.value})}
-                          className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none"
-                          placeholder="最小金額"
-                        />
-                        <input
-                          type="number"
-                          value={expenseFilter.maxAmount || ''}
-                          onChange={(e) => setExpenseFilter({...expenseFilter, maxAmount: e.target.value})}
-                          className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none"
-                          placeholder="最大金額"
-                        />
-                      </div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">📋 借方科目</label>
+                      <select
+                        value={expenseFilter.accountingSubject || ''}
+                        onChange={(e) => setExpenseFilter({...expenseFilter, accountingSubject: e.target.value})}
+                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none"
+                      >
+                        <option value="">すべて</option>
+                        <option value="travel">旅費交通費（ガソリン・駐車場等）</option>
+                        <option value="supplies">消耗品費（装備品等）</option>
+                        <option value="communication">通信費（携帯電話等）</option>
+                        <option value="repairs">修繕費（車両整備等）</option>
+                        <option value="entertainment">接待交際費（会食等）</option>
+                        <option value="utilities">水道光熱費</option>
+                        <option value="rent">地代家賃</option>
+                        <option value="insurance">保険料</option>
+                        <option value="misc">雑費</option>
+                      </select>
                     </div>
 
                     {/* 取引先 */}
@@ -5128,7 +5136,7 @@
                     </div>
 
                     {/* フィルター適用中の表示 */}
-                    {(expenseFilter.startDate || expenseFilter.endDate || expenseFilter.minAmount || expenseFilter.maxAmount || expenseFilter.vendor) && (
+                    {(expenseFilter.startDate || expenseFilter.endDate || expenseFilter.accountingSubject || expenseFilter.vendor) && (
                       <div className="bg-blue-50 rounded-xl p-4 border-2 border-blue-200">
                         <div className="flex items-center gap-2 mb-2">
                           <span className="text-blue-600 text-lg">🔍</span>
@@ -5137,8 +5145,7 @@
                         <div className="text-xs text-blue-700 space-y-1">
                           {expenseFilter.startDate && <div>開始日: {expenseFilter.startDate}</div>}
                           {expenseFilter.endDate && <div>終了日: {expenseFilter.endDate}</div>}
-                          {expenseFilter.minAmount && <div>最小金額: ¥{parseInt(expenseFilter.minAmount).toLocaleString()}</div>}
-                          {expenseFilter.maxAmount && <div>最大金額: ¥{parseInt(expenseFilter.maxAmount).toLocaleString()}</div>}
+                          {expenseFilter.accountingSubject && <div>借方科目: {accountingSubjects[expenseFilter.accountingSubject]}</div>}
                           {expenseFilter.vendor && <div>取引先: {expenseFilter.vendor}</div>}
                         </div>
                       </div>
@@ -5166,6 +5173,142 @@
                     style={{touchAction: 'auto'}}
                   >
                     フィルターを適用
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* 科目説明モーダル */}
+            {showExpenseGuide && (
+              <div
+                className="fixed inset-0 bg-white z-[60]"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  overflow: 'hidden'
+                }}
+              >
+                <div
+                  className="bg-white border-b border-gray-200 p-4 flex items-center justify-between"
+                  style={{flexShrink: 0, touchAction: 'none'}}
+                >
+                  <h2 className="text-xl font-bold text-gray-800">📋 経費科目の説明</h2>
+                  <button
+                    onClick={() => setShowExpenseGuide(false)}
+                    className="text-gray-500 hover:text-gray-700 text-2xl"
+                    style={{touchAction: 'auto'}}
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div
+                  className="flex-1 overflow-y-auto"
+                  style={{touchAction: 'auto'}}
+                >
+                  <div className="p-4 space-y-3">
+                    <div className="bg-blue-50 rounded-xl p-4 border-2 border-blue-200">
+                      <div className="font-bold text-blue-800 mb-2">🚗 旅費交通費</div>
+                      <div className="text-sm text-gray-700 space-y-1">
+                        <div>• ガソリン代（ハイオク、レギュラー、軽油）</div>
+                        <div>• 駐車場代、コインパーキング</div>
+                        <div>• 高速道路料金</div>
+                        <div>• 洗車代</div>
+                        <div>• 電車、バス、タクシー代</div>
+                        <div>• 出張時の移動費（新幹線、飛行機等）</div>
+                        <div>• 出張時の宿泊費（ホテル、旅館等）</div>
+                      </div>
+                    </div>
+
+                    <div className="bg-green-50 rounded-xl p-4 border-2 border-green-200">
+                      <div className="font-bold text-green-800 mb-2">📦 消耗品費</div>
+                      <div className="text-sm text-gray-700 space-y-1">
+                        <div>• 配達用バッグ、保温バッグ</div>
+                        <div>• スマホホルダー、充電器</div>
+                        <div>• 文房具、メモ帳</div>
+                        <div>• 10万円未満の備品</div>
+                      </div>
+                    </div>
+
+                    <div className="bg-purple-50 rounded-xl p-4 border-2 border-purple-200">
+                      <div className="font-bold text-purple-800 mb-2">📱 通信費</div>
+                      <div className="text-sm text-gray-700 space-y-1">
+                        <div>• 携帯電話料金（業務使用分）</div>
+                        <div>• インターネット料金</div>
+                        <div>• モバイルWi-Fi料金</div>
+                      </div>
+                    </div>
+
+                    <div className="bg-orange-50 rounded-xl p-4 border-2 border-orange-200">
+                      <div className="font-bold text-orange-800 mb-2">🔧 修繕費</div>
+                      <div className="text-sm text-gray-700 space-y-1">
+                        <div>• 車両の修理代</div>
+                        <div>• タイヤ交換、オイル交換</div>
+                        <div>• バイクのメンテナンス</div>
+                        <div>• 車検費用</div>
+                      </div>
+                    </div>
+
+                    <div className="bg-red-50 rounded-xl p-4 border-2 border-red-200">
+                      <div className="font-bold text-red-800 mb-2">🍽️ 接待交際費</div>
+                      <div className="text-sm text-gray-700 space-y-1">
+                        <div>• 取引先との会食費</div>
+                        <div>• 打ち合わせ時の飲食費</div>
+                        <div>• お中元、お歳暮</div>
+                        <div>• 慶弔費（祝儀、香典等）</div>
+                        <div className="text-xs text-red-600 mt-2">※年間800万円まで損金算入可能</div>
+                      </div>
+                    </div>
+
+                    <div className="bg-yellow-50 rounded-xl p-4 border-2 border-yellow-200">
+                      <div className="font-bold text-yellow-800 mb-2">💡 水道光熱費</div>
+                      <div className="text-sm text-gray-700 space-y-1">
+                        <div>• 電気代（業務使用分）</div>
+                        <div>• 水道代（業務使用分）</div>
+                        <div>• ガス代（業務使用分）</div>
+                      </div>
+                    </div>
+
+                    <div className="bg-pink-50 rounded-xl p-4 border-2 border-pink-200">
+                      <div className="font-bold text-pink-800 mb-2">🏠 地代家賃</div>
+                      <div className="text-sm text-gray-700 space-y-1">
+                        <div>• 事務所家賃</div>
+                        <div>• 駐車場賃貸料</div>
+                        <div>• 自宅家賃（事業使用分）</div>
+                      </div>
+                    </div>
+
+                    <div className="bg-indigo-50 rounded-xl p-4 border-2 border-indigo-200">
+                      <div className="font-bold text-indigo-800 mb-2">🛡️ 保険料</div>
+                      <div className="text-sm text-gray-700 space-y-1">
+                        <div>• 自動車保険（任意保険）</div>
+                        <div>• バイク保険</div>
+                        <div>• 自転車保険</div>
+                        <div>• 賠償責任保険</div>
+                      </div>
+                    </div>
+
+                    <div className="bg-gray-50 rounded-xl p-4 border-2 border-gray-200">
+                      <div className="font-bold text-gray-800 mb-2">📝 雑費</div>
+                      <div className="text-sm text-gray-700 space-y-1">
+                        <div>• 上記に該当しない少額の経費</div>
+                        <div>• 手数料、振込手数料</div>
+                        <div>• その他の経費</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  className="p-4 border-t border-gray-200"
+                  style={{flexShrink: 0, touchAction: 'none'}}
+                >
+                  <button
+                    onClick={() => setShowExpenseGuide(false)}
+                    className="w-full bg-blue-500 text-white py-3 rounded-xl font-medium hover:bg-blue-600 transition-colors"
+                    style={{touchAction: 'auto'}}
+                  >
+                    閉じる
                   </button>
                 </div>
               </div>
