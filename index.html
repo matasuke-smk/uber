@@ -3524,44 +3524,44 @@
                           return (
                         <div className="space-y-4">
                           {/* 合計売上 */}
-                          <div className="bg-green-50 rounded-xl p-4 border-2 border-green-200">
-                            <div className="text-sm text-gray-600 mb-1">合計売上</div>
-                            <div className="text-2xl font-bold text-green-600">
+                          <div className={`rounded-xl p-4 border-2 ${isDarkMode ? 'bg-green-900/20 border-green-700' : 'bg-green-50 border-green-200'}`}>
+                            <div className={`text-sm mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>合計売上</div>
+                            <div className={`text-2xl font-bold ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
                               ¥{Math.floor(totalSales).toLocaleString()}
                             </div>
-                            <div className="text-xs text-gray-500 mt-1">
+                            <div className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                               基本: ¥{Math.floor(totalEarnings).toLocaleString()} + クエスト: ¥{Math.floor(totalQuest).toLocaleString()}
                             </div>
                           </div>
 
                           {/* 合計経費 */}
-                          <div className="bg-red-50 rounded-xl p-4 border-2 border-red-200">
-                            <div className="text-sm text-gray-600 mb-1">合計経費</div>
-                            <div className="text-2xl font-bold text-red-600">
+                          <div className={`rounded-xl p-4 border-2 ${isDarkMode ? 'bg-red-900/20 border-red-700' : 'bg-red-50 border-red-200'}`}>
+                            <div className={`text-sm mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>合計経費</div>
+                            <div className={`text-2xl font-bold ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>
                               ¥{totalExpenses.toLocaleString()}
                             </div>
                           </div>
 
                           {/* 純利益 (売上 - 経費) */}
-                          <div className="bg-blue-50 rounded-xl p-4 border-2 border-blue-200">
-                            <div className="text-sm text-gray-600 mb-1">純利益 (売上 - 経費)</div>
-                            <div className="text-2xl font-bold text-blue-600">
+                          <div className={`rounded-xl p-4 border-2 ${isDarkMode ? 'bg-blue-900/20 border-blue-700' : 'bg-blue-50 border-blue-200'}`}>
+                            <div className={`text-sm mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>純利益 (売上 - 経費)</div>
+                            <div className={`text-2xl font-bold ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
                               ¥{netProfit.toLocaleString()}
                             </div>
                           </div>
 
                           {/* 総稼働時間と総配達件数 */}
                           <div className="grid grid-cols-2 gap-3">
-                            <div className="bg-blue-50 rounded-xl p-4">
-                              <div className="text-sm text-gray-600 mb-1">総稼働時間</div>
-                              <div className="text-xl font-bold text-blue-600">
+                            <div className={`rounded-xl p-4 ${isDarkMode ? 'bg-blue-900/20' : 'bg-blue-50'}`}>
+                              <div className={`text-sm mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>総稼働時間</div>
+                              <div className={`text-xl font-bold ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
                                 {totalHours.toFixed(1)}時間
                               </div>
                             </div>
 
-                            <div className="bg-purple-50 rounded-xl p-4">
-                              <div className="text-sm text-gray-600 mb-1">総配達件数</div>
-                              <div className="text-xl font-bold text-purple-600">
+                            <div className={`rounded-xl p-4 ${isDarkMode ? 'bg-purple-900/20' : 'bg-purple-50'}`}>
+                              <div className={`text-sm mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>総配達件数</div>
+                              <div className={`text-xl font-bold ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>
                                 {totalDeliveries}件
                               </div>
                             </div>
@@ -3669,8 +3669,8 @@
                           return (
                             <div className="space-y-4">
                               {/* 平均時給グラフ */}
-                              <div className="bg-gradient-to-br from-green-50 to-blue-50 rounded-xl p-4 border border-green-200">
-                                <div className="text-sm font-medium text-gray-700 mb-3">📊 平均時給グラフ</div>
+                              <div className={`rounded-xl p-4 border-2 ${isDarkMode ? 'bg-green-900/20 border-green-700' : 'bg-gradient-to-br from-green-50 to-blue-50 border-green-200'}`}>
+                                <div className={`text-sm font-medium mb-3 ${isDarkMode ? 'text-green-400' : 'text-gray-700'}`}>📊 平均時給グラフ</div>
                                 <div className="space-y-2">
                                   {sortedDayData.map((dayData, idx) => {
                                     if (dayData.count === 0) return null;
@@ -3679,8 +3679,8 @@
 
                                     return (
                                       <div key={dayData.dow} className="flex items-center gap-2">
-                                        <div className="text-xs font-medium text-gray-700 w-6">{dayNames[dayData.dow]}</div>
-                                        <div className="flex-1 bg-white rounded-full h-6 overflow-hidden">
+                                        <div className={`text-xs font-medium w-6 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{dayNames[dayData.dow]}</div>
+                                        <div className={`flex-1 rounded-full h-6 overflow-hidden ${isDarkMode ? 'bg-gray-700' : 'bg-white'}`}>
                                           <div
                                             className="bg-gradient-to-r from-green-500 to-blue-500 h-full rounded-full flex items-center justify-end pr-2 transition-all duration-300"
                                             style={{ width: `${widthPercent}%` }}
@@ -3691,7 +3691,7 @@
                                           </div>
                                         </div>
                                         {widthPercent <= 20 && (
-                                          <span className="text-xs font-bold text-gray-700 w-16">¥{Math.floor(avgHourlyWage).toLocaleString()}</span>
+                                          <span className={`text-xs font-bold w-16 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>¥{Math.floor(avgHourlyWage).toLocaleString()}</span>
                                         )}
                                       </div>
                                     );
@@ -3702,8 +3702,8 @@
                                     const widthPercent = maxHourlyWage > 0 ? (rainyAvgHourlyWage / maxHourlyWage) * 100 : 0;
                                     return (
                                       <div className="flex items-center gap-2">
-                                        <div className="text-xs font-medium text-cyan-700 w-6">🌧️</div>
-                                        <div className="flex-1 bg-white rounded-full h-6 overflow-hidden">
+                                        <div className={`text-xs font-medium w-6 ${isDarkMode ? 'text-cyan-400' : 'text-cyan-700'}`}>🌧️</div>
+                                        <div className={`flex-1 rounded-full h-6 overflow-hidden ${isDarkMode ? 'bg-gray-700' : 'bg-white'}`}>
                                           <div
                                             className="bg-gradient-to-r from-cyan-500 to-blue-500 h-full rounded-full flex items-center justify-end pr-2 transition-all duration-300"
                                             style={{ width: `${widthPercent}%` }}
@@ -3714,7 +3714,7 @@
                                           </div>
                                         </div>
                                         {widthPercent <= 20 && (
-                                          <span className="text-xs font-bold text-cyan-700 w-16">¥{Math.floor(rainyAvgHourlyWage).toLocaleString()}</span>
+                                          <span className={`text-xs font-bold w-16 ${isDarkMode ? 'text-cyan-400' : 'text-cyan-700'}`}>¥{Math.floor(rainyAvgHourlyWage).toLocaleString()}</span>
                                         )}
                                       </div>
                                     );
@@ -3725,8 +3725,8 @@
                                     const widthPercent = maxHourlyWage > 0 ? (holidayAvgHourlyWage / maxHourlyWage) * 100 : 0;
                                     return (
                                       <div className="flex items-center gap-2">
-                                        <div className="text-xs font-medium text-orange-700 w-6">🎌</div>
-                                        <div className="flex-1 bg-white rounded-full h-6 overflow-hidden">
+                                        <div className={`text-xs font-medium w-6 ${isDarkMode ? 'text-orange-400' : 'text-orange-700'}`}>🎌</div>
+                                        <div className={`flex-1 rounded-full h-6 overflow-hidden ${isDarkMode ? 'bg-gray-700' : 'bg-white'}`}>
                                           <div
                                             className="bg-gradient-to-r from-orange-500 to-red-500 h-full rounded-full flex items-center justify-end pr-2 transition-all duration-300"
                                             style={{ width: `${widthPercent}%` }}
@@ -3737,7 +3737,7 @@
                                           </div>
                                         </div>
                                         {widthPercent <= 20 && (
-                                          <span className="text-xs font-bold text-orange-700 w-16">¥{Math.floor(holidayAvgHourlyWage).toLocaleString()}</span>
+                                          <span className={`text-xs font-bold w-16 ${isDarkMode ? 'text-orange-400' : 'text-orange-700'}`}>¥{Math.floor(holidayAvgHourlyWage).toLocaleString()}</span>
                                         )}
                                       </div>
                                     );
@@ -4821,9 +4821,9 @@
                     </div>
 
                     {/* 合計表示 */}
-                    <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-4 border border-purple-200">
-                      <div className="text-sm text-gray-600 mb-1">この日の合計</div>
-                      <div className="text-2xl font-bold text-purple-600">
+                    <div className={`rounded-xl p-4 border-2 ${isDarkMode ? 'bg-purple-900/20 border-purple-700' : 'bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200'}`}>
+                      <div className={`text-sm mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>この日の合計</div>
+                      <div className={`text-2xl font-bold ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>
                         ¥{(() => {
                           const effectiveValues = getEffectiveValues();
                           const date = new Date(selectedDate + 'T00:00:00');
@@ -5968,9 +5968,9 @@
                       </div>
                     </div>
 
-                    <div className="bg-gray-50 rounded-xl p-4 border-2 border-gray-200">
-                      <div className="font-bold text-gray-800 mb-2">📝 雑費</div>
-                      <div className="text-sm text-gray-700 space-y-1">
+                    <div className={`rounded-xl p-4 border-2 ${isDarkMode ? 'bg-gray-700/50 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
+                      <div className={`font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>📝 雑費</div>
+                      <div className={`text-sm space-y-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                         <div>• 上記に該当しない少額の経費</div>
                         <div>• 手数料、振込手数料</div>
                         <div>• その他の経費</div>
@@ -6003,7 +6003,11 @@
                 <div className="relative max-w-4xl w-full max-h-full flex flex-col items-center">
                   <button
                     onClick={() => setShowImagePreview(false)}
-                    className="absolute top-2 right-2 bg-white/90 hover:bg-white text-gray-800 rounded-full w-10 h-10 flex items-center justify-center text-2xl font-bold shadow-lg z-10"
+                    className={`absolute top-2 right-2 rounded-full w-10 h-10 flex items-center justify-center text-2xl font-bold shadow-lg z-10 ${
+                      isDarkMode
+                        ? 'bg-gray-800/90 hover:bg-gray-800 text-white'
+                        : 'bg-white/90 hover:bg-white text-gray-800'
+                    }`}
                     style={{touchAction: 'auto'}}
                   >
                     ×
