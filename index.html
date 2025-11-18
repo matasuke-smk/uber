@@ -5277,7 +5277,7 @@
                   <h2 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>🔍 検索フィルター</h2>
                   <button
                     onClick={() => setShowExpenseFilter(false)}
-                    className="text-gray-500 hover:text-gray-700 text-2xl"
+                    className={`text-2xl ${isDarkMode ? 'text-gray-400 hover:text-gray-200' : 'text-gray-500 hover:text-gray-700'}`}
                     style={{touchAction: 'auto'}}
                   >
                     ✕
@@ -5291,20 +5291,20 @@
                   <div className="p-4 space-y-4">
                     {/* 日付範囲 */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">📅 日付範囲</label>
+                      <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>📅 日付範囲</label>
                       <div className="grid grid-cols-2 gap-3">
                         <input
                           type="date"
                           value={expenseFilter.startDate || ''}
                           onChange={(e) => setExpenseFilter({...expenseFilter, startDate: e.target.value})}
-                          className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none"
+                          className={`px-4 py-3 border-2 rounded-xl focus:outline-none ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-400' : 'border-gray-200 focus:border-blue-500'}`}
                           placeholder="開始日"
                         />
                         <input
                           type="date"
                           value={expenseFilter.endDate || ''}
                           onChange={(e) => setExpenseFilter({...expenseFilter, endDate: e.target.value})}
-                          className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none"
+                          className={`px-4 py-3 border-2 rounded-xl focus:outline-none ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-400' : 'border-gray-200 focus:border-blue-500'}`}
                           placeholder="終了日"
                         />
                       </div>
@@ -5312,11 +5312,11 @@
 
                     {/* 借方科目 */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">📋 借方科目</label>
+                      <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>📋 借方科目</label>
                       <select
                         value={expenseFilter.accountingSubject || ''}
                         onChange={(e) => setExpenseFilter({...expenseFilter, accountingSubject: e.target.value})}
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none"
+                        className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-400' : 'border-gray-200 focus:border-blue-500'}`}
                       >
                         <option value="">すべて</option>
                         <option value="travel">旅費交通費（ガソリン・駐車場等）</option>
@@ -5333,24 +5333,24 @@
 
                     {/* 取引先 */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">🏪 取引先</label>
+                      <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>🏪 取引先</label>
                       <input
                         type="text"
                         value={expenseFilter.vendor || ''}
                         onChange={(e) => setExpenseFilter({...expenseFilter, vendor: e.target.value})}
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none"
+                        className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-400' : 'border-gray-200 focus:border-blue-500'}`}
                         placeholder="取引先名で検索"
                       />
                     </div>
 
                     {/* フィルター適用中の表示 */}
                     {(expenseFilter.startDate || expenseFilter.endDate || expenseFilter.accountingSubject || expenseFilter.vendor) && (
-                      <div className="bg-blue-50 rounded-xl p-4 border-2 border-blue-200">
+                      <div className={`rounded-xl p-4 border-2 ${isDarkMode ? 'bg-blue-900 border-blue-700' : 'bg-blue-50 border-blue-200'}`}>
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="text-blue-600 text-lg">🔍</span>
-                          <span className="font-bold text-blue-800">フィルター適用中</span>
+                          <span className={`text-lg ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>🔍</span>
+                          <span className={`font-bold ${isDarkMode ? 'text-blue-300' : 'text-blue-800'}`}>フィルター適用中</span>
                         </div>
-                        <div className="text-xs text-blue-700 space-y-1">
+                        <div className={`text-xs space-y-1 ${isDarkMode ? 'text-blue-400' : 'text-blue-700'}`}>
                           {expenseFilter.startDate && <div>開始日: {expenseFilter.startDate}</div>}
                           {expenseFilter.endDate && <div>終了日: {expenseFilter.endDate}</div>}
                           {expenseFilter.accountingSubject && <div>借方科目: {accountingSubjects[expenseFilter.accountingSubject]}</div>}
@@ -5370,7 +5370,7 @@
                       setExpenseFilter({});
                       setShowExpenseFilter(false);
                     }}
-                    className="w-full bg-gray-200 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-300 transition-colors"
+                    className={`w-full py-3 rounded-xl font-medium transition-colors ${isDarkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
                     style={{touchAction: 'auto'}}
                   >
                     フィルターをクリア
