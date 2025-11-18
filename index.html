@@ -4765,14 +4765,26 @@
                         value={editingExpense?.vendor || ''}
                         onChange={(e) => {
                           setEditingExpense({...editingExpense, vendor: e.target.value});
-                          const suggestions = getVendorSuggestions(e.target.value);
-                          setVendorSuggestions(suggestions);
-                          setShowVendorSuggestions(suggestions.length > 0);
+                          try {
+                            const suggestions = getVendorSuggestions(e.target.value);
+                            setVendorSuggestions(suggestions);
+                            setShowVendorSuggestions(suggestions.length > 0);
+                          } catch (error) {
+                            console.error('Error getting vendor suggestions:', error);
+                            setVendorSuggestions([]);
+                            setShowVendorSuggestions(false);
+                          }
                         }}
                         onFocus={(e) => {
-                          const suggestions = getVendorSuggestions(e.target.value);
-                          setVendorSuggestions(suggestions);
-                          setShowVendorSuggestions(suggestions.length > 0);
+                          try {
+                            const suggestions = getVendorSuggestions(e.target.value);
+                            setVendorSuggestions(suggestions);
+                            setShowVendorSuggestions(suggestions.length > 0);
+                          } catch (error) {
+                            console.error('Error getting vendor suggestions:', error);
+                            setVendorSuggestions([]);
+                            setShowVendorSuggestions(false);
+                          }
                         }}
                         onBlur={() => {
                           // 候補選択のために少し遅延
