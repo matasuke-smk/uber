@@ -5982,13 +5982,18 @@
                       console.log('weekdayQuests:', weekdayQuests);
 
                       let cumulative = 0;
-                      weekdayQuests.forEach((quest, index) => {
+                      for (let i = 0; i < weekdayQuests.length; i++) {
+                        const quest = weekdayQuests[i];
                         if (weekdayDeliveries >= cumulative + quest.count) {
-                          console.log(`Quest ${index + 1} 達成: ${quest.count}件で${quest.reward}円`);
+                          console.log(`Quest ${i + 1} 達成: ${quest.count}件で${quest.reward}円`);
                           weekdayQuest += quest.reward;
                           cumulative += quest.count;
+                        } else {
+                          // 前のクエストが未達成なら、次のクエストは計算しない
+                          console.log(`Quest ${i + 1} 未達成: ${cumulative + quest.count}件必要、現在${weekdayDeliveries}件`);
+                          break;
                         }
-                      });
+                      }
 
                       let weekendDeliveries = 0;
                       let weekendQuest = 0;
@@ -6001,12 +6006,16 @@
                       });
 
                       cumulative = 0;
-                      weekendQuests.forEach(quest => {
+                      for (let i = 0; i < weekendQuests.length; i++) {
+                        const quest = weekendQuests[i];
                         if (weekendDeliveries >= cumulative + quest.count) {
                           weekendQuest += quest.reward;
                           cumulative += quest.count;
+                        } else {
+                          // 前のクエストが未達成なら、次のクエストは計算しない
+                          break;
                         }
-                      });
+                      }
 
                       thisWeekData.quest = weekdayQuest + weekendQuest;
 
