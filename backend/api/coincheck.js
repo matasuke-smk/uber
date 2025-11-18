@@ -329,6 +329,22 @@ class CoincheckAPI {
       `/api/exchange/orders/transactions_pagination?limit=${limit}`
     );
   }
+
+  /**
+   * 販売所での購入履歴取得
+   * @returns {Promise<object>} 購入履歴
+   */
+  async getBuyHistory() {
+    return await this.privateGet('/api/buys');
+  }
+
+  /**
+   * 販売所での売却履歴取得
+   * @returns {Promise<object>} 売却履歴
+   */
+  async getSellHistory() {
+    return await this.privateGet('/api/sells');
+  }
 }
 
 module.exports = CoincheckAPI;

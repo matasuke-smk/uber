@@ -191,20 +191,41 @@ class OrderService {
       const transactions = transactionsResult.data || [];
       let syncedCount = 0;
       let errorCount = 0;
+      let skippedCount = 0;
+
+      // 一昨日の0時0分0秒を計算（UTC）
+      const twoDaysAgo = new Date();
+      twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+      twoDaysAgo.setHours(0, 0, 0, 0);
+      const cutoffDate = twoDaysAgo.toISOString();
+
+      console.log('取引所取引履歴同期: 基準日時 =', cutoffDate);
 
       // 各取引をpurchasesテーブルに保存
       for (const tx of transactions) {
         try {
-          // すでに存在するか確認
+          // BTCペアのみ処理
+          if (tx.pair !== 'btc_jpy') {
+            skippedCount++;
+            continue;
+          }
+
+          // 一昨日以降のデータのみ処理
+          if (tx.created_at < cutoffDate) {
+            skippedCount++;
+            continue;
+          }
+
+          // すでに存在するか確認（transaction_idのみで判定）
           const { data: existing } = await this.supabase
             .from('purchases')
             .select('id')
             .eq('user_id', userId)
-            .eq('order_id', tx.order_id)
             .eq('transaction_id', tx.id)
-            .single();
+            .maybeSingle();
 
           if (existing) {
+            skippedCount++;
             continue; // すでに存在する場合はスキップ
           }
 
@@ -243,10 +264,12 @@ class OrderService {
 
       return {
         success: true,
-        message: `${syncedCount}件の取引を同期しました`,
+        message: `取引所から${syncedCount}件の取引を同期しました`,
         syncedCount: syncedCount,
         errorCount: errorCount,
-        totalTransactions: transactions.length
+        skippedCount: skippedCount,
+        totalTransactions: transactions.length,
+        cutoffDate: cutoffDate
       };
     } catch (error) {
       console.error('取引履歴同期エラー:', error);
@@ -367,6 +390,188 @@ class OrderService {
       };
     } catch (error) {
       console.error('未決済注文取得エラー:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * 手動で購入履歴を追加
+   * @param {string} userId - ユーザーID
+   * @param {string} datetime - 購入日時（ISO 8601形式）
+   * @param {number} btcAmount - BTC量
+   * @param {number} jpyAmount - 日本円金額
+   * @param {number} fee - 手数料
+   * @returns {Promise<object>} 追加結果
+   */
+  async addManualPurchase(userId, datetime, btcAmount, jpyAmount, fee = 0) {
+    try {
+      // 価格を計算
+      const rate = jpyAmount / btcAmount;
+
+      // ユニークなIDを生成（bigint型に対応するため数値のみ）
+      // 現在のタイムスタンプ（ミリ秒）を使用
+      const uniqueId = Date.now();
+
+      // purchasesに挿入
+      const { data, error } = await this.supabase.from('purchases').insert({
+        user_id: userId,
+        order_id: uniqueId,
+        transaction_id: uniqueId,
+        pair: 'btc_jpy',
+        order_type: 'buy',
+        btc_amount: btcAmount,
+        jpy_amount: jpyAmount,
+        rate: rate,
+        fee: fee,
+        fee_currency: 'JPY',
+        liquidity: 'sales', // 販売所
+        status: 'completed',
+        created_at: datetime
+      });
+
+      if (error) {
+        console.error('手動購入追加エラー:', error);
+        return {
+          success: false,
+          error: '購入履歴の追加に失敗しました',
+          details: error.message
+        };
+      }
+
+      return {
+        success: true,
+        message: '販売所購入を追加しました'
+      };
+    } catch (error) {
+      console.error('手動購入追加エラー:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * 指定日時より前の購入履歴を削除
+   * @param {string} userId - ユーザーID
+   * @param {string} datetime - 基準日時（ISO 8601形式）
+   * @returns {Promise<object>} 削除結果
+   */
+  async deletePurchasesBefore(userId, datetime) {
+    try {
+      const { data, error, count } = await this.supabase
+        .from('purchases')
+        .delete({ count: 'exact' })
+        .eq('user_id', userId)
+        .lt('created_at', datetime);
+
+      if (error) {
+        console.error('購入履歴削除エラー:', error);
+        return {
+          success: false,
+          error: '購入履歴の削除に失敗しました',
+          details: error.message
+        };
+      }
+
+      return {
+        success: true,
+        message: `${count}件の購入履歴を削除しました`,
+        deletedCount: count
+      };
+    } catch (error) {
+      console.error('購入履歴削除エラー:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * 販売所の購入履歴を同期（一昨日以降のみ）
+   * @param {string} userId - ユーザーID
+   * @returns {Promise<object>} 同期結果
+   */
+  async syncBuyHistory(userId) {
+    try {
+      // 販売所での購入履歴を取得
+      const buyResult = await this.coincheck.getBuyHistory();
+
+      if (!buyResult.success) {
+        return buyResult;
+      }
+
+      const buys = buyResult.data || [];
+      let syncedCount = 0;
+      let errorCount = 0;
+
+      // 一昨日の0時0分0秒を計算（UTC）
+      const twoDaysAgo = new Date();
+      twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+      twoDaysAgo.setHours(0, 0, 0, 0);
+      const cutoffDate = twoDaysAgo.toISOString();
+
+      console.log('販売所購入履歴同期: 基準日時 =', cutoffDate);
+
+      // 各購入をpurchasesテーブルに保存
+      for (const buy of buys) {
+        try {
+          // 一昨日以降のデータのみ処理
+          if (buy.created_at < cutoffDate) {
+            continue;
+          }
+
+          // すでに存在するか確認
+          const { data: existing } = await this.supabase
+            .from('purchases')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('transaction_id', buy.id)
+            .single();
+
+          if (existing) {
+            continue; // すでに存在する場合はスキップ
+          }
+
+          // BTCとJPYの金額を計算
+          const btcAmount = buy.amount ? parseFloat(buy.amount) : 0;
+          const jpyAmount = buy.total ? parseFloat(buy.total) : 0;
+          const rate = btcAmount > 0 ? jpyAmount / btcAmount : 0;
+
+          // purchasesに挿入
+          const { error } = await this.supabase.from('purchases').insert({
+            user_id: userId,
+            order_id: buy.id, // 販売所の場合はorder_idとして保存
+            transaction_id: buy.id,
+            pair: 'btc_jpy',
+            order_type: 'buy',
+            btc_amount: btcAmount,
+            jpy_amount: jpyAmount,
+            rate: rate,
+            fee: buy.fee ? parseFloat(buy.fee) : 0,
+            fee_currency: 'JPY',
+            liquidity: 'sales', // 販売所を示すマーカー
+            status: 'completed',
+            created_at: buy.created_at
+          });
+
+          if (error) {
+            console.error('販売所購入保存エラー:', error);
+            errorCount++;
+          } else {
+            syncedCount++;
+          }
+        } catch (err) {
+          console.error('販売所購入処理エラー:', err);
+          errorCount++;
+        }
+      }
+
+      return {
+        success: true,
+        message: `販売所から${syncedCount}件の購入履歴を同期しました`,
+        syncedCount: syncedCount,
+        errorCount: errorCount,
+        totalBuys: buys.length,
+        cutoffDate: cutoffDate
+      };
+    } catch (error) {
+      console.error('販売所購入履歴同期エラー:', error);
       return { success: false, error: error.message };
     }
   }

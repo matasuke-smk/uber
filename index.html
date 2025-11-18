@@ -602,10 +602,11 @@
       const [showBTCModal, setShowBTCModal] = useState(false);
       const [btcPrice, setBtcPrice] = useState(null);
       const [btcBalance, setBtcBalance] = useState(null);
-      const [btcOrderBook, setBtcOrderBook] = useState(null);
+      const [btcPurchases, setBtcPurchases] = useState(null);
       const [btcStats, setBtcStats] = useState(null);
       const [btcLoading, setBtcLoading] = useState(false);
       const [btcError, setBtcError] = useState(null);
+      const [btcLastUpdate, setBtcLastUpdate] = useState(null);
       const BACKEND_API_URL = 'http://localhost:3000';
 
       const [visionApiKey, setVisionApiKey] = useState(() => {
@@ -644,6 +645,7 @@
           const data = await response.json();
           if (data.success !== false) {
             setBtcPrice(data);
+            setBtcLastUpdate(new Date());
           } else {
             console.error('価格取得エラー:', data.error);
           }
@@ -652,18 +654,250 @@
         }
       };
 
-      // BTC: 板情報を取得
-      const fetchBtcOrderBook = async () => {
+      // BTC: 購入履歴を取得
+      const fetchBtcPurchases = async () => {
+        if (!session?.user?.id || !coincheckApiKey || !coincheckApiSecret) {
+          console.log('[購入履歴] APIキーまたはユーザーIDが未設定');
+          return;
+        }
+
         try {
-          const response = await fetch(`${BACKEND_API_URL}/api/orderbook`);
+          console.log('[購入履歴] 取得開始...');
+          const response = await fetch(`${BACKEND_API_URL}/api/purchases?limit=50`, {
+            headers: {
+              'x-user-id': session.user.id,
+              'x-api-key': coincheckApiKey,
+              'x-api-secret': coincheckApiSecret
+            }
+          });
           const data = await response.json();
-          if (data.success !== false) {
-            setBtcOrderBook(data);
+          console.log('[購入履歴] レスポンス:', data);
+
+          if (data.success && data.purchases) {
+            console.log('[購入履歴] 取得成功:', data.purchases.length, '件');
+            setBtcPurchases(data.purchases);
           } else {
-            console.error('板情報取得エラー:', data.error);
+            console.error('[購入履歴] 取得エラー:', data.error);
+            setBtcPurchases([]);
           }
         } catch (error) {
-          console.error('板情報取得エラー:', error);
+          console.error('[購入履歴] 例外発生:', error);
+          setBtcPurchases([]);
+        }
+      };
+
+      // BTC: 取引履歴を同期（CoincheckからSupabaseへ）
+      const syncBtcTransactions = async () => {
+        if (!session?.user?.id || !coincheckApiKey || !coincheckApiSecret) {
+          setBtcError('APIキーが設定されていません');
+          return;
+        }
+
+        setBtcLoading(true);
+        setBtcError(null);
+        try {
+          // 取引所の取引履歴を同期（BTCのみ、一昨日以降）
+          const exchangeResponse = await fetch(`${BACKEND_API_URL}/api/sync/transactions`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-user-id': session.user.id,
+              'x-api-key': coincheckApiKey,
+              'x-api-secret': coincheckApiSecret
+            },
+            body: JSON.stringify({ limit: 100 })
+          });
+          const exchangeData = await exchangeResponse.json();
+
+          if (exchangeData.success) {
+            // 同期後、購入履歴と統計を再取得
+            await Promise.all([
+              fetchBtcPurchases(),
+              fetchBtcStats()
+            ]);
+          } else {
+            setBtcError(exchangeData.error);
+          }
+        } catch (error) {
+          setBtcError(error.message);
+        } finally {
+          setBtcLoading(false);
+        }
+      };
+
+      // BTC: 指定日時より前のデータを削除
+      const deleteOldPurchases = async () => {
+        if (!session?.user?.id || !coincheckApiKey || !coincheckApiSecret) {
+          alert('APIキーが設定されていません');
+          return;
+        }
+
+        // 日時入力を求める（デフォルト: 2025-11-18 11:16:51 JST）
+        const datetimeInput = prompt(
+          '削除する基準日時を入力してください（この日時より前のデータを削除します）\n\n形式: YYYY-MM-DD HH:MM:SS\n例: 2025-11-18 11:16:51',
+          '2025-11-18 11:16:51'
+        );
+
+        if (!datetimeInput) return;
+
+        // 入力された日時をパース（JST -> UTC変換）
+        const jstDate = new Date(datetimeInput);
+        if (isNaN(jstDate.getTime())) {
+          alert('❌ 日時の形式が正しくありません');
+          return;
+        }
+
+        // JSTからUTCに変換（日本時間 - 9時間 = UTC）
+        const utcDate = new Date(jstDate.getTime() - 9 * 60 * 60 * 1000);
+        const utcString = utcDate.toISOString();
+
+        const confirmed = confirm(
+          `${datetimeInput}（日本時間）より前の取引履歴を削除しますか？\n\n` +
+          `UTC時刻: ${utcString}\n\n` +
+          `この操作は取り消せません。`
+        );
+        if (!confirmed) return;
+
+        setBtcLoading(true);
+        try {
+          console.log('[削除] 古いデータ削除開始...');
+          console.log('[削除] 基準日時（JST）:', datetimeInput);
+          console.log('[削除] 基準日時（UTC）:', utcString);
+
+          const response = await fetch(`${BACKEND_API_URL}/api/purchases/before`, {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-user-id': session.user.id,
+              'x-api-key': coincheckApiKey,
+              'x-api-secret': coincheckApiSecret
+            },
+            body: JSON.stringify({ datetime: utcString })
+          });
+          const data = await response.json();
+          console.log('[削除] レスポンス:', data);
+
+          if (data.success) {
+            alert(`✅ ${data.deletedCount}件の古い取引を削除しました`);
+            // 削除後、購入履歴と統計を再取得
+            await Promise.all([
+              fetchBtcPurchases(),
+              fetchBtcStats()
+            ]);
+          } else {
+            alert(`❌ 削除エラー: ${data.error}`);
+          }
+        } catch (error) {
+          console.error('[削除] 例外発生:', error);
+          alert(`❌ 削除エラー: ${error.message}`);
+        } finally {
+          setBtcLoading(false);
+        }
+      };
+
+      // BTC: 販売所での購入を手動追加
+      const addManualPurchase = async () => {
+        if (!session?.user?.id || !coincheckApiKey || !coincheckApiSecret) {
+          alert('APIキーが設定されていません');
+          return;
+        }
+
+        // 購入日時
+        const datetimeInput = prompt(
+          '購入日時を入力してください（日本時間）\n\n形式: YYYY-MM-DD HH:MM:SS\n例: 2025-11-16 10:30:00'
+        );
+        if (!datetimeInput) return;
+
+        const jstDate = new Date(datetimeInput);
+        if (isNaN(jstDate.getTime())) {
+          alert('❌ 日時の形式が正しくありません');
+          return;
+        }
+
+        // BTC量
+        const btcAmountInput = prompt('購入したBTC量を入力してください\n例: 0.00050000');
+        if (!btcAmountInput) return;
+        const btcAmount = parseFloat(btcAmountInput);
+        if (isNaN(btcAmount) || btcAmount <= 0) {
+          alert('❌ BTC量が正しくありません');
+          return;
+        }
+
+        // 日本円金額
+        const jpyAmountInput = prompt('支払った日本円を入力してください（手数料込み）\n例: 7500');
+        if (!jpyAmountInput) return;
+        const jpyAmount = parseFloat(jpyAmountInput);
+        if (isNaN(jpyAmount) || jpyAmount <= 0) {
+          alert('❌ 金額が正しくありません');
+          return;
+        }
+
+        // 手数料
+        const feeInput = prompt('手数料を入力してください（わからない場合は0）\n例: 0', '0');
+        if (feeInput === null) return;
+        const fee = parseFloat(feeInput || '0');
+
+        // 価格を計算
+        const rate = jpyAmount / btcAmount;
+
+        // 確認
+        const confirmed = confirm(
+          `以下の内容で販売所購入を追加しますか？\n\n` +
+          `日時: ${datetimeInput}\n` +
+          `BTC量: ${btcAmount.toFixed(8)} BTC\n` +
+          `金額: ¥${jpyAmount.toLocaleString()}\n` +
+          `価格: ¥${Math.round(rate).toLocaleString()}/BTC\n` +
+          `手数料: ¥${fee.toLocaleString()}`
+        );
+        if (!confirmed) return;
+
+        setBtcLoading(true);
+        try {
+          // JSTからUTCに変換
+          const utcDate = new Date(jstDate.getTime() - 9 * 60 * 60 * 1000);
+          const utcString = utcDate.toISOString();
+
+          console.log('[手動追加] 追加開始...');
+          console.log('[手動追加] 日時（JST）:', datetimeInput);
+          console.log('[手動追加] 日時（UTC）:', utcString);
+          console.log('[手動追加] BTC量:', btcAmount);
+          console.log('[手動追加] 金額:', jpyAmount);
+
+          // バックエンドAPIに送信
+          const response = await fetch(`${BACKEND_API_URL}/api/purchases/manual`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-user-id': session.user.id,
+              'x-api-key': coincheckApiKey,
+              'x-api-secret': coincheckApiSecret
+            },
+            body: JSON.stringify({
+              datetime: utcString,
+              btcAmount: btcAmount,
+              jpyAmount: jpyAmount,
+              fee: fee
+            })
+          });
+
+          const data = await response.json();
+          console.log('[手動追加] レスポンス:', data);
+
+          if (data.success) {
+            alert('✅ 販売所購入を追加しました');
+            // 追加後、購入履歴と統計を再取得
+            await Promise.all([
+              fetchBtcPurchases(),
+              fetchBtcStats()
+            ]);
+          } else {
+            alert(`❌ 追加エラー: ${data.error}`);
+          }
+        } catch (error) {
+          console.error('[手動追加] 例外発生:', error);
+          alert(`❌ 追加エラー: ${error.message}`);
+        } finally {
+          setBtcLoading(false);
         }
       };
 
@@ -726,9 +960,9 @@
         try {
           await Promise.all([
             fetchBtcPrice(),
-            fetchBtcOrderBook(),
             fetchBtcBalance(),
-            fetchBtcStats()
+            fetchBtcStats(),
+            fetchBtcPurchases()
           ]);
         } catch (error) {
           console.error('データ取得エラー:', error);
@@ -737,6 +971,22 @@
           setBtcLoading(false);
         }
       };
+
+      // BTC: モーダルが開かれたときに自動で同期
+      useEffect(() => {
+        if (showBTCModal && session?.user?.id && coincheckApiKey && coincheckApiSecret) {
+          // 非同期で同期を実行（エラーがあっても続行）
+          const autoSync = async () => {
+            try {
+              await syncBtcTransactions();
+            } catch (error) {
+              // エラーは無視（自動同期のため）
+            }
+          };
+
+          autoSync();
+        }
+      }, [showBTCModal]);
 
       // 店舗名候補を生成する関数（使用回数順にソート）
       const getVendorSuggestions = (inputValue) => {
@@ -1830,12 +2080,31 @@
         }
       }, [lastAccessDate]);
 
-      // BTCモーダルが開いたときにデータを取得
+      // BTCモーダルが開いたときにデータを取得し、リアルタイム更新を開始
       useEffect(() => {
         if (showBTCModal) {
+          // 初回データ取得
           fetchAllBtcData();
+
+          // 価格を1秒ごとに自動更新（高速リアルタイム）
+          const priceInterval = setInterval(() => {
+            fetchBtcPrice();
+          }, 1000);
+
+          // 残高、統計、購入履歴を30秒ごとに自動更新
+          const dataInterval = setInterval(() => {
+            fetchBtcBalance();
+            fetchBtcStats();
+            fetchBtcPurchases();
+          }, 30000);
+
+          // クリーンアップ: モーダルを閉じた時にタイマーを停止
+          return () => {
+            clearInterval(priceInterval);
+            clearInterval(dataInterval);
+          };
         }
-      }, [showBTCModal]);
+      }, [showBTCModal, session, coincheckApiKey, coincheckApiSecret]);
 
       // Daily data and expenses are now saved to Supabase instead of localStorage
       // (removed automatic localStorage sync)
@@ -6393,27 +6662,30 @@
                   className={`border-b p-4 flex items-center justify-between ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
                   style={{flexShrink: 0, touchAction: 'none'}}
                 >
-                  <h2 className={`text-xl font-bold flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-                    <img src="BTC.png" alt="BTC" className="w-6 h-6" />
-                    ビットコイン積み立て記録
-                  </h2>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={fetchAllBtcData}
-                      disabled={btcLoading}
-                      className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      style={{touchAction: 'auto'}}
-                    >
-                      {btcLoading ? '更新中...' : '🔄 更新'}
-                    </button>
-                    <button
-                      onClick={() => setShowBTCModal(false)}
-                      className={`text-2xl ${isDarkMode ? 'text-gray-400 hover:text-gray-200' : 'text-gray-500 hover:text-gray-700'}`}
-                      style={{touchAction: 'auto'}}
-                    >
-                      ×
-                    </button>
+                  <div className="flex flex-col gap-1">
+                    <h2 className={`text-xl font-bold flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
+                      <img src="BTC.png" alt="BTC" className="w-6 h-6" />
+                      ビットコイン積み立て記録
+                    </h2>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs ${isDarkMode ? 'text-green-400' : 'text-green-600'} flex items-center gap-1`}>
+                        <span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                        リアルタイム更新中
+                      </span>
+                      {btcLastUpdate && (
+                        <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                          最終更新: {btcLastUpdate.toLocaleTimeString('ja-JP')}
+                        </span>
+                      )}
+                    </div>
                   </div>
+                  <button
+                    onClick={() => setShowBTCModal(false)}
+                    className={`text-2xl ${isDarkMode ? 'text-gray-400 hover:text-gray-200' : 'text-gray-500 hover:text-gray-700'}`}
+                    style={{touchAction: 'auto'}}
+                  >
+                    ×
+                  </button>
                 </div>
 
                 {/* コンテンツ */}
@@ -6447,16 +6719,20 @@
 
                     {/* 現在価格 */}
                     {btcPrice && (
-                      <div className={`rounded-xl p-6 border-2 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gradient-to-br from-orange-50 to-yellow-50 border-orange-200'}`}>
-                        <h3 className={`font-bold text-lg mb-4 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>💰 現在価格</h3>
-                        <div className="grid grid-cols-2 gap-4">
+                      <div className={`rounded-xl p-6 border-2 transition-all duration-300 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gradient-to-br from-orange-50 to-yellow-50 border-orange-200'}`}>
+                        <h3 className={`font-bold text-lg mb-4 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>💰 現在価格（BTC/JPY）</h3>
+                        <div className="flex items-center justify-between">
                           <div>
                             <div className={`text-sm mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>最終取引価格</div>
-                            <div className={`text-2xl font-bold ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`}>
+                            <div className={`text-4xl font-bold transition-all duration-300 ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`}>
                               ¥{Number(btcPrice.last).toLocaleString()}
                             </div>
+                            <div className={`text-xs mt-2 flex items-center gap-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                              <span className="inline-block w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse"></span>
+                              1秒ごとに更新
+                            </div>
                           </div>
-                          <div>
+                          <div className="text-right">
                             <div className={`text-sm mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>24h変動</div>
                             <div className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                               高値: ¥{Number(btcPrice.high).toLocaleString()}<br />
@@ -6470,25 +6746,59 @@
                     {/* 残高情報 */}
                     {btcBalance && (
                       <div className={`rounded-xl p-6 border-2 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gradient-to-br from-green-50 to-blue-50 border-green-200'}`}>
-                        <h3 className={`font-bold text-lg mb-4 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>💼 残高</h3>
+                        <h3 className={`font-bold text-lg mb-4 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>💼 保有状況</h3>
+
+                        {/* 保有BTC */}
+                        <div className={`p-4 rounded-lg mb-4 ${isDarkMode ? 'bg-gray-700/50' : 'bg-white/70'}`}>
+                          <div className={`text-sm mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>保有ビットコイン</div>
+                          <div className={`text-4xl font-bold ${isDarkMode ? 'text-green-400' : 'text-green-600'} flex items-baseline gap-2`}>
+                            {parseFloat(btcBalance.btc || 0).toFixed(8)}
+                            <span className={`text-lg ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>BTC</span>
+                          </div>
+                        </div>
+
+                        {/* 評価額と損益 */}
                         <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <div className={`text-sm mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>ビットコイン</div>
-                            <div className={`text-xl font-bold ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
-                              {parseFloat(btcBalance.btc || 0).toFixed(8)} BTC
+                          {/* 評価額 */}
+                          <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-gray-700/50' : 'bg-white/70'}`}>
+                            <div className={`text-sm mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>評価額</div>
+                            <div className={`text-2xl font-bold transition-all duration-300 ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>
+                              {btcPrice ? `¥${Math.floor(Number(btcPrice.last) * parseFloat(btcBalance.btc || 0)).toLocaleString()}` : '計算中...'}
                             </div>
-                            <div className={`text-xs mt-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                              （予約: {parseFloat(btcBalance.btc_reserved || 0).toFixed(8)}）
+                            <div className={`text-xs mt-2 flex items-center gap-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                              <span className="inline-block w-1.5 h-1.5 bg-purple-500 rounded-full animate-pulse"></span>
+                              リアルタイム更新
                             </div>
                           </div>
-                          <div>
-                            <div className={`text-sm mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>日本円</div>
-                            <div className={`text-xl font-bold ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
-                              ¥{Number(btcBalance.jpy || 0).toLocaleString()}
-                            </div>
-                            <div className={`text-xs mt-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                              （予約: ¥{Number(btcBalance.jpy_reserved || 0).toLocaleString()}）
-                            </div>
+
+                          {/* 損益 */}
+                          <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-gray-700/50' : 'bg-white/70'}`}>
+                            <div className={`text-sm mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>損益</div>
+                            {btcPrice && btcStats && btcStats.total_jpy ? (
+                              <>
+                                {(() => {
+                                  const currentValue = Math.floor(Number(btcPrice.last) * parseFloat(btcBalance.btc || 0));
+                                  const totalInvested = Number(btcStats.total_jpy || 0);
+                                  const profit = currentValue - totalInvested;
+                                  const profitPercent = totalInvested > 0 ? ((profit / totalInvested) * 100).toFixed(2) : '0.00';
+                                  const isProfit = profit >= 0;
+                                  return (
+                                    <>
+                                      <div className={`text-2xl font-bold transition-all duration-300 ${isProfit ? (isDarkMode ? 'text-green-400' : 'text-green-600') : (isDarkMode ? 'text-red-400' : 'text-red-600')}`}>
+                                        {isProfit ? '+' : ''}¥{profit.toLocaleString()}
+                                      </div>
+                                      <div className={`text-sm mt-2 ${isProfit ? (isDarkMode ? 'text-green-400' : 'text-green-600') : (isDarkMode ? 'text-red-400' : 'text-red-600')}`}>
+                                        {isProfit ? '+' : ''}{profitPercent}%
+                                      </div>
+                                    </>
+                                  );
+                                })()}
+                              </>
+                            ) : (
+                              <div className={`text-2xl font-bold ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                                データなし
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -6527,54 +6837,68 @@
                       </div>
                     )}
 
-                    {/* 板情報 */}
-                    {btcOrderBook && (
-                      <div className={`rounded-xl p-6 border-2 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-                        <h3 className={`font-bold text-lg mb-4 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>📈 板情報</h3>
-                        <div className="grid grid-cols-2 gap-4">
-                          {/* 売り板 */}
-                          <div>
-                            <h4 className={`text-sm font-bold mb-2 ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>売り板（Ask）</h4>
-                            <div className="space-y-1">
-                              {btcOrderBook.asks && btcOrderBook.asks.slice(0, 5).reverse().map((ask, idx) => (
-                                <div key={idx} className={`flex justify-between text-xs p-1 rounded ${isDarkMode ? 'bg-red-900/20' : 'bg-red-50'}`}>
-                                  <span className={isDarkMode ? 'text-red-300' : 'text-red-700'}>¥{Number(ask[0]).toLocaleString()}</span>
-                                  <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>{parseFloat(ask[1]).toFixed(4)} BTC</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* 買い板 */}
-                          <div>
-                            <h4 className={`text-sm font-bold mb-2 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>買い板（Bid）</h4>
-                            <div className="space-y-1">
-                              {btcOrderBook.bids && btcOrderBook.bids.slice(0, 5).map((bid, idx) => (
-                                <div key={idx} className={`flex justify-between text-xs p-1 rounded ${isDarkMode ? 'bg-green-900/20' : 'bg-green-50'}`}>
-                                  <span className={isDarkMode ? 'text-green-300' : 'text-green-700'}>¥{Number(bid[0]).toLocaleString()}</span>
-                                  <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>{parseFloat(bid[1]).toFixed(4)} BTC</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* スプレッド */}
-                        {btcOrderBook.asks && btcOrderBook.bids && btcOrderBook.asks[0] && btcOrderBook.bids[0] && (
-                          <div className={`mt-4 p-3 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
-                            <div className="flex justify-between items-center">
-                              <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>スプレッド:</span>
-                              <span className={`font-bold ${isDarkMode ? 'text-yellow-400' : 'text-yellow-600'}`}>
-                                ¥{(Number(btcOrderBook.asks[0][0]) - Number(btcOrderBook.bids[0][0])).toLocaleString()}
-                              </span>
-                            </div>
-                          </div>
-                        )}
+                    {/* 取引履歴 */}
+                    <div className={`rounded-xl p-6 border-2 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className={`font-bold text-lg ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>📜 取引履歴</h3>
                       </div>
-                    )}
+                      {btcPurchases && btcPurchases.length > 0 ? (
+                        <div className={`overflow-x-auto`}>
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className={`border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                                <th className={`text-left p-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>日付</th>
+                                <th className={`text-right p-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>BTC量</th>
+                                <th className={`text-right p-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>価格</th>
+                                <th className={`text-right p-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>金額</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {btcPurchases.map((purchase, idx) => (
+                                <tr key={idx} className={`border-b ${isDarkMode ? 'border-gray-700 hover:bg-gray-700/50' : 'border-gray-100 hover:bg-gray-50'}`}>
+                                  <td className={`p-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                                    {new Date(purchase.created_at).toLocaleDateString('ja-JP', {
+                                      year: 'numeric',
+                                      month: '2-digit',
+                                      day: '2-digit'
+                                    })}
+                                  </td>
+                                  <td className={`p-2 text-right font-mono ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
+                                    {parseFloat(purchase.btc_amount || 0).toFixed(8)}
+                                  </td>
+                                  <td className={`p-2 text-right ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                                    ¥{Number(purchase.rate || 0).toLocaleString()}
+                                  </td>
+                                  <td className={`p-2 text-right font-bold ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+                                    ¥{Number(purchase.jpy_amount || 0).toLocaleString()}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <div className={`text-center py-8 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                          <div className="text-3xl mb-2">📭</div>
+                          <p className="text-sm mb-3">
+                            {!coincheckApiKey || !coincheckApiSecret
+                              ? 'APIキーを設定してください'
+                              : btcPurchases === null
+                                ? 'データを読み込み中...'
+                                : '取引履歴がありません'}
+                          </p>
+                          {coincheckApiKey && coincheckApiSecret && btcPurchases && btcPurchases.length === 0 && (
+                            <p className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                              Coincheckで取引を行った後、<br />
+                              上の「🔄 Coincheckから同期」ボタンをクリックしてください
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
 
                     {/* データがない場合 */}
-                    {!btcLoading && !btcPrice && !btcOrderBook && !btcBalance && (
+                    {!btcLoading && !btcPrice && !btcBalance && (
                       <div className={`rounded-xl p-6 border-2 text-center ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
                         <div className="text-4xl mb-3">📡</div>
                         <h3 className={`font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>データがありません</h3>

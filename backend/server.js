@@ -16,14 +16,18 @@ const PORT = process.env.PORT || 3000;
 // ミドルウェア設定
 app.use(express.json());
 
-// CORS設定
-const corsOptions = {
-  origin: process.env.CORS_ORIGIN
-    ? process.env.CORS_ORIGIN.split(',')
-    : ['http://localhost:5500', 'http://127.0.0.1:5500'],
-  credentials: true
-};
-app.use(cors(corsOptions));
+// CORS設定（開発環境用 - file://からのアクセスを許可）
+app.use(cors({
+  origin: function(origin, callback) {
+    // file://からのリクエスト（origin === undefined）を許可
+    // すべてのオリジンを許可（開発環境用）
+    callback(null, true);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'x-user-id', 'x-api-key', 'x-api-secret'],
+  exposedHeaders: ['Content-Type']
+}));
 
 // ログミドルウェア
 app.use((req, res, next) => {
@@ -48,18 +52,24 @@ app.get('/health', (req, res) => {
  */
 app.get('/api/ticker', async (req, res) => {
   try {
+    console.log('[/api/ticker] リクエスト受信');
     const pair = req.query.pair || 'btc_jpy';
+    console.log('[/api/ticker] ペア:', pair);
     const coincheck = new CoincheckAPI('', ''); // Public APIは認証不要
+    console.log('[/api/ticker] CoincheckAPIインスタンス作成完了');
     const result = await coincheck.getTicker(pair);
+    console.log('[/api/ticker] Coincheck APIレスポンス:', result);
 
     if (!result.success) {
+      console.error('[/api/ticker] API失敗:', result);
       return res.status(500).json(result);
     }
 
     res.json(result);
   } catch (error) {
-    console.error('ティッカー取得エラー:', error);
-    res.status(500).json({ success: false, error: error.message });
+    console.error('[/api/ticker] 例外発生:', error);
+    console.error('[/api/ticker] スタック:', error.stack);
+    res.status(500).json({ success: false, error: error.message, stack: error.stack });
   }
 });
 
@@ -287,6 +297,33 @@ app.post('/api/sync/transactions', authenticateUser, async (req, res) => {
 });
 
 /**
+ * 販売所の購入履歴同期
+ * POST /api/sync/buys
+ * Headers: x-user-id, x-api-key, x-api-secret
+ */
+app.post('/api/sync/buys', authenticateUser, async (req, res) => {
+  try {
+    const orderService = new OrderService(
+      req.apiKey,
+      req.apiSecret,
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_KEY
+    );
+
+    const result = await orderService.syncBuyHistory(req.userId);
+
+    if (!result.success) {
+      return res.status(500).json(result);
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('販売所購入履歴同期エラー:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
  * 積立統計取得
  * GET /api/stats
  * Headers: x-user-id, x-api-key, x-api-secret
@@ -342,14 +379,96 @@ app.get('/api/purchases', authenticateUser, async (req, res) => {
   }
 });
 
+/**
+ * 手動で購入履歴を追加
+ * POST /api/purchases/manual
+ * Headers: x-user-id, x-api-key, x-api-secret
+ * Body: { datetime, btcAmount, jpyAmount, fee }
+ */
+app.post('/api/purchases/manual', authenticateUser, async (req, res) => {
+  try {
+    const { datetime, btcAmount, jpyAmount, fee } = req.body;
+
+    if (!datetime || !btcAmount || !jpyAmount) {
+      return res.status(400).json({
+        success: false,
+        error: '必須パラメータが不足しています（datetime, btcAmount, jpyAmount）'
+      });
+    }
+
+    const orderService = new OrderService(
+      req.apiKey,
+      req.apiSecret,
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_KEY
+    );
+
+    const result = await orderService.addManualPurchase(
+      req.userId,
+      datetime,
+      parseFloat(btcAmount),
+      parseFloat(jpyAmount),
+      parseFloat(fee || 0)
+    );
+
+    if (!result.success) {
+      return res.status(500).json(result);
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('手動購入追加エラー:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * 指定日時より前の購入履歴を削除
+ * DELETE /api/purchases/before
+ * Headers: x-user-id, x-api-key, x-api-secret
+ * Body: { datetime }
+ */
+app.delete('/api/purchases/before', authenticateUser, async (req, res) => {
+  try {
+    const { datetime } = req.body;
+
+    if (!datetime) {
+      return res.status(400).json({
+        success: false,
+        error: '日時が指定されていません'
+      });
+    }
+
+    const orderService = new OrderService(
+      req.apiKey,
+      req.apiSecret,
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_KEY
+    );
+
+    const result = await orderService.deletePurchasesBefore(req.userId, datetime);
+
+    if (!result.success) {
+      return res.status(500).json(result);
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('購入履歴削除エラー:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // ==================== エラーハンドリングミドルウェア ====================
 
 app.use((err, req, res, next) => {
   console.error('エラーミドルウェア:', err);
+  console.error('エラースタック:', err.stack);
   res.status(500).json({
     success: false,
     error: 'サーバー内部エラーが発生しました',
-    details: process.env.NODE_ENV === 'development' ? err.message : undefined
+    details: process.env.NODE_ENV === 'development' ? err.message : undefined,
+    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
   });
 });
 
