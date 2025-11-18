@@ -6023,8 +6023,10 @@
                         weeklyData[thisMondayStr] = thisWeekData;
                       }
 
-                      // 週を新しい順にソート
-                      const sortedWeeks = Object.entries(weeklyData).sort((a, b) => b[0].localeCompare(a[0]));
+                      // 週を新しい順にソートして、今週以前のみをフィルタリング
+                      const sortedWeeks = Object.entries(weeklyData)
+                        .filter(([mondayStr]) => mondayStr <= thisMondayStr) // 今週以前のみ
+                        .sort((a, b) => b[0].localeCompare(a[0]));
 
                       if (sortedWeeks.length === 0) {
                         return <div className="text-center text-gray-500 py-8">データがありません</div>;
