@@ -5947,7 +5947,7 @@
                       mondayOfThisWeek.setHours(0, 0, 0, 0);
                       const thisMondayStr = formatDateToLocal(mondayOfThisWeek);
 
-                      // 今週のhoursから計算
+                      // 今週のhoursから計算（実働のみ: 時間・件数・金額全て入力されているもの）
                       const thisWeekData = {
                         hours: 0,
                         deliveries: 0,
@@ -5957,23 +5957,24 @@
                       };
 
                       Object.values(hours).forEach(dayData => {
-                        if (dayData.hours > 0) {
+                        // 実働の条件: 時間・件数・金額全てが入力されている
+                        if (dayData.hours > 0 && dayData.deliveries > 0 && dayData.earnings > 0) {
                           thisWeekData.hours += dayData.hours;
-                          thisWeekData.deliveries += dayData.deliveries || 0;
-                          thisWeekData.earnings += dayData.earnings || 0;
+                          thisWeekData.deliveries += dayData.deliveries;
+                          thisWeekData.earnings += dayData.earnings;
                           thisWeekData.days += 1;
                         }
                       });
 
-                      // 今週のクエストを計算
+                      // 今週のクエストを計算（実働のみ）
                       const effectiveValues = getEffectiveValues();
                       let weekdayDeliveries = 0;
                       let weekdayQuest = 0;
                       weekdays.forEach(day => {
                         const dayData = hours[day];
-                        if (dayData.hours > 0) {
-                          const deliveries = dayData.deliveries > 0 ? dayData.deliveries : dayData.hours * effectiveValues.weekdayDeliveriesPerHour;
-                          weekdayDeliveries += deliveries;
+                        // 実働の条件: 時間・件数・金額全てが入力されている
+                        if (dayData.hours > 0 && dayData.deliveries > 0 && dayData.earnings > 0) {
+                          weekdayDeliveries += dayData.deliveries;
                         }
                       });
 
@@ -5989,9 +5990,9 @@
                       let weekendQuest = 0;
                       weekends.forEach(day => {
                         const dayData = hours[day];
-                        if (dayData.hours > 0) {
-                          const deliveries = dayData.deliveries > 0 ? dayData.deliveries : dayData.hours * effectiveValues.weekendDeliveriesPerHour;
-                          weekendDeliveries += deliveries;
+                        // 実働の条件: 時間・件数・金額全てが入力されている
+                        if (dayData.hours > 0 && dayData.deliveries > 0 && dayData.earnings > 0) {
+                          weekendDeliveries += dayData.deliveries;
                         }
                       });
 
