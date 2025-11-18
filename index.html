@@ -5087,7 +5087,7 @@
                             reader.readAsDataURL(file);
                           }
                         }}
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:outline-none text-sm"
+                        className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none text-sm ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-red-400' : 'border-gray-200 focus:border-red-500'}`}
                       />
                       {isProcessingOCR && (
                         <div className="mt-2 p-3 bg-blue-50 rounded-lg">
