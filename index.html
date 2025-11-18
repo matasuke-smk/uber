@@ -622,20 +622,23 @@
       // ダークモード設定
       const [isDarkMode, setIsDarkMode] = useState(() => {
         try {
-          return localStorage.getItem('darkMode') === 'true';
-        } catch {
+          const saved = localStorage.getItem('darkMode');
+          return saved === 'true';
+        } catch (error) {
+          console.error('Failed to load dark mode setting:', error);
           return false;
         }
       });
 
       // ダークモードの切り替え
       const toggleDarkMode = () => {
-        const newMode = !isDarkMode;
-        setIsDarkMode(newMode);
         try {
-          localStorage.setItem('darkMode', newMode.toString());
+          const newMode = !isDarkMode;
+          setIsDarkMode(newMode);
+          localStorage.setItem('darkMode', String(newMode));
         } catch (error) {
           console.error('Failed to save dark mode setting:', error);
+          alert('ダークモード設定の保存に失敗しました');
         }
       };
 
@@ -1253,11 +1256,20 @@
             .eq('user_id', session.user.id)
             .order('date', { ascending: false });
 
-          if (error) throw error;
-
-          setBtcRecords(data || []);
+          if (error) {
+            // テーブルが存在しない場合は空配列を設定
+            if (error.code === '42P01' || error.message.includes('relation') || error.message.includes('does not exist')) {
+              console.warn('btc_records table does not exist yet');
+              setBtcRecords([]);
+            } else {
+              throw error;
+            }
+          } else {
+            setBtcRecords(data || []);
+          }
         } catch (error) {
           console.error('Error loading BTC records:', error);
+          setBtcRecords([]);
         } finally {
           setBtcLoading(false);
         }
