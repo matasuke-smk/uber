@@ -2644,7 +2644,7 @@
         <div className={`min-h-screen p-4 pb-8 ${isDarkMode ? 'dark bg-gradient-to-br from-gray-900 to-gray-800' : 'bg-gradient-to-br from-green-50 to-blue-50'}`}>
           <div className="max-w-2xl mx-auto">
             {/* ヘッダー */}
-            <div className={`rounded-2xl shadow-lg p-6 mb-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
+            <div className={`rounded-2xl shadow-lg p-6 mb-4 ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-3">
                   <button
@@ -2715,7 +2715,7 @@
             </div>
             
             {/* 目標金額設定 */}
-            <div className={`rounded-2xl shadow-lg p-6 mb-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
+            <div className={`rounded-2xl shadow-lg p-6 mb-4 ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
               <h2 className={`text-lg font-bold mb-4 flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
                 <DollarSign />
                 目標金額
@@ -2736,7 +2736,7 @@
             </div>
             
             {/* 稼働時間入力 */}
-            <div className={`rounded-2xl shadow-lg p-6 mb-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
+            <div className={`rounded-2xl shadow-lg p-6 mb-4 ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
               <h2 className={`text-lg font-bold mb-4 flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
                 <Package />
                 今週の稼働
@@ -2899,8 +2899,8 @@
                 })}
               </div>
               
-              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                <p className="text-xs text-gray-600">
+              <div className={`mt-4 p-3 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-blue-50'}`}>
+                <p className={`text-xs ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                   💡 時間のみ入力で予想金額を計算<br/>
                   すべて入力で実績値を反映
                 </p>
@@ -3028,13 +3028,17 @@
                 </div>
 
                 {/* タブ */}
-                <div className="bg-white flex border-b border-gray-200" style={{flexShrink: 0}}>
+                <div className={`flex border-b ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`} style={{flexShrink: 0}}>
                     <button
                       onClick={() => setTotalStatsTab('summary')}
                       className={`flex-1 py-3 text-sm font-medium transition-colors ${
                         totalStatsTab === 'summary'
-                          ? 'text-green-600 border-b-2 border-green-600 bg-green-50'
-                          : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                          ? isDarkMode
+                            ? 'text-green-400 border-b-2 border-green-400 bg-gray-700'
+                            : 'text-green-600 border-b-2 border-green-600 bg-green-50'
+                          : isDarkMode
+                            ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700'
+                            : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
                       }`}
                     >
                       総合計
@@ -3043,8 +3047,12 @@
                       onClick={() => setTotalStatsTab('daily')}
                       className={`flex-1 py-3 text-sm font-medium transition-colors ${
                         totalStatsTab === 'daily'
-                          ? 'text-green-600 border-b-2 border-green-600 bg-green-50'
-                          : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                          ? isDarkMode
+                            ? 'text-green-400 border-b-2 border-green-400 bg-gray-700'
+                            : 'text-green-600 border-b-2 border-green-600 bg-green-50'
+                          : isDarkMode
+                            ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700'
+                            : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
                       }`}
                     >
                       曜日別平均
@@ -3888,16 +3896,16 @@
                     <div className="flex items-center justify-between mb-4">
                       <button
                         onClick={() => changeMonth(-1)}
-                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                        className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-800 hover:bg-gray-100'}`}
                       >
                         ← 前月
                       </button>
-                      <h3 className="text-lg font-bold">
+                      <h3 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
                         {currentMonth.getFullYear()}年 {currentMonth.getMonth() + 1}月
                       </h3>
                       <button
                         onClick={() => changeMonth(1)}
-                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                        className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-800 hover:bg-gray-100'}`}
                       >
                         次月 →
                       </button>
