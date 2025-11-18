@@ -7,7 +7,7 @@ RETURNS TRIGGER AS $$
 BEGIN
   IF TG_OP = 'INSERT' THEN
     INSERT INTO expense_audit_log(expense_id, operation, changed_by, new_values)
-    VALUES (NEW.id, 'INSERT', NEW.user_id, to_jsonb(NEW));
+    VALUES (NEW.id, 'INSERT', NEW.user_id, to_jsonb(NEW));BTC.png:1  Failed to load resource: the server responded with a status of 404 ()
     RETURN NEW;
   ELSIF TG_OP = 'UPDATE' THEN
     -- ロックされた経費は変更不可

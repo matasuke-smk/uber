@@ -2745,7 +2745,7 @@
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <div className="w-8"></div>
-                  <div className="grid grid-cols-3 gap-2 flex-1 text-xs text-gray-600 font-medium">
+                  <div className={`grid grid-cols-3 gap-2 flex-1 text-xs font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                     <div className="text-center">時間</div>
                     <div className="text-center">件数</div>
                     <div className="text-center">金額</div>
@@ -2857,7 +2857,7 @@
 
                   return (
                     <div key={day} className="flex items-center gap-2">
-                      <div className={`font-medium w-8 text-center rounded-lg py-1 ${dayQuestReward > 0 ? 'bg-yellow-400 text-gray-900' : 'text-gray-700'}`}>{day}</div>
+                      <div className={`font-medium w-8 text-center rounded-lg py-1 ${dayQuestReward > 0 ? 'bg-yellow-400 text-gray-900' : isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{day}</div>
                       <div className="grid grid-cols-3 gap-2 flex-1">
                         <input
                           type="number"
@@ -2865,7 +2865,7 @@
                           value={hours[day].hours || ''}
                           onChange={(e) => updateHours(day, 'hours', e.target.value)}
                           onKeyDown={handleKeyDown}
-                          className="w-full px-2 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm text-center"
+                          className={`w-full px-2 py-2 border-2 rounded-lg focus:outline-none text-sm text-center ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-400' : 'border-gray-200 focus:border-blue-500'}`}
                           placeholder="0"
                         />
                         <input
@@ -2873,7 +2873,7 @@
                           value={hours[day].deliveries || ''}
                           onChange={(e) => updateHours(day, 'deliveries', e.target.value)}
                           onKeyDown={handleKeyDown}
-                          className="w-full px-2 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm text-center"
+                          className={`w-full px-2 py-2 border-2 rounded-lg focus:outline-none text-sm text-center ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-400' : 'border-gray-200 focus:border-blue-500'}`}
                           placeholder={hours[day].hours > 0 ? (() => {
                             const deliveries = isWeekday ? effectiveValues.weekdayDeliveriesPerHour : effectiveValues.weekendDeliveriesPerHour;
                             return Math.floor(hours[day].hours * deliveries).toString();
@@ -2885,7 +2885,7 @@
                           value={hours[day].earnings || ''}
                           onChange={(e) => updateHours(day, 'earnings', e.target.value)}
                           onKeyDown={handleKeyDown}
-                          className="w-full px-2 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm text-center"
+                          className={`w-full px-2 py-2 border-2 rounded-lg focus:outline-none text-sm text-center ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-400' : 'border-gray-200 focus:border-blue-500'}`}
                           placeholder={hours[day].hours > 0 ? (() => {
                             const price = isWeekday ? effectiveValues.weekdayAvgPrice : effectiveValues.weekendAvgPrice;
                             const deliveries = isWeekday ? effectiveValues.weekdayDeliveriesPerHour : effectiveValues.weekendDeliveriesPerHour;
@@ -3461,7 +3461,7 @@
                 </div>
 
                 <div
-                  className="bg-white p-4 border-t border-gray-200"
+                  className={`p-4 border-t ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
                   style={{flexShrink: 0, touchAction: 'none'}}
                 >
                   <button
@@ -3834,7 +3834,7 @@
                 </div>
 
                 <div
-                  className="p-4 border-t border-gray-200"
+                  className={`p-4 border-t ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
                   style={{flexShrink: 0, touchAction: 'none'}}
                 >
                   <button
@@ -3908,7 +3908,7 @@
                       {/* 曜日ヘッダー（月曜始まり） */}
                       <div className="grid grid-cols-7 gap-1 mb-2">
                         {['月', '火', '水', '木', '金', '土', '日'].map(day => (
-                          <div key={day} className="text-center text-xs font-medium text-gray-600 py-2">
+                          <div key={day} className={`text-center text-xs font-medium py-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                             {day}
                           </div>
                         ))}
@@ -3935,18 +3935,18 @@
                             : 0;
 
                           // 背景色とテキスト色を決定
-                          let bgClass = 'hover:bg-gray-100';
-                          let textClass = 'text-purple-600';
+                          let bgClass = isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100';
+                          let textClass = isDarkMode ? 'text-purple-400' : 'text-purple-600';
                           if (hasData) {
                             if (isRainy) {
-                              bgClass = 'bg-blue-100 hover:bg-blue-200';
-                              textClass = 'text-blue-600';
+                              bgClass = isDarkMode ? 'bg-blue-900 hover:bg-blue-800' : 'bg-blue-100 hover:bg-blue-200';
+                              textClass = isDarkMode ? 'text-blue-300' : 'text-blue-600';
                             } else if (isHoliday) {
-                              bgClass = 'bg-red-100 hover:bg-red-200';
-                              textClass = 'text-red-600';
+                              bgClass = isDarkMode ? 'bg-red-900 hover:bg-red-800' : 'bg-red-100 hover:bg-red-200';
+                              textClass = isDarkMode ? 'text-red-300' : 'text-red-600';
                             } else {
-                              bgClass = 'bg-purple-100 hover:bg-purple-200';
-                              textClass = 'text-purple-600';
+                              bgClass = isDarkMode ? 'bg-purple-900 hover:bg-purple-800' : 'bg-purple-100 hover:bg-purple-200';
+                              textClass = isDarkMode ? 'text-purple-300' : 'text-purple-600';
                             }
                           }
 
@@ -3955,7 +3955,7 @@
                               key={index}
                               onClick={() => handleDateClick(dayInfo.date)}
                               className={`
-                                aspect-square p-1 rounded-lg text-sm relative flex flex-col items-center justify-center text-gray-800
+                                aspect-square p-1 rounded-lg text-sm relative flex flex-col items-center justify-center ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}
                                 ${isToday ? 'ring-2 ring-blue-500' : ''}
                                 ${bgClass}
                                 transition-colors
@@ -4055,7 +4055,7 @@
                 </div>
 
                 <div
-                  className="bg-white p-4 border-t border-gray-200"
+                  className={`p-4 border-t ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
                   style={{flexShrink: 0, touchAction: 'none'}}
                 >
                   <button
@@ -4173,7 +4173,7 @@
                 </div>
 
                 <div
-                  className="bg-white p-4 border-t border-gray-200"
+                  className={`p-4 border-t ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
                   style={{flexShrink: 0, touchAction: 'none'}}
                 >
                   <button
@@ -4374,7 +4374,7 @@
                 </div>
 
                 <div
-                  className="bg-white p-4 border-t border-gray-200"
+                  className={`p-4 border-t ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
                   style={{flexShrink: 0, touchAction: 'none'}}
                 >
                   <div className="flex gap-2">
@@ -4439,7 +4439,7 @@
                           {/* 曜日ヘッダー（月曜始まり） */}
                           <div className="grid grid-cols-7 gap-1 mb-2">
                             {['月', '火', '水', '木', '金', '土', '日'].map(day => (
-                              <div key={day} className="text-center text-xs font-medium text-gray-600 py-2">
+                              <div key={day} className={`text-center text-xs font-medium py-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                                 {day}
                               </div>
                             ))}
@@ -4754,7 +4754,7 @@
                 </div>
 
                 <div
-                  className="bg-white p-4 border-t border-gray-200"
+                  className={`p-4 border-t ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
                   style={{flexShrink: 0, touchAction: 'none'}}
                 >
                   <button
@@ -5120,7 +5120,7 @@
                 </div>
 
                 <div
-                  className="bg-white p-4 border-t border-gray-200"
+                  className={`p-4 border-t ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
                   style={{flexShrink: 0, touchAction: 'none'}}
                 >
                   <div className="flex gap-2">
@@ -5354,7 +5354,7 @@
                 </div>
 
                 <div
-                  className="p-4 border-t border-gray-200 space-y-2"
+                  className={`p-4 border-t space-y-2 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
                   style={{flexShrink: 0, touchAction: 'none'}}
                 >
                   <button
@@ -5500,7 +5500,7 @@
                 </div>
 
                 <div
-                  className="p-4 border-t border-gray-200"
+                  className={`p-4 border-t ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
                   style={{flexShrink: 0, touchAction: 'none'}}
                 >
                   <button
@@ -5670,7 +5670,7 @@
                 </div>
 
                 <div
-                  className="p-4 border-t border-gray-200"
+                  className={`p-4 border-t ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
                   style={{flexShrink: 0, touchAction: 'none'}}
                 >
                   <button
@@ -5934,7 +5934,7 @@
                 </div>
 
                 <div
-                  className="p-4 border-t border-gray-200"
+                  className={`p-4 border-t ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
                   style={{flexShrink: 0, touchAction: 'none'}}
                 >
                   <button
@@ -6166,7 +6166,7 @@
                 </div>
 
                 <div
-                  className="p-4 border-t border-gray-200"
+                  className={`p-4 border-t ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
                   style={{flexShrink: 0, touchAction: 'none'}}
                 >
                   <button
