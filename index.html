@@ -6684,8 +6684,17 @@
                         リアルタイム更新中
                       </span>
                       {btcLastUpdate && (
-                        <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} flex items-center gap-1`}>
                           最終更新: {btcLastUpdate.toLocaleTimeString('ja-JP')}
+                          {btcError && (
+                            <span
+                              className="text-red-500 cursor-help"
+                              title={btcError}
+                              style={{fontSize: '14px'}}
+                            >
+                              ⚠️
+                            </span>
+                          )}
                         </span>
                       )}
                     </div>
@@ -6709,13 +6718,6 @@
                   }}
                 >
                   <div className="p-6 space-y-4">
-                    {/* エラー表示 */}
-                    {btcError && (
-                      <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4">
-                        <h3 className="font-bold text-red-800 mb-2">⚠️ エラー</h3>
-                        <p className="text-sm text-red-700">{btcError}</p>
-                      </div>
-                    )}
 
                     {/* APIキー設定状況 */}
                     {(!coincheckApiKey || !coincheckApiSecret) && (
