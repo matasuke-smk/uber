@@ -4129,7 +4129,7 @@
                               value={quest.count || ''}
                               onChange={(e) => updateWeekdayQuest(index, 'count', e.target.value)}
                               onKeyDown={handleKeyDown}
-                              className={`w-14 px-2 py-1.5 border-2 rounded-lg focus:outline-none text-sm text-center flex-shrink-0 ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-400' : 'border-gray-200 focus:border-blue-500'}`}
+                              className={`w-14 px-2 py-1.5 border-2 rounded-lg focus:outline-none text-sm text-center flex-shrink-0 ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white focus:border-blue-400' : 'border-gray-200 focus:border-blue-500'}`}
                             />
                             <span className={`text-xs flex-shrink-0 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>回</span>
                             <input
@@ -4138,7 +4138,7 @@
                               value={quest.reward || ''}
                               onChange={(e) => updateWeekdayQuest(index, 'reward', e.target.value)}
                               onKeyDown={handleKeyDown}
-                              className={`flex-1 min-w-0 px-2 py-1.5 border-2 rounded-lg focus:outline-none text-sm text-center ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-400' : 'border-gray-200 focus:border-blue-500'}`}
+                              className={`flex-1 min-w-0 px-2 py-1.5 border-2 rounded-lg focus:outline-none text-sm text-center ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white focus:border-blue-400' : 'border-gray-200 focus:border-blue-500'}`}
                             />
                             <span className={`text-xs flex-shrink-0 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>円</span>
                           </div>
@@ -4161,7 +4161,7 @@
                               value={quest.count || ''}
                               onChange={(e) => updateWeekendQuest(index, 'count', e.target.value)}
                               onKeyDown={handleKeyDown}
-                              className={`w-14 px-2 py-1.5 border-2 rounded-lg focus:outline-none text-sm text-center flex-shrink-0 ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-yellow-400' : 'border-gray-200 focus:border-yellow-500'}`}
+                              className={`w-14 px-2 py-1.5 border-2 rounded-lg focus:outline-none text-sm text-center flex-shrink-0 ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white focus:border-yellow-400' : 'border-gray-200 focus:border-yellow-500'}`}
                             />
                             <span className={`text-xs flex-shrink-0 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>回</span>
                             <input
@@ -4170,7 +4170,7 @@
                               value={quest.reward || ''}
                               onChange={(e) => updateWeekendQuest(index, 'reward', e.target.value)}
                               onKeyDown={handleKeyDown}
-                              className={`flex-1 min-w-0 px-2 py-1.5 border-2 rounded-lg focus:outline-none text-sm text-center ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-yellow-400' : 'border-gray-200 focus:border-yellow-500'}`}
+                              className={`flex-1 min-w-0 px-2 py-1.5 border-2 rounded-lg focus:outline-none text-sm text-center ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white focus:border-yellow-400' : 'border-gray-200 focus:border-yellow-500'}`}
                             />
                             <span className={`text-xs flex-shrink-0 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>円</span>
                           </div>
@@ -4178,19 +4178,6 @@
                       </div>
                     </div>
                   </div>
-                </div>
-
-                <div
-                  className={`p-4 border-t ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
-                  style={{flexShrink: 0, touchAction: 'none'}}
-                >
-                  <button
-                    onClick={() => setShowQuestSettings(false)}
-                    className="w-full bg-yellow-500 text-white py-3 rounded-xl font-medium hover:bg-yellow-600 transition-colors"
-                    style={{touchAction: 'auto'}}
-                  >
-                    完了
-                  </button>
                 </div>
               </div>
             )}
