@@ -6766,10 +6766,16 @@
                       </div>
                     )}
 
-                    {/* 残高情報 */}
-                    {btcBalance && (
-                      <div className={`rounded-xl p-6 border-2 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gradient-to-br from-green-50 to-blue-50 border-green-200'}`}>
-                        <h3 className={`font-bold text-lg mb-4 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>💼 保有状況</h3>
+                    {/* 積立統計（保有情報と統合） */}
+                    {btcBalance && btcStats && btcStats.purchase_count > 0 && (
+                      <div className={`rounded-xl p-6 border-2 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200'}`}>
+                        {/* タイトルと購入回数 */}
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className={`font-bold text-lg ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>📊 積立統計</h3>
+                          <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                            購入回数: <span className={`font-bold ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>{btcStats.purchase_count}回</span>
+                          </div>
+                        </div>
 
                         {/* 保有BTC */}
                         <div className={`p-4 rounded-lg mb-4 ${isDarkMode ? 'bg-gray-700/50' : 'bg-white/70'}`}>
@@ -6780,37 +6786,33 @@
                           </div>
                         </div>
 
-                        {/* 評価額と損益 */}
-                        <div className="grid grid-cols-2 gap-4">
-                          {/* 評価額 */}
+                        {/* 投資総額・損益・平均購入価格 */}
+                        <div className="grid grid-cols-3 gap-3">
+                          {/* 投資総額 */}
                           <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-gray-700/50' : 'bg-white/70'}`}>
-                            <div className={`text-sm mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>評価額</div>
-                            <div className={`text-2xl font-bold transition-all duration-300 ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>
-                              {btcPrice ? `¥${Math.floor(Number(btcPrice.last) * parseFloat(btcBalance.btc || 0)).toLocaleString()}` : '計算中...'}
-                            </div>
-                            <div className={`text-xs mt-2 flex items-center gap-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                              <span className="inline-block w-1.5 h-1.5 bg-purple-500 rounded-full animate-pulse"></span>
-                              リアルタイム更新
+                            <div className={`text-xs mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>投資総額</div>
+                            <div className={`text-lg font-bold ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>
+                              ¥{Number(btcStats.total_jpy || 0).toLocaleString()}
                             </div>
                           </div>
 
                           {/* 損益 */}
                           <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-gray-700/50' : 'bg-white/70'}`}>
-                            <div className={`text-sm mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>損益</div>
-                            {btcPrice && btcStats && btcStats.total_jpy ? (
+                            <div className={`text-xs mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>損益</div>
+                            {btcPrice && btcStats.total_jpy ? (
                               <>
                                 {(() => {
                                   const currentValue = Math.floor(Number(btcPrice.last) * parseFloat(btcBalance.btc || 0));
                                   const totalInvested = Number(btcStats.total_jpy || 0);
                                   const profit = currentValue - totalInvested;
-                                  const profitPercent = totalInvested > 0 ? ((profit / totalInvested) * 100).toFixed(2) : '0.00';
+                                  const profitPercent = totalInvested > 0 ? ((profit / totalInvested) * 100).toFixed(1) : '0.0';
                                   const isProfit = profit >= 0;
                                   return (
                                     <>
-                                      <div className={`text-2xl font-bold transition-all duration-300 ${isProfit ? (isDarkMode ? 'text-green-400' : 'text-green-600') : (isDarkMode ? 'text-red-400' : 'text-red-600')}`}>
+                                      <div className={`text-lg font-bold ${isProfit ? (isDarkMode ? 'text-green-400' : 'text-green-600') : (isDarkMode ? 'text-red-400' : 'text-red-600')}`}>
                                         {isProfit ? '+' : ''}¥{profit.toLocaleString()}
                                       </div>
-                                      <div className={`text-sm mt-2 ${isProfit ? (isDarkMode ? 'text-green-400' : 'text-green-600') : (isDarkMode ? 'text-red-400' : 'text-red-600')}`}>
+                                      <div className={`text-xs mt-1 ${isProfit ? (isDarkMode ? 'text-green-400' : 'text-green-600') : (isDarkMode ? 'text-red-400' : 'text-red-600')}`}>
                                         {isProfit ? '+' : ''}{profitPercent}%
                                       </div>
                                     </>
@@ -6818,42 +6820,17 @@
                                 })()}
                               </>
                             ) : (
-                              <div className={`text-2xl font-bold ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                                データなし
+                              <div className={`text-lg font-bold ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                                -
                               </div>
                             )}
                           </div>
-                        </div>
-                      </div>
-                    )}
 
-                    {/* 積立統計 */}
-                    {btcStats && btcStats.purchase_count > 0 && (
-                      <div className={`rounded-xl p-6 border-2 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200'}`}>
-                        <h3 className={`font-bold text-lg mb-4 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>📊 積立統計</h3>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <div className={`text-sm mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>総購入量</div>
-                            <div className={`text-xl font-bold ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>
-                              {parseFloat(btcStats.total_btc || 0).toFixed(8)} BTC
-                            </div>
-                          </div>
-                          <div>
-                            <div className={`text-sm mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>総投資額</div>
-                            <div className={`text-xl font-bold ${isDarkMode ? 'text-pink-400' : 'text-pink-600'}`}>
-                              ¥{Number(btcStats.total_jpy || 0).toLocaleString()}
-                            </div>
-                          </div>
-                          <div>
-                            <div className={`text-sm mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>平均購入価格</div>
-                            <div className={`text-lg font-bold ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>
-                              ¥{Number(btcStats.average_rate || 0).toLocaleString()}
-                            </div>
-                          </div>
-                          <div>
-                            <div className={`text-sm mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>購入回数</div>
+                          {/* 平均購入価格 */}
+                          <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-gray-700/50' : 'bg-white/70'}`}>
+                            <div className={`text-xs mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>平均購入価格</div>
                             <div className={`text-lg font-bold ${isDarkMode ? 'text-pink-400' : 'text-pink-600'}`}>
-                              {btcStats.purchase_count}回
+                              ¥{Number(btcStats.average_rate || 0).toLocaleString()}
                             </div>
                           </div>
                         </div>
