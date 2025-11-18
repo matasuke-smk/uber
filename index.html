@@ -1743,6 +1743,22 @@
         };
       }, [showBasicSettings, showQuestSettings, showCalendar, showTotalStats, showDayEdit, showExpenses, showExpenseInput, showExpenseFilter, showImagePreview, showBalanceSheet, showIncomeStatement]);
 
+      // ダークモード時にbodyの背景色を設定
+      useEffect(() => {
+        if (typeof document !== 'undefined' && document.body) {
+          if (isDarkMode) {
+            document.body.style.backgroundColor = '#1f2937'; // gray-800
+          } else {
+            document.body.style.backgroundColor = '';
+          }
+        }
+        return () => {
+          if (typeof document !== 'undefined' && document.body) {
+            document.body.style.backgroundColor = '';
+          }
+        };
+      }, [isDarkMode]);
+
       // 週の稼働時間が変更されたら、クエスト報酬を計算してdailyData（表示用）を更新
       useEffect(() => {
         if (!currentWeekStart || settingsLoading || dailyDataLoading) return;
@@ -2625,7 +2641,7 @@
       const results = calculate();
       
       return (
-        <div className={`min-h-screen p-4 ${isDarkMode ? 'dark bg-gradient-to-br from-gray-900 to-gray-800' : 'bg-gradient-to-br from-green-50 to-blue-50'}`}>
+        <div className={`min-h-screen p-4 pb-8 ${isDarkMode ? 'dark bg-gradient-to-br from-gray-900 to-gray-800' : 'bg-gradient-to-br from-green-50 to-blue-50'}`}>
           <div className="max-w-2xl mx-auto">
             {/* ヘッダー */}
             <div className={`rounded-2xl shadow-lg p-6 mb-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
@@ -4174,7 +4190,7 @@
             {/* 日付編集モーダル */}
             {showDayEdit && selectedDate && (
               <div
-                className="fixed inset-0 bg-white z-[60]"
+                className={`fixed inset-0 z-[60] ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
@@ -4182,7 +4198,7 @@
                 }}
               >
                 <div
-                  className="bg-gradient-to-r from-purple-500 to-blue-500 text-white p-4"
+                  className={`p-4 ${isDarkMode ? 'bg-gradient-to-r from-purple-600 to-blue-600' : 'bg-gradient-to-r from-purple-500 to-blue-500'} text-white`}
                   style={{flexShrink: 0, touchAction: 'none'}}
                 >
                     <div className="flex items-center justify-between">
@@ -4755,7 +4771,7 @@
             {/* 経費入力モーダル */}
             {showExpenseInput && editingExpense && (
               <div
-                className="fixed inset-0 bg-white z-[60]"
+                className={`fixed inset-0 z-[60] ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
@@ -4763,7 +4779,7 @@
                 }}
               >
                 <div
-                  className="bg-gradient-to-r from-red-500 to-pink-500 text-white p-4"
+                  className={`p-4 ${isDarkMode ? 'bg-gradient-to-r from-red-600 to-pink-600' : 'bg-gradient-to-r from-red-500 to-pink-500'} text-white`}
                   style={{flexShrink: 0, touchAction: 'none'}}
                 >
                   <div className="flex items-center justify-between">
@@ -5239,7 +5255,7 @@
             {/* 経費フィルターモーダル */}
             {showExpenseFilter && (
               <div
-                className="fixed inset-0 bg-white z-[60]"
+                className={`fixed inset-0 z-[60] ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
@@ -5247,10 +5263,10 @@
                 }}
               >
                 <div
-                  className="bg-white border-b border-gray-200 p-4 flex items-center justify-between"
+                  className={`border-b p-4 flex items-center justify-between ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
                   style={{flexShrink: 0, touchAction: 'none'}}
                 >
-                  <h2 className="text-xl font-bold text-gray-800">🔍 検索フィルター</h2>
+                  <h2 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>🔍 検索フィルター</h2>
                   <button
                     onClick={() => setShowExpenseFilter(false)}
                     className="text-gray-500 hover:text-gray-700 text-2xl"
@@ -5365,7 +5381,7 @@
             {/* 科目説明モーダル */}
             {showExpenseGuide && (
               <div
-                className="fixed inset-0 bg-white z-[60]"
+                className={`fixed inset-0 z-[60] ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
@@ -5373,10 +5389,10 @@
                 }}
               >
                 <div
-                  className="bg-white border-b border-gray-200 p-4 flex items-center justify-between"
+                  className={`border-b p-4 flex items-center justify-between ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
                   style={{flexShrink: 0, touchAction: 'none'}}
                 >
-                  <h2 className="text-xl font-bold text-gray-800">📋 経費科目の説明</h2>
+                  <h2 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>📋 経費科目の説明</h2>
                   <button
                     onClick={() => setShowExpenseGuide(false)}
                     className="text-gray-500 hover:text-gray-700 text-2xl"
@@ -5525,7 +5541,7 @@
             {/* 貸借対照表モーダル */}
             {showBalanceSheet && (
               <div
-                className="fixed inset-0 bg-white z-50"
+                className={`fixed inset-0 z-50 ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
@@ -5533,10 +5549,10 @@
                 }}
               >
                 <div
-                  className="bg-white border-b border-gray-200 p-4 flex items-center justify-between"
+                  className={`border-b p-4 flex items-center justify-between ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
                   style={{flexShrink: 0, touchAction: 'none'}}
                 >
-                  <h2 className="text-xl font-bold text-gray-800">📊 貸借対照表</h2>
+                  <h2 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>📊 貸借対照表</h2>
                   <button
                     onClick={() => setShowBalanceSheet(false)}
                     className="text-gray-500 hover:text-gray-700 text-2xl"
@@ -5671,7 +5687,7 @@
             {/* 損益計算書モーダル */}
             {showIncomeStatement && (
               <div
-                className="fixed inset-0 bg-white z-50"
+                className={`fixed inset-0 z-50 ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
@@ -5679,10 +5695,10 @@
                 }}
               >
                 <div
-                  className="bg-white border-b border-gray-200 p-4 flex items-center justify-between"
+                  className={`border-b p-4 flex items-center justify-between ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
                   style={{flexShrink: 0, touchAction: 'none'}}
                 >
-                  <h2 className="text-xl font-bold text-gray-800">📈 損益計算書</h2>
+                  <h2 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>📈 損益計算書</h2>
                   <button
                     onClick={() => setShowIncomeStatement(false)}
                     className="text-gray-500 hover:text-gray-700 text-2xl"
