@@ -240,18 +240,18 @@
       };
 
       return (
-        <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-100 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
+        <div className={`min-h-screen flex items-center justify-center p-4 ${isDarkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-emerald-50 to-teal-100'}`}>
+          <div className={`rounded-2xl shadow-xl p-8 w-full max-w-md ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
             <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold text-gray-800 mb-2">Uber記録</h1>
-              <p className="text-gray-600">
+              <h1 className={`text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Uber記録</h1>
+              <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
                 {isSignUp ? 'アカウントを作成' : 'ログイン'}
               </p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                   メールアドレス
                 </label>
                 <input
@@ -260,13 +260,13 @@
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   autoComplete="email"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  className={`w-full px-4 py-2 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent ${isDarkMode ? 'bg-gray-700 border border-gray-600 text-white placeholder-gray-400' : 'bg-white border border-gray-300 text-gray-900'}`}
                   placeholder="example@email.com"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                   パスワード
                 </label>
                 <input
@@ -276,13 +276,13 @@
                   required
                   minLength="6"
                   autoComplete="current-password"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  className={`w-full px-4 py-2 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent ${isDarkMode ? 'bg-gray-700 border border-gray-600 text-white placeholder-gray-400' : 'bg-white border border-gray-300 text-gray-900'}`}
                   placeholder="6文字以上"
                 />
               </div>
 
               {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                <div className={`px-4 py-3 rounded-lg text-sm ${isDarkMode ? 'bg-red-900/20 border border-red-700 text-red-400' : 'bg-red-50 border border-red-200 text-red-700'}`}>
                   {error}
                 </div>
               )}
@@ -300,8 +300,8 @@
             {!isSignUp && showBiometricButton && (
               <div className="mt-4">
                 <div className="relative flex items-center justify-center my-4">
-                  <div className="border-t border-gray-300 w-full"></div>
-                  <span className="bg-white px-3 text-sm text-gray-500 absolute">または</span>
+                  <div className={`border-t w-full ${isDarkMode ? 'border-gray-600' : 'border-gray-300'}`}></div>
+                  <span className={`px-3 text-sm absolute ${isDarkMode ? 'bg-gray-800 text-gray-400' : 'bg-white text-gray-500'}`}>または</span>
                 </div>
                 <button
                   type="button"
@@ -323,7 +323,7 @@
                   setIsSignUp(!isSignUp);
                   setError('');
                 }}
-                className="text-emerald-600 hover:text-emerald-700 text-sm font-medium"
+                className={`text-sm font-medium ${isDarkMode ? 'text-emerald-400 hover:text-emerald-300' : 'text-emerald-600 hover:text-emerald-700'}`}
               >
                 {isSignUp ? '既にアカウントをお持ちの方はこちら' : 'アカウントを作成する'}
               </button>
@@ -356,11 +356,12 @@
       }, []);
 
       if (loading) {
+        const isDarkMode = localStorage.getItem('darkMode') === 'true';
         return (
-          <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-100 flex items-center justify-center">
+          <div className={`min-h-screen flex items-center justify-center ${isDarkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-emerald-50 to-teal-100'}`}>
             <div className="text-center">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-emerald-500 border-t-transparent"></div>
-              <p className="mt-4 text-gray-600">読み込み中...</p>
+              <div className={`inline-block animate-spin rounded-full h-12 w-12 border-4 border-t-transparent ${isDarkMode ? 'border-emerald-400' : 'border-emerald-500'}`}></div>
+              <p className={`mt-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>読み込み中...</p>
             </div>
           </div>
         );
@@ -4009,50 +4010,50 @@
                       return (
                         <>
                           <div className="grid grid-cols-2 gap-3">
-                            <div className="bg-blue-50 rounded-xl p-4 border-2 border-blue-200">
-                              <div className="text-base font-medium text-blue-800 mb-3">📊 月～木</div>
+                            <div className={`rounded-xl p-4 border-2 ${isDarkMode ? 'bg-blue-900/20 border-blue-700' : 'bg-blue-50 border-blue-200'}`}>
+                              <div className={`text-base font-medium mb-3 ${isDarkMode ? 'text-blue-400' : 'text-blue-800'}`}>📊 月～木</div>
                               <div className="space-y-2">
-                                <div className="text-sm text-gray-700 whitespace-nowrap">
-                                  平均単価: <span className="text-lg font-bold text-blue-600">¥{calcValues.weekdayAvgPrice}/件</span>
+                                <div className={`text-sm whitespace-nowrap ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                                  平均単価: <span className={`text-lg font-bold ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>¥{calcValues.weekdayAvgPrice}/件</span>
                                 </div>
-                                <div className="text-sm text-gray-700 whitespace-nowrap">
-                                  平均件数: <span className="text-lg font-bold text-blue-600">{calcValues.weekdayDeliveriesPerHour}件/h</span>
+                                <div className={`text-sm whitespace-nowrap ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                                  平均件数: <span className={`text-lg font-bold ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>{calcValues.weekdayDeliveriesPerHour}件/h</span>
                                 </div>
                               </div>
                             </div>
-                            <div className="bg-purple-50 rounded-xl p-4 border-2 border-purple-200">
-                              <div className="text-base font-medium text-purple-800 mb-3">📊 金～日</div>
+                            <div className={`rounded-xl p-4 border-2 ${isDarkMode ? 'bg-purple-900/20 border-purple-700' : 'bg-purple-50 border-purple-200'}`}>
+                              <div className={`text-base font-medium mb-3 ${isDarkMode ? 'text-purple-400' : 'text-purple-800'}`}>📊 金～日</div>
                               <div className="space-y-2">
-                                <div className="text-sm text-gray-700 whitespace-nowrap">
-                                  平均単価: <span className="text-lg font-bold text-purple-600">¥{calcValues.weekendAvgPrice}/件</span>
+                                <div className={`text-sm whitespace-nowrap ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                                  平均単価: <span className={`text-lg font-bold ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>¥{calcValues.weekendAvgPrice}/件</span>
                                 </div>
-                                <div className="text-sm text-gray-700 whitespace-nowrap">
-                                  平均件数: <span className="text-lg font-bold text-purple-600">{calcValues.weekendDeliveriesPerHour}件/h</span>
+                                <div className={`text-sm whitespace-nowrap ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                                  平均件数: <span className={`text-lg font-bold ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>{calcValues.weekendDeliveriesPerHour}件/h</span>
                                 </div>
                               </div>
                             </div>
                           </div>
 
                           <div className="grid grid-cols-2 gap-3">
-                            <div className="bg-cyan-50 rounded-xl p-4 border-2 border-cyan-200">
-                              <div className="text-base font-medium text-cyan-800 mb-3">🌧️ 雨の日</div>
+                            <div className={`rounded-xl p-4 border-2 ${isDarkMode ? 'bg-cyan-900/20 border-cyan-700' : 'bg-cyan-50 border-cyan-200'}`}>
+                              <div className={`text-base font-medium mb-3 ${isDarkMode ? 'text-cyan-400' : 'text-cyan-800'}`}>🌧️ 雨の日</div>
                               <div className="space-y-2">
-                                <div className="text-sm text-gray-700 whitespace-nowrap">
-                                  平均単価: <span className="text-lg font-bold text-cyan-600">¥{calcValues.rainyAvgPrice}/件</span>
+                                <div className={`text-sm whitespace-nowrap ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                                  平均単価: <span className={`text-lg font-bold ${isDarkMode ? 'text-cyan-400' : 'text-cyan-600'}`}>¥{calcValues.rainyAvgPrice}/件</span>
                                 </div>
-                                <div className="text-sm text-gray-700 whitespace-nowrap">
-                                  平均件数: <span className="text-lg font-bold text-cyan-600">{calcValues.rainyAvgDeliveries}件/h</span>
+                                <div className={`text-sm whitespace-nowrap ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                                  平均件数: <span className={`text-lg font-bold ${isDarkMode ? 'text-cyan-400' : 'text-cyan-600'}`}>{calcValues.rainyAvgDeliveries}件/h</span>
                                 </div>
                               </div>
                             </div>
-                            <div className="bg-orange-50 rounded-xl p-4 border-2 border-orange-200">
-                              <div className="text-base font-medium text-orange-800 mb-3">🎌 祝日</div>
+                            <div className={`rounded-xl p-4 border-2 ${isDarkMode ? 'bg-orange-900/20 border-orange-700' : 'bg-orange-50 border-orange-200'}`}>
+                              <div className={`text-base font-medium mb-3 ${isDarkMode ? 'text-orange-400' : 'text-orange-800'}`}>🎌 祝日</div>
                               <div className="space-y-2">
-                                <div className="text-sm text-gray-700 whitespace-nowrap">
-                                  平均単価: <span className="text-lg font-bold text-orange-600">¥{calcValues.holidayAvgPrice}/件</span>
+                                <div className={`text-sm whitespace-nowrap ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                                  平均単価: <span className={`text-lg font-bold ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`}>¥{calcValues.holidayAvgPrice}/件</span>
                                 </div>
-                                <div className="text-sm text-gray-700 whitespace-nowrap">
-                                  平均件数: <span className="text-lg font-bold text-orange-600">{calcValues.holidayAvgDeliveries}件/h</span>
+                                <div className={`text-sm whitespace-nowrap ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                                  平均件数: <span className={`text-lg font-bold ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`}>{calcValues.holidayAvgDeliveries}件/h</span>
                                 </div>
                               </div>
                             </div>
@@ -4064,11 +4065,11 @@
                     {/* 手動入力フィールド */}
                     {!useAutoCalculate && (
                       <>
-                        <div className="bg-blue-50 rounded-xl p-4 border-2 border-blue-200">
-                          <div className="text-sm font-medium text-blue-800 mb-3">📝 月～木</div>
+                        <div className={`rounded-xl p-4 border-2 ${isDarkMode ? 'bg-blue-900/20 border-blue-700' : 'bg-blue-50 border-blue-200'}`}>
+                          <div className={`text-sm font-medium mb-3 ${isDarkMode ? 'text-blue-400' : 'text-blue-800'}`}>📝 月～木</div>
                           <div className="space-y-3">
                             <div>
-                              <label className="block text-xs font-medium text-gray-700 mb-1">
+                              <label className={`block text-xs font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                                 平均単価(円/件)
                               </label>
                               <input
@@ -4077,11 +4078,11 @@
                                 value={weekdayAvgPrice || ''}
                                 onChange={(e) => setWeekdayAvgPrice(parseFloat(e.target.value) || 0)}
                                 onKeyDown={handleKeyDown}
-                                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-base"
+                                className={`w-full px-3 py-2 border-2 rounded-lg focus:border-blue-500 focus:outline-none text-base ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-200 text-gray-900'}`}
                               />
                             </div>
                             <div>
-                              <label className="block text-xs font-medium text-gray-700 mb-1">
+                              <label className={`block text-xs font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                                 1時間当たりの平均配達件数
                               </label>
                               <input
@@ -4090,17 +4091,17 @@
                                 value={weekdayDeliveriesPerHour || ''}
                                 onChange={(e) => setWeekdayDeliveriesPerHour(parseFloat(e.target.value) || 0)}
                                 onKeyDown={handleKeyDown}
-                                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-base"
+                                className={`w-full px-3 py-2 border-2 rounded-lg focus:border-blue-500 focus:outline-none text-base ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-200 text-gray-900'}`}
                               />
                             </div>
                           </div>
                         </div>
 
-                        <div className="bg-purple-50 rounded-xl p-4 border-2 border-purple-200">
-                          <div className="text-sm font-medium text-purple-800 mb-3">📝 金～日</div>
+                        <div className={`rounded-xl p-4 border-2 ${isDarkMode ? 'bg-purple-900/20 border-purple-700' : 'bg-purple-50 border-purple-200'}`}>
+                          <div className={`text-sm font-medium mb-3 ${isDarkMode ? 'text-purple-400' : 'text-purple-800'}`}>📝 金～日</div>
                           <div className="space-y-3">
                             <div>
-                              <label className="block text-xs font-medium text-gray-700 mb-1">
+                              <label className={`block text-xs font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                                 平均単価(円/件)
                               </label>
                               <input
@@ -4109,11 +4110,11 @@
                                 value={weekendAvgPrice || ''}
                                 onChange={(e) => setWeekendAvgPrice(parseFloat(e.target.value) || 0)}
                                 onKeyDown={handleKeyDown}
-                                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none text-base"
+                                className={`w-full px-3 py-2 border-2 rounded-lg focus:border-purple-500 focus:outline-none text-base ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-200 text-gray-900'}`}
                               />
                             </div>
                             <div>
-                              <label className="block text-xs font-medium text-gray-700 mb-1">
+                              <label className={`block text-xs font-medium mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                                 1時間当たりの平均配達件数
                               </label>
                               <input
@@ -4122,7 +4123,7 @@
                                 value={weekendDeliveriesPerHour || ''}
                                 onChange={(e) => setWeekendDeliveriesPerHour(parseFloat(e.target.value) || 0)}
                                 onKeyDown={handleKeyDown}
-                                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none text-base"
+                                className={`w-full px-3 py-2 border-2 rounded-lg focus:border-purple-500 focus:outline-none text-base ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-200 text-gray-900'}`}
                               />
                             </div>
                           </div>
@@ -4230,9 +4231,9 @@
                     </div>
 
                     {/* CSV出力 */}
-                    <div className="bg-purple-50 rounded-xl p-4 border-2 border-purple-200 mt-4">
-                      <h3 className="font-bold text-gray-800 mb-3">📊 データ出力</h3>
-                      <div className="text-xs text-gray-600 mb-3">
+                    <div className={`rounded-xl p-4 border-2 mt-4 ${isDarkMode ? 'bg-purple-900/20 border-purple-700' : 'bg-purple-50 border-purple-200'}`}>
+                      <h3 className={`font-bold mb-3 ${isDarkMode ? 'text-purple-400' : 'text-gray-800'}`}>📊 データ出力</h3>
+                      <div className={`text-xs mb-3 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                         売上データや経費データをCSV形式でダウンロードできます
                       </div>
                       <div className="space-y-2">
@@ -4290,10 +4291,10 @@
                     </div>
 
                     {/* 電子帳簿保存法準拠表示 */}
-                    <div className="bg-green-50 rounded-lg p-3 mt-4 border border-green-200">
+                    <div className={`rounded-lg p-3 mt-4 border ${isDarkMode ? 'bg-green-900/20 border-green-700' : 'bg-green-50 border-green-200'}`}>
                       <div className="flex items-center gap-2">
-                        <span className="text-green-600 text-sm">✅</span>
-                        <span className="text-xs text-green-700">
+                        <span className={`text-sm ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>✅</span>
+                        <span className={`text-xs ${isDarkMode ? 'text-green-400' : 'text-green-700'}`}>
                           電子帳簿保存法準拠システム（アップロード後3営業日で自動確定）
                         </span>
                       </div>
@@ -5039,11 +5040,11 @@
                         }, 0);
 
                       return (
-                        <div className="bg-orange-50 rounded-xl p-4 border-2 border-orange-200 mb-4">
-                          <div className="text-sm text-gray-600 mb-1">
+                        <div className={`rounded-xl p-4 border-2 mb-4 ${isDarkMode ? 'bg-orange-900/20 border-orange-700' : 'bg-orange-50 border-orange-200'}`}>
+                          <div className={`text-sm mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                             {currentYear}年の経費
                           </div>
-                          <div className="text-2xl font-bold text-orange-600">
+                          <div className={`text-2xl font-bold ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`}>
                             ¥{yearlyExpenses.toLocaleString()}
                           </div>
                         </div>
@@ -5887,9 +5888,9 @@
                   style={{touchAction: 'auto'}}
                 >
                   <div className="p-4 space-y-3">
-                    <div className="bg-blue-50 rounded-xl p-4 border-2 border-blue-200">
-                      <div className="font-bold text-blue-800 mb-2">🚗 旅費交通費</div>
-                      <div className="text-sm text-gray-700 space-y-1">
+                    <div className={`rounded-xl p-4 border-2 ${isDarkMode ? 'bg-blue-900/20 border-blue-700' : 'bg-blue-50 border-blue-200'}`}>
+                      <div className={`font-bold mb-2 ${isDarkMode ? 'text-blue-400' : 'text-blue-800'}`}>🚗 旅費交通費</div>
+                      <div className={`text-sm space-y-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                         <div>• ガソリン代（ハイオク、レギュラー、軽油）</div>
                         <div>• 駐車場代、コインパーキング</div>
                         <div>• 高速道路料金</div>
@@ -5900,9 +5901,9 @@
                       </div>
                     </div>
 
-                    <div className="bg-green-50 rounded-xl p-4 border-2 border-green-200">
-                      <div className="font-bold text-green-800 mb-2">📦 消耗品費</div>
-                      <div className="text-sm text-gray-700 space-y-1">
+                    <div className={`rounded-xl p-4 border-2 ${isDarkMode ? 'bg-green-900/20 border-green-700' : 'bg-green-50 border-green-200'}`}>
+                      <div className={`font-bold mb-2 ${isDarkMode ? 'text-green-400' : 'text-green-800'}`}>📦 消耗品費</div>
+                      <div className={`text-sm space-y-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                         <div>• 配達用バッグ、保温バッグ</div>
                         <div>• スマホホルダー、充電器</div>
                         <div>• 文房具、メモ帳</div>
@@ -5910,18 +5911,18 @@
                       </div>
                     </div>
 
-                    <div className="bg-purple-50 rounded-xl p-4 border-2 border-purple-200">
-                      <div className="font-bold text-purple-800 mb-2">📱 通信費</div>
-                      <div className="text-sm text-gray-700 space-y-1">
+                    <div className={`rounded-xl p-4 border-2 ${isDarkMode ? 'bg-purple-900/20 border-purple-700' : 'bg-purple-50 border-purple-200'}`}>
+                      <div className={`font-bold mb-2 ${isDarkMode ? 'text-purple-400' : 'text-purple-800'}`}>📱 通信費</div>
+                      <div className={`text-sm space-y-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                         <div>• 携帯電話料金（業務使用分）</div>
                         <div>• インターネット料金</div>
                         <div>• モバイルWi-Fi料金</div>
                       </div>
                     </div>
 
-                    <div className="bg-orange-50 rounded-xl p-4 border-2 border-orange-200">
-                      <div className="font-bold text-orange-800 mb-2">🔧 修繕費</div>
-                      <div className="text-sm text-gray-700 space-y-1">
+                    <div className={`rounded-xl p-4 border-2 ${isDarkMode ? 'bg-orange-900/20 border-orange-700' : 'bg-orange-50 border-orange-200'}`}>
+                      <div className={`font-bold mb-2 ${isDarkMode ? 'text-orange-400' : 'text-orange-800'}`}>🔧 修繕費</div>
+                      <div className={`text-sm space-y-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                         <div>• 車両の修理代</div>
                         <div>• タイヤ交換、オイル交換</div>
                         <div>• バイクのメンテナンス</div>
@@ -5929,38 +5930,38 @@
                       </div>
                     </div>
 
-                    <div className="bg-red-50 rounded-xl p-4 border-2 border-red-200">
-                      <div className="font-bold text-red-800 mb-2">🍽️ 接待交際費</div>
-                      <div className="text-sm text-gray-700 space-y-1">
+                    <div className={`rounded-xl p-4 border-2 ${isDarkMode ? 'bg-red-900/20 border-red-700' : 'bg-red-50 border-red-200'}`}>
+                      <div className={`font-bold mb-2 ${isDarkMode ? 'text-red-400' : 'text-red-800'}`}>🍽️ 接待交際費</div>
+                      <div className={`text-sm space-y-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                         <div>• 取引先との会食費</div>
                         <div>• 打ち合わせ時の飲食費</div>
                         <div>• お中元、お歳暮</div>
                         <div>• 慶弔費（祝儀、香典等）</div>
-                        <div className="text-xs text-red-600 mt-2">※年間800万円まで損金算入可能</div>
+                        <div className={`text-xs mt-2 ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>※年間800万円まで損金算入可能</div>
                       </div>
                     </div>
 
-                    <div className="bg-yellow-50 rounded-xl p-4 border-2 border-yellow-200">
-                      <div className="font-bold text-yellow-800 mb-2">💡 水道光熱費</div>
-                      <div className="text-sm text-gray-700 space-y-1">
+                    <div className={`rounded-xl p-4 border-2 ${isDarkMode ? 'bg-yellow-900/20 border-yellow-700' : 'bg-yellow-50 border-yellow-200'}`}>
+                      <div className={`font-bold mb-2 ${isDarkMode ? 'text-yellow-400' : 'text-yellow-800'}`}>💡 水道光熱費</div>
+                      <div className={`text-sm space-y-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                         <div>• 電気代（業務使用分）</div>
                         <div>• 水道代（業務使用分）</div>
                         <div>• ガス代（業務使用分）</div>
                       </div>
                     </div>
 
-                    <div className="bg-pink-50 rounded-xl p-4 border-2 border-pink-200">
-                      <div className="font-bold text-pink-800 mb-2">🏠 地代家賃</div>
-                      <div className="text-sm text-gray-700 space-y-1">
+                    <div className={`rounded-xl p-4 border-2 ${isDarkMode ? 'bg-pink-900/20 border-pink-700' : 'bg-pink-50 border-pink-200'}`}>
+                      <div className={`font-bold mb-2 ${isDarkMode ? 'text-pink-400' : 'text-pink-800'}`}>🏠 地代家賃</div>
+                      <div className={`text-sm space-y-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                         <div>• 事務所家賃</div>
                         <div>• 駐車場賃貸料</div>
                         <div>• 自宅家賃（事業使用分）</div>
                       </div>
                     </div>
 
-                    <div className="bg-indigo-50 rounded-xl p-4 border-2 border-indigo-200">
-                      <div className="font-bold text-indigo-800 mb-2">🛡️ 保険料</div>
-                      <div className="text-sm text-gray-700 space-y-1">
+                    <div className={`rounded-xl p-4 border-2 ${isDarkMode ? 'bg-indigo-900/20 border-indigo-700' : 'bg-indigo-50 border-indigo-200'}`}>
+                      <div className={`font-bold mb-2 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-800'}`}>🛡️ 保険料</div>
+                      <div className={`text-sm space-y-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                         <div>• 自動車保険（任意保険）</div>
                         <div>• バイク保険</div>
                         <div>• 自転車保険</div>
@@ -6795,7 +6796,7 @@
                               {btcPrice ? `¥${Math.floor(Number(btcPrice.last) * parseFloat(btcBalance.btc || 0)).toLocaleString()}` : '計算中...'}
                             </div>
                             <div className={`text-xs mt-2 ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                              投資総額: ¥{Number(btcStats.total_jpy || 0).toLocaleString()}
+                              ¥{Number(btcStats.total_jpy || 0).toLocaleString()}
                             </div>
                           </div>
 
