@@ -2625,7 +2625,7 @@
       const results = calculate();
       
       return (
-        <div className={`min-h-screen p-4 pb-8 ${isDarkMode ? 'dark bg-gradient-to-br from-gray-900 to-gray-800' : 'bg-gradient-to-br from-green-50 to-blue-50'}`}>
+        <div className={`min-h-screen p-4 ${isDarkMode ? 'dark bg-gradient-to-br from-gray-900 to-gray-800' : 'bg-gradient-to-br from-green-50 to-blue-50'}`}>
           <div className="max-w-2xl mx-auto">
             {/* ヘッダー */}
             <div className={`rounded-2xl shadow-lg p-6 mb-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
@@ -2987,7 +2987,7 @@
             {/* 全期間集計モーダル */}
             {showTotalStats && (
               <div
-                className="fixed inset-0 bg-white z-50"
+                className={`fixed inset-0 z-50 ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
@@ -2995,10 +2995,10 @@
                 }}
               >
                 <div
-                  className="bg-white border-b border-gray-200 p-4 flex items-center justify-between"
+                  className={`border-b p-4 flex items-center justify-between ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
                   style={{flexShrink: 0, touchAction: 'none'}}
                 >
-                  <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                  <h2 className={`text-xl font-bold flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
                     <img src="アイコン.jpg?v=5" alt="全期間集計" className="w-8 h-8 rounded-lg" />
                     <span>全期間集計【{Object.keys(dailyData || {}).length}日】</span>
                   </h2>
@@ -3462,7 +3462,7 @@
             {/* 基本設定モーダル */}
             {showBasicSettings && (
               <div
-                className="fixed inset-0 bg-white z-50"
+                className={`fixed inset-0 z-50 ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
@@ -3470,10 +3470,10 @@
                 }}
               >
                 <div
-                  className="bg-white border-b border-gray-200 p-4 flex items-center justify-between"
+                  className={`border-b p-4 flex items-center justify-between ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
                   style={{flexShrink: 0, touchAction: 'none'}}
                 >
-                    <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                    <h2 className={`text-xl font-bold flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
                       <span className="text-2xl">⚙️</span>
                       設定
                     </h2>
@@ -3835,7 +3835,7 @@
             {/* 履歴カレンダーモーダル */}
             {showCalendar && (
               <div
-                className="fixed inset-0 bg-white z-50"
+                className={`fixed inset-0 z-50 ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
@@ -3843,10 +3843,10 @@
                 }}
               >
                 <div
-                  className="bg-white border-b border-gray-200 p-4 flex items-center justify-between"
+                  className={`border-b p-4 flex items-center justify-between ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
                   style={{flexShrink: 0, touchAction: 'none'}}
                 >
-                    <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                    <h2 className={`text-xl font-bold flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
                       <span className="text-2xl">📅</span>
                       カレンダー
                     </h2>
@@ -4056,7 +4056,7 @@
             {/* クエスト設定モーダル */}
             {showQuestSettings && (
               <div
-                className="fixed inset-0 bg-white z-50"
+                className={`fixed inset-0 z-50 ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
@@ -4064,10 +4064,10 @@
                 }}
               >
                 <div
-                  className="bg-white border-b border-gray-200 p-4 flex items-center justify-between"
+                  className={`border-b p-4 flex items-center justify-between ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
                   style={{flexShrink: 0, touchAction: 'none'}}
                 >
-                  <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                  <h2 className={`text-xl font-bold flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
                     <span className="text-2xl">🏆</span>
                     クエスト
                   </h2>
@@ -4490,7 +4490,7 @@
             {/* 経費一覧モーダル */}
             {showExpenses && (
               <div
-                className="fixed inset-0 bg-white z-50"
+                className={`fixed inset-0 z-50 ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
@@ -4498,11 +4498,11 @@
                 }}
               >
                 <div
-                  className="bg-white border-b border-gray-200 p-4 flex items-center justify-between"
+                  className={`border-b p-4 flex items-center justify-between ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
                   style={{flexShrink: 0, touchAction: 'none'}}
                 >
                   <div className="flex items-center gap-3">
-                    <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                    <h2 className={`text-xl font-bold flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
                       <span className="text-2xl">💸</span>
                       経費管理
                       <button
@@ -5935,7 +5935,7 @@
             {/* 週間売上一覧モーダル */}
             {showWeeklySalesList && (
               <div
-                className="fixed inset-0 bg-white z-50"
+                className={`fixed inset-0 z-50 ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
@@ -5943,10 +5943,10 @@
                 }}
               >
                 <div
-                  className="bg-white border-b border-gray-200 p-4 flex items-center justify-between"
+                  className={`border-b p-4 flex items-center justify-between ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
                   style={{flexShrink: 0, touchAction: 'none'}}
                 >
-                  <h2 className="text-xl font-bold text-gray-800">📊 週間売上一覧</h2>
+                  <h2 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>📊 週間売上一覧</h2>
                   <button
                     onClick={() => setShowWeeklySalesList(false)}
                     className="text-gray-500 hover:text-gray-700 text-2xl"
@@ -6167,7 +6167,7 @@
             {/* ビットコイン積み立てモーダル */}
             {showBTCModal && (
               <div
-                className="fixed inset-0 bg-white z-50"
+                className={`fixed inset-0 z-50 ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
@@ -6176,10 +6176,10 @@
               >
                 {/* ヘッダー */}
                 <div
-                  className="bg-white border-b border-gray-200 p-4 flex items-center justify-between"
+                  className={`border-b p-4 flex items-center justify-between ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
                   style={{flexShrink: 0, touchAction: 'none'}}
                 >
-                  <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                  <h2 className={`text-xl font-bold flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
                     <img src="BTC.png" alt="BTC" className="w-6 h-6" />
                     ビットコイン積み立て記録
                   </h2>
@@ -6204,15 +6204,15 @@
                   <div className="p-4 flex items-center justify-center h-full">
                     <div className="text-center">
                       <div className="text-6xl mb-4">🚧</div>
-                      <h3 className="text-xl font-bold text-gray-800 mb-2">準備中</h3>
-                      <p className="text-gray-600">コインチェックAPIとの連携を実装予定です</p>
+                      <h3 className={`text-xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>準備中</h3>
+                      <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>コインチェックAPIとの連携を実装予定です</p>
                     </div>
                   </div>
                 </div>
 
                 {/* フッター */}
                 <div
-                  className="p-4 border-t border-gray-200"
+                  className={`p-4 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}
                   style={{flexShrink: 0, touchAction: 'none'}}
                 >
                   <button
