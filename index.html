@@ -111,6 +111,7 @@
       const [loading, setLoading] = useState(false);
       const [error, setError] = useState('');
       const [showBiometricButton, setShowBiometricButton] = useState(false);
+      const [isDarkMode] = useState(() => localStorage.getItem('darkMode') === 'true');
 
       // 生体認証ログイン処理
       const handleBiometricLogin = async () => {
