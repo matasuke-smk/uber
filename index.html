@@ -5977,9 +5977,14 @@
                         }
                       });
 
+                      // デバッグ用: クエスト設定を出力
+                      console.log('weekdayDeliveries:', weekdayDeliveries);
+                      console.log('weekdayQuests:', weekdayQuests);
+
                       let cumulative = 0;
-                      weekdayQuests.forEach(quest => {
+                      weekdayQuests.forEach((quest, index) => {
                         if (weekdayDeliveries >= cumulative + quest.count) {
+                          console.log(`Quest ${index + 1} 達成: ${quest.count}件で${quest.reward}円`);
                           weekdayQuest += quest.reward;
                           cumulative += quest.count;
                         }
