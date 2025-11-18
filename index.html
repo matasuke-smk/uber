@@ -6721,9 +6721,9 @@
 
                     {/* APIキー設定状況 */}
                     {(!coincheckApiKey || !coincheckApiSecret) && (
-                      <div className="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-4">
-                        <h3 className="font-bold text-yellow-800 mb-2">⚠️ API接続: 未設定</h3>
-                        <p className="text-sm text-yellow-700">
+                      <div className={`border-2 rounded-xl p-4 ${isDarkMode ? 'bg-yellow-900/20 border-yellow-700' : 'bg-yellow-50 border-yellow-200'}`}>
+                        <h3 className={`font-bold mb-2 ${isDarkMode ? 'text-yellow-400' : 'text-yellow-800'}`}>⚠️ API接続: 未設定</h3>
+                        <p className={`text-sm ${isDarkMode ? 'text-yellow-300' : 'text-yellow-700'}`}>
                           設定画面からCoincheck APIキーを設定してください。<br />
                           残高と統計を表示するにはAPIキーが必要です。
                         </p>
