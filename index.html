@@ -2086,10 +2086,10 @@
           // 初回データ取得
           fetchAllBtcData();
 
-          // 価格を3秒ごとに自動更新
+          // 価格を10秒ごとに自動更新
           const priceInterval = setInterval(() => {
             fetchBtcPrice();
-          }, 3000);
+          }, 10000);
 
           // 残高、統計、購入履歴を30秒ごとに自動更新
           const dataInterval = setInterval(() => {
@@ -6740,7 +6740,7 @@
                             </div>
                             <div className={`text-xs mt-2 flex items-center gap-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                               <span className="inline-block w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse"></span>
-                              3秒ごとに更新
+                              10秒ごとに更新
                             </div>
                           </div>
                           <div className="text-right">
