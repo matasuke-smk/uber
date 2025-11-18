@@ -5656,6 +5656,8 @@
                                 .from('expenses')
                                 .update({
                                   date: editingExpense.date,
+                                  category: 'other',
+                                  description: '',
                                   amount: editingExpense.amount,
                                   business_percentage: editingExpense.businessPercentage,
                                   accounting_subject: editingExpense.accountingSubject || '',
@@ -5690,6 +5692,8 @@
                                 .insert({
                                   user_id: session.user.id,
                                   date: editingExpense.date,
+                                  category: 'other',
+                                  description: '',
                                   amount: editingExpense.amount,
                                   business_percentage: editingExpense.businessPercentage,
                                   accounting_subject: editingExpense.accountingSubject || '',
