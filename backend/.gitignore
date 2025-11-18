@@ -1,0 +1,22 @@
+# 環境変数ファイル（APIキーを含むため）
+.env
+
+# Node modules
+node_modules/
+
+# ログファイル
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS生成ファイル
+.DS_Store
+Thumbs.db
+
+# エディタ設定
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
