@@ -622,14 +622,8 @@
 
       // ダークモードの切り替え
       const toggleDarkMode = () => {
-        try {
-          const newMode = !isDarkMode;
-          setIsDarkMode(newMode);
-          localStorage.setItem('darkMode', String(newMode));
-        } catch (error) {
-          console.error('Failed to save dark mode setting:', error);
-          alert('ダークモード設定の保存に失敗しました');
-        }
+        setIsDarkMode(!isDarkMode);
+        // Supabaseへの保存は自動的に行われます（useEffectによる）
       };
 
       // 店舗名候補を生成する関数（使用回数順にソート）
@@ -1265,6 +1259,11 @@
                 setVisionApiKey(data.vision_api_key);
                 localStorage.setItem('visionApiKey', data.vision_api_key); // localStorageにもキャッシュ
               }
+
+              // ダークモード設定をSupabaseから読み込み
+              if (data.is_dark_mode !== undefined) {
+                setIsDarkMode(data.is_dark_mode);
+              }
               setWeekdayQuests(data.weekday_quests || [
                 { count: 10, reward: 0 },
                 { count: 10, reward: 0 },
@@ -1329,6 +1328,7 @@
                 const localTarget = loadFromStorage('targetAmount', null);
                 const localWeekStart = loadFromStorage('currentWeekStart', null);
                 const localHours = loadFromStorage('hours', null);
+                const localDarkMode = localStorage.getItem('darkMode') === 'true';
 
                 if (localWeekdayAvgPrice !== null || localWeekdayQuests !== null) {
                   // localStorageにデータがある場合は移行
@@ -1413,7 +1413,8 @@
                         金: { hours: 0, deliveries: 0, earnings: 0 },
                         土: { hours: 0, deliveries: 0, earnings: 0 },
                         日: { hours: 0, deliveries: 0, earnings: 0 }
-                      }
+                      },
+                      is_dark_mode: localDarkMode
                     }, {
                       onConflict: 'user_id'
                     });
@@ -1670,6 +1671,7 @@
               current_week_start: currentWeekStart,
               hours: hours,
               vision_api_key: visionApiKey || null,
+              is_dark_mode: isDarkMode,
               updated_at: new Date().toISOString()
             }, {
               onConflict: 'user_id'
@@ -1689,7 +1691,7 @@
         }, 500);
         return () => clearTimeout(timer);
       }, [weekdayAvgPrice, weekendAvgPrice, weekdayDeliveriesPerHour, weekendDeliveriesPerHour,
-          useAutoCalculate, weekdayQuests, weekendQuests, targetAmount, currentWeekStart, hours, settingsLoading]);
+          useAutoCalculate, weekdayQuests, weekendQuests, targetAmount, currentWeekStart, hours, isDarkMode, settingsLoading]);
 
       // Keep these in localStorage
       useEffect(() => {
