@@ -600,6 +600,16 @@
 
       // ビットコイン積み立て関連のstate
       const [showBTCModal, setShowBTCModal] = useState(false);
+      const [btcRecords, setBtcRecords] = useState([]);
+      const [btcLoading, setBtcLoading] = useState(true);
+      const [showBTCInput, setShowBTCInput] = useState(false);
+      const [editingBTC, setEditingBTC] = useState({
+        date: formatDateToLocal(new Date()),
+        settlementPrice: '',
+        btcAmount: '',
+        jpyAmount: ''
+      });
+      const [editingBTCId, setEditingBTCId] = useState(null);
 
       const [visionApiKey, setVisionApiKey] = useState(() => {
         try {
@@ -1208,6 +1218,36 @@
       useEffect(() => {
         loadExpenses();
       }, [session?.user?.id]);
+
+      // Load BTC records from Supabase
+      const loadBTCRecords = async () => {
+        if (!session?.user?.id) {
+          setBtcLoading(false);
+          return;
+        }
+
+        try {
+          const { data, error } = await supabaseClient
+            .from('btc_records')
+            .select('*')
+            .eq('user_id', session.user.id)
+            .order('date', { ascending: false });
+
+          if (error) throw error;
+
+          setBtcRecords(data || []);
+        } catch (error) {
+          console.error('Error loading BTC records:', error);
+        } finally {
+          setBtcLoading(false);
+        }
+      };
+
+      useEffect(() => {
+        if (showBTCModal) {
+          loadBTCRecords();
+        }
+      }, [showBTCModal, session?.user?.id]);
 
       // Load user settings from Supabase
       useEffect(() => {
@@ -6148,7 +6188,7 @@
                   </button>
                 </div>
 
-                {/* コンテンツ（現在は空） */}
+                {/* コンテンツ */}
                 <div
                   style={{
                     flex: 1,
@@ -6157,8 +6197,243 @@
                     minHeight: 0
                   }}
                 >
-                  <div className="p-4">
-                    {/* 後で実装 */}
+                  <div className="p-4 space-y-4">
+                    {/* 追加ボタン */}
+                    <button
+                      onClick={() => {
+                        setEditingBTC({
+                          date: formatDateToLocal(new Date()),
+                          settlementPrice: '',
+                          btcAmount: '',
+                          jpyAmount: ''
+                        });
+                        setEditingBTCId(null);
+                        setShowBTCInput(true);
+                      }}
+                      className="w-full bg-orange-500 text-white py-3 rounded-xl font-medium hover:bg-orange-600 transition-colors"
+                    >
+                      ＋ 新規追加
+                    </button>
+
+                    {/* 入力フォーム */}
+                    {showBTCInput && (
+                      <div className="bg-white rounded-xl p-4 border-2 border-orange-200 space-y-3">
+                        <h3 className="font-bold text-gray-800 mb-3">
+                          {editingBTCId ? '記録を編集' : '新規追加'}
+                        </h3>
+
+                        {/* 日付 */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">日付</label>
+                          <input
+                            type="date"
+                            value={editingBTC.date}
+                            onChange={(e) => setEditingBTC({...editingBTC, date: e.target.value})}
+                            className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-orange-500 focus:outline-none"
+                          />
+                        </div>
+
+                        {/* 約定価格 */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">約定価格（円/BTC）</label>
+                          <input
+                            type="number"
+                            value={editingBTC.settlementPrice}
+                            onChange={(e) => {
+                              const price = parseFloat(e.target.value) || 0;
+                              setEditingBTC({
+                                ...editingBTC,
+                                settlementPrice: e.target.value,
+                                // BTC入力されていればJPYを再計算
+                                jpyAmount: editingBTC.btcAmount ? (parseFloat(editingBTC.btcAmount) * price).toString() : editingBTC.jpyAmount
+                              });
+                            }}
+                            className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-orange-500 focus:outline-none"
+                            placeholder="0"
+                          />
+                        </div>
+
+                        {/* BTC */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">BTC</label>
+                          <input
+                            type="number"
+                            step="0.00000001"
+                            value={editingBTC.btcAmount}
+                            onChange={(e) => {
+                              const btc = parseFloat(e.target.value) || 0;
+                              const price = parseFloat(editingBTC.settlementPrice) || 0;
+                              setEditingBTC({
+                                ...editingBTC,
+                                btcAmount: e.target.value,
+                                jpyAmount: price > 0 ? (btc * price).toString() : ''
+                              });
+                            }}
+                            className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-orange-500 focus:outline-none"
+                            placeholder="0.00000000"
+                          />
+                        </div>
+
+                        {/* JPY */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">JPY</label>
+                          <input
+                            type="number"
+                            value={editingBTC.jpyAmount}
+                            onChange={(e) => {
+                              const jpy = parseFloat(e.target.value) || 0;
+                              const price = parseFloat(editingBTC.settlementPrice) || 0;
+                              setEditingBTC({
+                                ...editingBTC,
+                                jpyAmount: e.target.value,
+                                btcAmount: price > 0 ? (jpy / price).toString() : ''
+                              });
+                            }}
+                            className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-orange-500 focus:outline-none"
+                            placeholder="0"
+                          />
+                        </div>
+
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              setShowBTCInput(false);
+                              setEditingBTC({
+                                date: formatDateToLocal(new Date()),
+                                settlementPrice: '',
+                                btcAmount: '',
+                                jpyAmount: ''
+                              });
+                              setEditingBTCId(null);
+                            }}
+                            className="flex-1 bg-gray-500 text-white py-2 rounded-lg font-medium hover:bg-gray-600 transition-colors"
+                          >
+                            キャンセル
+                          </button>
+                          <button
+                            onClick={async () => {
+                              try {
+                                // Validate inputs
+                                if (!editingBTC.date || !editingBTC.settlementPrice || !editingBTC.btcAmount || !editingBTC.jpyAmount) {
+                                  alert('すべての項目を入力してください');
+                                  return;
+                                }
+
+                                if (editingBTCId) {
+                                  // Update existing record
+                                  const { error } = await supabaseClient
+                                    .from('btc_records')
+                                    .update({
+                                      date: editingBTC.date,
+                                      settlement_price: parseFloat(editingBTC.settlementPrice),
+                                      btc_amount: parseFloat(editingBTC.btcAmount),
+                                      jpy_amount: parseFloat(editingBTC.jpyAmount),
+                                      updated_at: new Date().toISOString()
+                                    })
+                                    .eq('id', editingBTCId)
+                                    .eq('user_id', session.user.id);
+
+                                  if (error) throw error;
+                                } else {
+                                  // Create new record
+                                  const { error } = await supabaseClient
+                                    .from('btc_records')
+                                    .insert({
+                                      user_id: session.user.id,
+                                      date: editingBTC.date,
+                                      settlement_price: parseFloat(editingBTC.settlementPrice),
+                                      btc_amount: parseFloat(editingBTC.btcAmount),
+                                      jpy_amount: parseFloat(editingBTC.jpyAmount)
+                                    });
+
+                                  if (error) throw error;
+                                }
+
+                                // Reload records
+                                await loadBTCRecords();
+                                setShowBTCInput(false);
+                                setEditingBTC({
+                                  date: formatDateToLocal(new Date()),
+                                  settlementPrice: '',
+                                  btcAmount: '',
+                                  jpyAmount: ''
+                                });
+                                setEditingBTCId(null);
+                              } catch (error) {
+                                console.error('Save error:', error);
+                                alert('保存中にエラーが発生しました: ' + error.message);
+                              }
+                            }}
+                            className="flex-1 bg-orange-500 text-white py-2 rounded-lg font-medium hover:bg-orange-600 transition-colors"
+                          >
+                            保存
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 記録一覧 */}
+                    <div className="space-y-2">
+                      <h3 className="font-bold text-gray-800">記録一覧</h3>
+                      {btcLoading ? (
+                        <div className="text-center py-8 text-gray-500">読み込み中...</div>
+                      ) : btcRecords.length === 0 ? (
+                        <div className="text-center py-8 text-gray-500">記録がありません</div>
+                      ) : (
+                        btcRecords.map(record => (
+                          <div key={record.id} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                            <div className="flex justify-between items-start mb-2">
+                              <div className="font-medium text-gray-800">{record.date}</div>
+                              <div className="text-sm text-gray-600">¥{parseFloat(record.settlement_price).toLocaleString()}/BTC</div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-sm mb-2">
+                              <div className="text-gray-600">BTC: {record.btc_amount}</div>
+                              <div className="text-gray-600">JPY: ¥{parseFloat(record.jpy_amount).toLocaleString()}</div>
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => {
+                                  setEditingBTC({
+                                    date: record.date,
+                                    settlementPrice: record.settlement_price.toString(),
+                                    btcAmount: record.btc_amount.toString(),
+                                    jpyAmount: record.jpy_amount.toString()
+                                  });
+                                  setEditingBTCId(record.id);
+                                  setShowBTCInput(true);
+                                }}
+                                className="flex-1 bg-blue-500 text-white py-1 px-2 rounded text-sm hover:bg-blue-600 transition-colors"
+                              >
+                                編集
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  if (confirm('この記録を削除しますか？')) {
+                                    try {
+                                      const { error } = await supabaseClient
+                                        .from('btc_records')
+                                        .delete()
+                                        .eq('id', record.id)
+                                        .eq('user_id', session.user.id);
+
+                                      if (error) throw error;
+
+                                      await loadBTCRecords();
+                                    } catch (error) {
+                                      console.error('Delete error:', error);
+                                      alert('削除中にエラーが発生しました: ' + error.message);
+                                    }
+                                  }
+                                }}
+                                className="flex-1 bg-red-500 text-white py-1 px-2 rounded text-sm hover:bg-red-600 transition-colors"
+                              >
+                                削除
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
                   </div>
                 </div>
 
