@@ -5966,45 +5966,8 @@
                         }
                       });
 
-                      // 今週のクエストを計算（実働のみ）
-                      const effectiveValues = getEffectiveValues();
-                      let weekdayDeliveries = 0;
-                      let weekdayQuest = 0;
-                      weekdays.forEach(day => {
-                        const dayData = hours[day];
-                        // 実働の条件: 時間・件数・金額全てが入力されている
-                        if (dayData.hours > 0 && dayData.deliveries > 0 && dayData.earnings > 0) {
-                          weekdayDeliveries += dayData.deliveries;
-                        }
-                      });
-
-                      let cumulative = 0;
-                      weekdayQuests.forEach(quest => {
-                        if (weekdayDeliveries >= cumulative + quest.count) {
-                          weekdayQuest += quest.reward;
-                          cumulative += quest.count;
-                        }
-                      });
-
-                      let weekendDeliveries = 0;
-                      let weekendQuest = 0;
-                      weekends.forEach(day => {
-                        const dayData = hours[day];
-                        // 実働の条件: 時間・件数・金額全てが入力されている
-                        if (dayData.hours > 0 && dayData.deliveries > 0 && dayData.earnings > 0) {
-                          weekendDeliveries += dayData.deliveries;
-                        }
-                      });
-
-                      cumulative = 0;
-                      weekendQuests.forEach(quest => {
-                        if (weekendDeliveries >= cumulative + quest.count) {
-                          weekendQuest += quest.reward;
-                          cumulative += quest.count;
-                        }
-                      });
-
-                      thisWeekData.quest = weekdayQuest + weekendQuest;
+                      // 今週のクエストは表示しない（週が完了していないため）
+                      thisWeekData.quest = 0;
 
                       if (thisWeekData.hours > 0) {
                         weeklyData[thisMondayStr] = thisWeekData;
