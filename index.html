@@ -619,6 +619,26 @@
         }
       });
 
+      // ダークモード設定
+      const [isDarkMode, setIsDarkMode] = useState(() => {
+        try {
+          return localStorage.getItem('darkMode') === 'true';
+        } catch {
+          return false;
+        }
+      });
+
+      // ダークモードの切り替え
+      const toggleDarkMode = () => {
+        const newMode = !isDarkMode;
+        setIsDarkMode(newMode);
+        try {
+          localStorage.setItem('darkMode', newMode.toString());
+        } catch (error) {
+          console.error('Failed to save dark mode setting:', error);
+        }
+      };
+
       // 店舗名候補を生成する関数（使用回数順にソート）
       const getVendorSuggestions = (inputValue) => {
         // expensesが未定義または空の場合は空配列を返す
@@ -2642,10 +2662,10 @@
       const results = calculate();
       
       return (
-        <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-4 pb-8">
+        <div className={`min-h-screen p-4 pb-8 ${isDarkMode ? 'dark bg-gradient-to-br from-gray-900 to-gray-800' : 'bg-gradient-to-br from-green-50 to-blue-50'}`}>
           <div className="max-w-2xl mx-auto">
             {/* ヘッダー */}
-            <div className="bg-white rounded-2xl shadow-lg p-6 mb-4">
+            <div className={`rounded-2xl shadow-lg p-6 mb-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-3">
                   <button
@@ -2655,7 +2675,7 @@
                     <img src="アイコン.jpg?v=5" alt="Uber記録" className="w-12 h-12 rounded-xl" />
                   </button>
                   <div>
-                    <h1 className="text-2xl font-bold text-gray-800">Uber記録</h1>
+                    <h1 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Uber記録</h1>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -2664,6 +2684,12 @@
                     className="hover:opacity-80 transition-opacity"
                   >
                     <img src="BTC.png" alt="ビットコイン積み立て" className="w-10 h-10 rounded-lg" />
+                  </button>
+                  <button
+                    onClick={toggleDarkMode}
+                    className={`px-3 py-2 rounded-lg font-medium transition-colors text-xs ${isDarkMode ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-gray-700 hover:bg-gray-800'} text-white`}
+                  >
+                    {isDarkMode ? '☀️' : '🌙'}
                   </button>
                   <button
                     onClick={() => setShowBasicSettings(true)}
@@ -2716,12 +2742,12 @@
             </div>
             
             {/* 目標金額設定 */}
-            <div className="bg-white rounded-2xl shadow-lg p-6 mb-4">
-              <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <div className={`rounded-2xl shadow-lg p-6 mb-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
+              <h2 className={`text-lg font-bold mb-4 flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
                 <DollarSign />
                 目標金額
               </h2>
-              
+
               <div className="flex items-center gap-3">
                 <input
                   type="number"
@@ -2729,16 +2755,16 @@
                   value={targetAmount || ''}
                   onChange={(e) => setTargetAmount(parseFloat(e.target.value) || 0)}
                   onKeyDown={handleKeyDown}
-                  className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none text-lg"
+                  className={`flex-1 px-4 py-3 border-2 rounded-xl focus:outline-none text-lg ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-green-400' : 'border-gray-200 focus:border-green-500'}`}
                   placeholder="目標金額を入力"
                 />
-                <span className="text-gray-600 font-medium">円</span>
+                <span className={`font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>円</span>
               </div>
             </div>
             
             {/* 稼働時間入力 */}
-            <div className="bg-white rounded-2xl shadow-lg p-6 mb-4">
-              <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <div className={`rounded-2xl shadow-lg p-6 mb-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
+              <h2 className={`text-lg font-bold mb-4 flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
                 <Package />
                 今週の稼働
               </h2>
@@ -3016,7 +3042,7 @@
                   style={{flexShrink: 0, touchAction: 'none'}}
                 >
                   <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                    <Calculator />
+                    <img src="アイコン.jpg?v=5" alt="全期間集計" className="w-8 h-8 rounded-lg" />
                     <span>全期間集計【{Object.keys(dailyData || {}).length}日】</span>
                   </h2>
                   <button
@@ -3491,7 +3517,7 @@
                   style={{flexShrink: 0, touchAction: 'none'}}
                 >
                     <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                      <Settings />
+                      <span className="text-2xl">⚙️</span>
                       設定
                     </h2>
                     <div className="flex items-center gap-2">
@@ -3843,7 +3869,7 @@
                   style={{flexShrink: 0, touchAction: 'none'}}
                 >
                     <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                      <Calendar />
+                      <span className="text-2xl">📅</span>
                       カレンダー
                     </h2>
                     <button
@@ -4064,7 +4090,7 @@
                   style={{flexShrink: 0, touchAction: 'none'}}
                 >
                   <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                    <Award />
+                    <span className="text-2xl">🏆</span>
                     クエスト
                   </h2>
                   <button
@@ -4499,7 +4525,7 @@
                 >
                   <div className="flex items-center gap-3">
                     <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                      <Receipt />
+                      <span className="text-2xl">💸</span>
                       経費管理
                       <button
                         onClick={() => setShowExpenseGuide(true)}
