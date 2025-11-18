@@ -2644,7 +2644,7 @@
         <div className={`min-h-screen p-4 pb-8 ${isDarkMode ? 'dark bg-gradient-to-br from-gray-900 to-gray-800' : 'bg-gradient-to-br from-green-50 to-blue-50'}`}>
           <div className="max-w-2xl mx-auto">
             {/* ヘッダー */}
-            <div className={`rounded-2xl shadow-lg p-6 mb-4 ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
+            <div className={`rounded-2xl shadow-lg p-6 mb-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-3">
                   <button
@@ -2715,7 +2715,7 @@
             </div>
             
             {/* 目標金額設定 */}
-            <div className={`rounded-2xl shadow-lg p-6 mb-4 ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
+            <div className={`rounded-2xl shadow-lg p-6 mb-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
               <h2 className={`text-lg font-bold mb-4 flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
                 <DollarSign />
                 目標金額
@@ -2736,7 +2736,7 @@
             </div>
             
             {/* 稼働時間入力 */}
-            <div className={`rounded-2xl shadow-lg p-6 mb-4 ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
+            <div className={`rounded-2xl shadow-lg p-6 mb-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
               <h2 className={`text-lg font-bold mb-4 flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
                 <Package />
                 今週の稼働
@@ -4097,7 +4097,7 @@
                   </h2>
                   <button
                     onClick={() => setShowQuestSettings(false)}
-                    className="text-gray-500 hover:text-gray-700 text-2xl"
+                    className={`text-2xl ${isDarkMode ? 'text-gray-400 hover:text-gray-200' : 'text-gray-500 hover:text-gray-700'}`}
                     style={{touchAction: 'auto'}}
                   >
                     ×
@@ -4116,11 +4116,11 @@
                   <div className="p-6 space-y-6">
                     {/* 月～木のクエスト */}
                     <div>
-                      <h3 className="font-bold text-gray-800 mb-1">月～木クエスト</h3>
-                      <p className="text-xs text-gray-500 mb-3">※各クエストは順番に達成されます</p>
+                      <h3 className={`font-bold mb-1 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>月～木クエスト</h3>
+                      <p className={`text-xs mb-3 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>※各クエストは順番に達成されます</p>
                       <div className="space-y-2">
                         {weekdayQuests.map((quest, index) => (
-                          <div key={index} className="flex items-center gap-1.5 p-2 bg-blue-50 rounded-lg">
+                          <div key={index} className={`flex items-center gap-1.5 p-2 rounded-lg ${isDarkMode ? 'bg-blue-900' : 'bg-blue-50'}`}>
                             <div className="w-7 h-7 min-w-7 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0">
                               {index + 1}
                             </div>
@@ -4129,30 +4129,30 @@
                               value={quest.count || ''}
                               onChange={(e) => updateWeekdayQuest(index, 'count', e.target.value)}
                               onKeyDown={handleKeyDown}
-                              className="w-14 px-2 py-1.5 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm text-center flex-shrink-0"
+                              className={`w-14 px-2 py-1.5 border-2 rounded-lg focus:outline-none text-sm text-center flex-shrink-0 ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-400' : 'border-gray-200 focus:border-blue-500'}`}
                             />
-                            <span className="text-xs text-gray-600 flex-shrink-0">回</span>
+                            <span className={`text-xs flex-shrink-0 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>回</span>
                             <input
                               type="number"
                               step="50"
                               value={quest.reward || ''}
                               onChange={(e) => updateWeekdayQuest(index, 'reward', e.target.value)}
                               onKeyDown={handleKeyDown}
-                              className="flex-1 min-w-0 px-2 py-1.5 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-sm text-center"
+                              className={`flex-1 min-w-0 px-2 py-1.5 border-2 rounded-lg focus:outline-none text-sm text-center ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-400' : 'border-gray-200 focus:border-blue-500'}`}
                             />
-                            <span className="text-xs text-gray-600 flex-shrink-0">円</span>
+                            <span className={`text-xs flex-shrink-0 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>円</span>
                           </div>
                         ))}
                       </div>
                     </div>
-                    
+
                     {/* 金～日のクエスト */}
                     <div>
-                      <h3 className="font-bold text-gray-800 mb-1">金～日クエスト</h3>
-                      <p className="text-xs text-gray-500 mb-3">※各クエストは順番に達成されます</p>
+                      <h3 className={`font-bold mb-1 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>金～日クエスト</h3>
+                      <p className={`text-xs mb-3 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>※各クエストは順番に達成されます</p>
                       <div className="space-y-2">
                         {weekendQuests.map((quest, index) => (
-                          <div key={index} className="flex items-center gap-1.5 p-2 bg-yellow-50 rounded-lg">
+                          <div key={index} className={`flex items-center gap-1.5 p-2 rounded-lg ${isDarkMode ? 'bg-yellow-900' : 'bg-yellow-50'}`}>
                             <div className="w-7 h-7 min-w-7 bg-yellow-500 text-white rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0">
                               {index + 1}
                             </div>
@@ -4161,18 +4161,18 @@
                               value={quest.count || ''}
                               onChange={(e) => updateWeekendQuest(index, 'count', e.target.value)}
                               onKeyDown={handleKeyDown}
-                              className="w-14 px-2 py-1.5 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none text-sm text-center flex-shrink-0"
+                              className={`w-14 px-2 py-1.5 border-2 rounded-lg focus:outline-none text-sm text-center flex-shrink-0 ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-yellow-400' : 'border-gray-200 focus:border-yellow-500'}`}
                             />
-                            <span className="text-xs text-gray-600 flex-shrink-0">回</span>
+                            <span className={`text-xs flex-shrink-0 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>回</span>
                             <input
                               type="number"
                               step="50"
                               value={quest.reward || ''}
                               onChange={(e) => updateWeekendQuest(index, 'reward', e.target.value)}
                               onKeyDown={handleKeyDown}
-                              className="flex-1 min-w-0 px-2 py-1.5 border-2 border-gray-200 rounded-lg focus:border-yellow-500 focus:outline-none text-sm text-center"
+                              className={`flex-1 min-w-0 px-2 py-1.5 border-2 rounded-lg focus:outline-none text-sm text-center ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-yellow-400' : 'border-gray-200 focus:border-yellow-500'}`}
                             />
-                            <span className="text-xs text-gray-600 flex-shrink-0">円</span>
+                            <span className={`text-xs flex-shrink-0 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>円</span>
                           </div>
                         ))}
                       </div>
@@ -4243,7 +4243,7 @@
                   <div className="p-6 space-y-4">
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                         稼働時間
                       </label>
                       <div className="flex items-center gap-2">
@@ -4253,15 +4253,15 @@
                           value={editingDayData.hours || ''}
                           onChange={(e) => setEditingDayData({...editingDayData, hours: parseFloat(e.target.value) || 0})}
                           onKeyDown={handleKeyDown}
-                          className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none text-lg"
+                          className={`flex-1 px-4 py-3 border-2 rounded-xl focus:outline-none text-lg ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-purple-400' : 'border-gray-200 focus:border-purple-500'}`}
                           placeholder="0"
                         />
-                        <span className="text-gray-600 font-medium">時間</span>
+                        <span className={`font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>時間</span>
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                         配達件数
                       </label>
                       <div className="flex items-center gap-2">
@@ -4270,7 +4270,7 @@
                           value={editingDayData.deliveries || ''}
                           onChange={(e) => setEditingDayData({...editingDayData, deliveries: parseInt(e.target.value) || 0})}
                           onKeyDown={handleKeyDown}
-                          className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none text-lg"
+                          className={`flex-1 px-4 py-3 border-2 rounded-xl focus:outline-none text-lg ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-purple-400' : 'border-gray-200 focus:border-purple-500'}`}
                           placeholder={editingDayData.hours > 0 ? (() => {
                             const effectiveValues = getEffectiveValues();
                             const date = new Date(selectedDate + 'T00:00:00');
@@ -4280,12 +4280,12 @@
                             return Math.floor(editingDayData.hours * deliveries).toString();
                           })() : "0"}
                         />
-                        <span className="text-gray-600 font-medium">件</span>
+                        <span className={`font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>件</span>
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                         基本売上
                       </label>
                       <div className="flex items-center gap-2">
@@ -4295,7 +4295,7 @@
                           value={editingDayData.earnings || ''}
                           onChange={(e) => setEditingDayData({...editingDayData, earnings: parseInt(e.target.value) || 0})}
                           onKeyDown={handleKeyDown}
-                          className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none text-lg"
+                          className={`flex-1 px-4 py-3 border-2 rounded-xl focus:outline-none text-lg ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-purple-400' : 'border-gray-200 focus:border-purple-500'}`}
                           placeholder={editingDayData.hours > 0 ? (() => {
                             const effectiveValues = getEffectiveValues();
                             const date = new Date(selectedDate + 'T00:00:00');
@@ -4306,12 +4306,12 @@
                             return Math.floor(editingDayData.hours * deliveries * price).toString();
                           })() : "0"}
                         />
-                        <span className="text-gray-600 font-medium">円</span>
+                        <span className={`font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>円</span>
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                         クエスト報酬
                       </label>
                       <div className="flex items-center gap-2">
@@ -4321,16 +4321,16 @@
                           value={editingDayData.quest || ''}
                           onChange={(e) => setEditingDayData({...editingDayData, quest: parseInt(e.target.value) || 0})}
                           onKeyDown={handleKeyDown}
-                          className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none text-lg"
+                          className={`flex-1 px-4 py-3 border-2 rounded-xl focus:outline-none text-lg ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-purple-400' : 'border-gray-200 focus:border-purple-500'}`}
                           placeholder="0"
                         />
-                        <span className="text-gray-600 font-medium">円</span>
+                        <span className={`font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>円</span>
                       </div>
                     </div>
 
                     {/* 雨の日・祝日チェックボックス */}
                     <div className="grid grid-cols-2 gap-2">
-                      <div className="bg-blue-50 rounded-xl p-3 border-2 border-blue-200">
+                      <div className={`rounded-xl p-3 border-2 ${isDarkMode ? 'bg-blue-900 border-blue-700' : 'bg-blue-50 border-blue-200'}`}>
                         <label className="flex items-center gap-2 cursor-pointer">
                           <input
                             type="checkbox"
@@ -4339,12 +4339,12 @@
                             className="w-5 h-5 text-blue-500 rounded focus:ring-2 focus:ring-blue-500"
                           />
                           <div>
-                            <div className="text-sm font-medium text-gray-800">🌧️ 雨の日</div>
-                            <div className="text-xs text-gray-600 mt-0.5">平均計算から除外</div>
+                            <div className={`text-sm font-medium ${isDarkMode ? 'text-blue-300' : 'text-gray-800'}`}>🌧️ 雨の日</div>
+                            <div className={`text-xs mt-0.5 ${isDarkMode ? 'text-blue-400' : 'text-gray-600'}`}>平均計算から除外</div>
                           </div>
                         </label>
                       </div>
-                      <div className="bg-red-50 rounded-xl p-3 border-2 border-red-200">
+                      <div className={`rounded-xl p-3 border-2 ${isDarkMode ? 'bg-red-900 border-red-700' : 'bg-red-50 border-red-200'}`}>
                         <label className="flex items-center gap-2 cursor-pointer">
                           <input
                             type="checkbox"
@@ -4353,8 +4353,8 @@
                             className="w-5 h-5 text-red-500 rounded focus:ring-2 focus:ring-red-500"
                           />
                           <div>
-                            <div className="text-sm font-medium text-gray-800">🎌 祝日</div>
-                            <div className="text-xs text-gray-600 mt-0.5">平均計算から除外</div>
+                            <div className={`text-sm font-medium ${isDarkMode ? 'text-red-300' : 'text-gray-800'}`}>🎌 祝日</div>
+                            <div className={`text-xs mt-0.5 ${isDarkMode ? 'text-red-400' : 'text-gray-600'}`}>平均計算から除外</div>
                           </div>
                         </label>
                       </div>
