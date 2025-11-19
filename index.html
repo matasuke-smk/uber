@@ -110,124 +110,7 @@
       const [password, setPassword] = useState('');
       const [loading, setLoading] = useState(false);
       const [error, setError] = useState('');
-      const [showBiometricButton, setShowBiometricButton] = useState(false);
       const [isDarkMode] = useState(() => localStorage.getItem('darkMode') === 'true');
-      const [debugLogs, setDebugLogs] = useState([]);
-      const [showDebug, setShowDebug] = useState(true);
-
-      // デバッグログ追加関数
-      const addLog = (message) => {
-        const timestamp = new Date().toLocaleTimeString('ja-JP', { hour12: false });
-        const logEntry = `[${timestamp}] ${message}`;
-        console.log(logEntry);
-        setDebugLogs(prev => [...prev.slice(-20), logEntry]); // 最新20件を保持
-      };
-
-      // 生体認証ログイン処理
-      const handleBiometricLogin = async () => {
-        if (!window.PasswordCredential) return;
-
-        try {
-          setLoading(true);
-          setError('');
-
-          // 保存されている認証情報を取得（生体認証プロンプトが表示される）
-          const credential = await navigator.credentials.get({
-            password: true,
-            mediation: 'required' // 必ず認証プロンプトを表示
-          });
-
-          if (credential && credential.type === 'password') {
-            // 認証情報を取得できた場合、自動ログイン
-            const result = await supabaseClient.auth.signInWithPassword({
-              email: credential.id,
-              password: credential.password,
-            });
-
-            if (result.error) throw result.error;
-            onAuthSuccess(result.data.session);
-          }
-        } catch (err) {
-          console.log('Biometric login cancelled or failed:', err);
-          setError('生体認証がキャンセルされました');
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      // 自動生体認証ログイン（毎回ポップアップを表示）
-      useEffect(() => {
-        let isCancelled = false;
-
-        const tryAutoLogin = async () => {
-          addLog('useEffect開始 (isSignUp: ' + isSignUp + ')');
-
-          // Credential Management APIが利用可能か確認
-          if (!window.PasswordCredential) {
-            addLog('❌ PasswordCredential API利用不可');
-            return;
-          }
-
-          if (isSignUp) {
-            addLog('サインアップモード - スキップ');
-            return;
-          }
-
-          addLog('✅ 生体認証開始...');
-
-          try {
-            // 保存されている認証情報を取得（毎回生体認証プロンプトを表示）
-            addLog('navigator.credentials.get呼び出し中...');
-            const credential = await navigator.credentials.get({
-              password: true,
-              mediation: 'required' // 毎回認証プロンプトを表示
-            });
-
-            if (isCancelled) {
-              addLog('コンポーネントがアンマウント済み');
-              return;
-            }
-
-            addLog('credentials.get完了: ' + (credential ? '認証情報あり' : '認証情報なし'));
-
-            if (credential && credential.type === 'password') {
-              // 認証情報を取得できた場合、ログイン
-              addLog('🔐 認証成功 - ログイン処理開始');
-              setLoading(true);
-
-              const result = await supabaseClient.auth.signInWithPassword({
-                email: credential.id,
-                password: credential.password,
-              });
-
-              if (result.error) throw result.error;
-              addLog('✅ ログイン成功');
-              onAuthSuccess(result.data.session);
-            } else {
-              // 認証情報がない場合、生体認証ボタンを表示
-              addLog('認証情報なし - ボタン表示');
-              setShowBiometricButton(true);
-            }
-          } catch (err) {
-            addLog('❌ エラー: ' + (err.message || err.name || 'Unknown'));
-            // 生体認証がキャンセルされた場合やエラーの場合、ボタンを表示
-            if (!isCancelled) {
-              setShowBiometricButton(true);
-            }
-          } finally {
-            if (!isCancelled) {
-              setLoading(false);
-            }
-          }
-        };
-
-        tryAutoLogin();
-
-        return () => {
-          addLog('useEffectクリーンアップ');
-          isCancelled = true;
-        };
-      }, [isSignUp, onAuthSuccess]);
 
       const handleSubmit = async (e) => {
         e.preventDefault();
@@ -261,23 +144,6 @@
             });
             if (result.error) throw result.error;
 
-            // ログイン成功後、認証情報を保存（次回の自動ログイン用）
-            if (window.PasswordCredential) {
-              try {
-                addLog('💾 認証情報を保存中...');
-                const credential = new PasswordCredential({
-                  id: email,
-                  password: password,
-                });
-                await navigator.credentials.store(credential);
-                addLog('✅ 認証情報を保存しました');
-              } catch (storeErr) {
-                addLog('❌ 認証情報の保存失敗: ' + (storeErr.message || 'Unknown'));
-              }
-            } else {
-              addLog('❌ PasswordCredential API利用不可 - 保存スキップ');
-            }
-
             onAuthSuccess(result.data.session);
           }
         } catch (err) {
@@ -290,26 +156,6 @@
 
       return (
         <div className={`min-h-screen flex items-center justify-center p-4 ${isDarkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-emerald-50 to-teal-100'}`}>
-          {/* デバッグログウィンドウ */}
-          {showDebug && debugLogs.length > 0 && (
-            <div className="fixed bottom-0 left-0 right-0 bg-black bg-opacity-90 text-white text-xs p-2 max-h-48 overflow-y-auto z-50 font-mono">
-              <div className="flex justify-between items-center mb-1">
-                <span className="font-bold">🐛 Debug Log</span>
-                <button
-                  onClick={() => setShowDebug(false)}
-                  className="text-white px-2 py-1 rounded hover:bg-gray-700"
-                >
-                  ✕
-                </button>
-              </div>
-              {debugLogs.map((log, index) => (
-                <div key={index} className="border-t border-gray-700 pt-1 mt-1">
-                  {log}
-                </div>
-              ))}
-            </div>
-          )}
-
           <div className={`rounded-2xl shadow-xl p-8 w-full max-w-md ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
             <div className="text-center mb-8">
               <h1 className={`text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Uber記録</h1>
@@ -325,10 +171,11 @@
                 </label>
                 <input
                   type="email"
+                  name="username"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  autoComplete="email"
+                  autoComplete="username"
                   className={`w-full px-4 py-2 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent ${isDarkMode ? 'bg-gray-700 border border-gray-600 text-white placeholder-gray-400' : 'bg-white border border-gray-300 text-gray-900'}`}
                   placeholder="example@email.com"
                 />
@@ -340,11 +187,12 @@
                 </label>
                 <input
                   type="password"
+                  name="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   minLength="6"
-                  autoComplete="current-password"
+                  autoComplete={isSignUp ? "new-password" : "current-password"}
                   className={`w-full px-4 py-2 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent ${isDarkMode ? 'bg-gray-700 border border-gray-600 text-white placeholder-gray-400' : 'bg-white border border-gray-300 text-gray-900'}`}
                   placeholder="6文字以上"
                 />
@@ -364,27 +212,6 @@
                 {loading ? '処理中...' : (isSignUp ? 'アカウント作成' : 'ログイン')}
               </button>
             </form>
-
-            {/* 生体認証ボタン */}
-            {!isSignUp && showBiometricButton && (
-              <div className="mt-4">
-                <div className="relative flex items-center justify-center my-4">
-                  <div className={`border-t w-full ${isDarkMode ? 'border-gray-600' : 'border-gray-300'}`}></div>
-                  <span className={`px-3 text-sm absolute ${isDarkMode ? 'bg-gray-800 text-gray-400' : 'bg-white text-gray-500'}`}>または</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleBiometricLogin}
-                  disabled={loading}
-                  className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                  生体認証でログイン
-                </button>
-              </div>
-            )}
 
             <div className="mt-6 text-center">
               <button
