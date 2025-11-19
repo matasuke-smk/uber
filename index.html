@@ -145,21 +145,21 @@
         }
       };
 
-      // 自動ログイン機能（生体認証）
+      // 自動生体認証ログイン（毎回ポップアップを表示）
       useEffect(() => {
         const tryAutoLogin = async () => {
           // Credential Management APIが利用可能か確認
           if (!window.PasswordCredential || isSignUp) return;
 
           try {
-            // 保存されている認証情報を自動的に取得を試みる
+            // 保存されている認証情報を取得（毎回生体認証プロンプトを表示）
             const credential = await navigator.credentials.get({
               password: true,
-              mediation: 'silent' // ユーザーの操作なしで自動的に取得
+              mediation: 'required' // 毎回認証プロンプトを表示
             });
 
             if (credential && credential.type === 'password') {
-              // 認証情報を取得できた場合、自動ログイン
+              // 認証情報を取得できた場合、ログイン
               setLoading(true);
 
               const result = await supabaseClient.auth.signInWithPassword({
@@ -170,12 +170,12 @@
               if (result.error) throw result.error;
               onAuthSuccess(result.data.session);
             } else {
-              // 自動取得できなかった場合、生体認証ボタンを表示
+              // 認証情報がない場合、生体認証ボタンを表示
               setShowBiometricButton(true);
             }
           } catch (err) {
-            console.log('Auto login skipped:', err);
-            // 自動ログインできない場合、生体認証ボタンを表示
+            console.log('Biometric login cancelled or not available:', err);
+            // 生体認証がキャンセルされた場合やエラーの場合、ボタンを表示
             setShowBiometricButton(true);
           } finally {
             setLoading(false);
