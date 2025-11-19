@@ -6638,10 +6638,10 @@
                                   </>
                                 );
                               } else {
-                                // フォールバック: CoinGeckoデータがない場合
+                                // 24時間前のデータがない場合
                                 return (
                                   <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                                    データ取得中...
+                                    前日比なし
                                   </div>
                                 );
                               }
