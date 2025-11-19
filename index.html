@@ -1998,10 +1998,10 @@
           // 初回データ取得
           fetchAllBtcData();
 
-          // 価格を3秒ごとに自動更新
+          // 価格を10秒ごとに自動更新
           const priceInterval = setInterval(() => {
             fetchBtcPrice();
-          }, 3000);
+          }, 10000);
 
           // 残高、統計、購入履歴を30秒ごとに自動更新
           const dataInterval = setInterval(() => {
