@@ -9,11 +9,16 @@ Thumbs.db
 *.lnk
 *.fmp12
 
+# Backup files
+*.backup
+*.bak
+
 # Directories
 short-av-main/
 uber/.claude/
 広報部Ｘ/
 新しいフォルダー/
+archive/
 
 # IDE
 .vscode/
