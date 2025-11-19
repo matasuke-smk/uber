@@ -145,14 +145,36 @@ CREATE POLICY "Users can delete their own stats"
   USING (auth.uid() = user_id);
 
 -- ===================================
--- 4. user_settings テーブルに Coincheck APIキー列を追加
+-- 4. 価格履歴テーブル (btc_price_history)
+-- ===================================
+CREATE TABLE IF NOT EXISTS btc_price_history (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  pair VARCHAR(20) DEFAULT 'btc_jpy',
+  price DECIMAL(18, 2) NOT NULL
+);
+
+-- インデックス作成
+CREATE INDEX IF NOT EXISTS idx_price_history_created_at ON btc_price_history(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_price_history_pair ON btc_price_history(pair);
+
+-- RLSポリシー設定（全ユーザー参照可能）
+ALTER TABLE btc_price_history ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Anyone can view price history" ON btc_price_history;
+CREATE POLICY "Anyone can view price history"
+  ON btc_price_history FOR SELECT
+  USING (true);
+
+-- ===================================
+-- 5. user_settings テーブルに Coincheck APIキー列を追加
 -- ===================================
 ALTER TABLE user_settings
 ADD COLUMN IF NOT EXISTS coincheck_api_key TEXT,
 ADD COLUMN IF NOT EXISTS coincheck_api_secret TEXT;
 
 -- ===================================
--- 5. トリガー: updated_at自動更新
+-- 6. トリガー: updated_at自動更新
 -- ===================================
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
@@ -175,7 +197,7 @@ CREATE TRIGGER update_investment_stats_updated_at
   EXECUTE FUNCTION update_updated_at_column();
 
 -- ===================================
--- 6. 統計自動更新関数
+-- 7. 統計自動更新関数
 -- ===================================
 CREATE OR REPLACE FUNCTION update_investment_stats()
 RETURNS TRIGGER AS $$
