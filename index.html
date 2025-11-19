@@ -506,6 +506,21 @@
       const [btcLastUpdate, setBtcLastUpdate] = useState(null);
       const BACKEND_API_URL = 'https://uber-btc-backend.onrender.com';
 
+      // Renderサーバーを事前起動（アプリ起動時）
+      useEffect(() => {
+        const wakeUpServer = async () => {
+          try {
+            console.log('Waking up backend server...');
+            await fetch(`${BACKEND_API_URL}/api/ticker`);
+            console.log('Backend server woken up');
+          } catch (error) {
+            console.log('Backend wake-up request sent (error ignored):', error.message);
+          }
+        };
+
+        wakeUpServer();
+      }, []); // アプリ起動時に一度だけ実行
+
       const [visionApiKey, setVisionApiKey] = useState(() => {
         try {
           return localStorage.getItem('visionApiKey') || '';
