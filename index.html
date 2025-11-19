@@ -2035,7 +2035,7 @@
       // モーダル表示中は背景のスクロールを無効化し、背景を固定
       useEffect(() => {
         try {
-          const isModalOpen = showBasicSettings || showQuestSettings || showCalendar || showTotalStats || showDayEdit || showExpenses || showExpenseInput || showExpenseFilter || showImagePreview || showBalanceSheet || showIncomeStatement;
+          const isModalOpen = showBasicSettings || showQuestSettings || showCalendar || showTotalStats || showDayEdit || showExpenses || showExpenseInput || showExpenseFilter || showImagePreview || showBalanceSheet || showIncomeStatement || showBTCModal;
           if (typeof document !== 'undefined' && document.body) {
             if (isModalOpen) {
               // bodyのスクロールと位置を固定
@@ -2066,7 +2066,7 @@
             console.error('モーダルスクロール解除エラー:', error);
           }
         };
-      }, [showBasicSettings, showQuestSettings, showCalendar, showTotalStats, showDayEdit, showExpenses, showExpenseInput, showExpenseFilter, showImagePreview, showBalanceSheet, showIncomeStatement]);
+      }, [showBasicSettings, showQuestSettings, showCalendar, showTotalStats, showDayEdit, showExpenses, showExpenseInput, showExpenseFilter, showImagePreview, showBalanceSheet, showIncomeStatement, showBTCModal]);
 
       // ダークモード時にbodyの背景色を設定
       useEffect(() => {
