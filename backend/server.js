@@ -46,12 +46,12 @@ app.get('/health', (req, res) => {
 
 // ==================== Public API (認証不要) ====================
 
-// CoinGecko データのキャッシュ（1分間有効）
+// CoinGecko データのキャッシュ（10秒間有効）
 let coingeckoCache = {
   data: null,
   timestamp: 0
 };
-const COINGECKO_CACHE_DURATION = 60000; // 60秒
+const COINGECKO_CACHE_DURATION = 10000; // 10秒
 
 /**
  * ティッカー取得（CoinGeckoから24h変動率も取得）
