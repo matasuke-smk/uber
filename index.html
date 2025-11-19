@@ -6627,11 +6627,24 @@
                             </div>
                           </div>
                           <div className="text-right">
-                            <div className={`text-sm mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>24h変動</div>
-                            <div className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                              高値: ¥{Number(btcPrice.high).toLocaleString()}<br />
-                              安値: ¥{Number(btcPrice.low).toLocaleString()}
-                            </div>
+                            {(() => {
+                              // 24時間の中間値を基準に変動率を計算
+                              const high = Number(btcPrice.high);
+                              const low = Number(btcPrice.low);
+                              const current = Number(btcPrice.last);
+                              const midPoint = (high + low) / 2;
+                              const changePercent = ((current - midPoint) / midPoint * 100).toFixed(2);
+                              const isPositive = parseFloat(changePercent) >= 0;
+
+                              return (
+                                <>
+                                  <div className={`text-sm mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>前日比</div>
+                                  <div className={`text-2xl font-bold ${isPositive ? (isDarkMode ? 'text-green-400' : 'text-green-600') : (isDarkMode ? 'text-red-400' : 'text-red-600')}`}>
+                                    {isPositive ? '+' : ''}{changePercent}%
+                                  </div>
+                                </>
+                              );
+                            })()}
                           </div>
                         </div>
                       </div>
