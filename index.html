@@ -112,6 +112,16 @@
       const [error, setError] = useState('');
       const [showBiometricButton, setShowBiometricButton] = useState(false);
       const [isDarkMode] = useState(() => localStorage.getItem('darkMode') === 'true');
+      const [debugLogs, setDebugLogs] = useState([]);
+      const [showDebug, setShowDebug] = useState(true);
+
+      // デバッグログ追加関数
+      const addLog = (message) => {
+        const timestamp = new Date().toLocaleTimeString('ja-JP', { hour12: false });
+        const logEntry = `[${timestamp}] ${message}`;
+        console.log(logEntry);
+        setDebugLogs(prev => [...prev.slice(-20), logEntry]); // 最新20件を保持
+      };
 
       // 生体認証ログイン処理
       const handleBiometricLogin = async () => {
@@ -147,19 +157,42 @@
 
       // 自動生体認証ログイン（毎回ポップアップを表示）
       useEffect(() => {
+        let isCancelled = false;
+
         const tryAutoLogin = async () => {
+          addLog('useEffect開始 (isSignUp: ' + isSignUp + ')');
+
           // Credential Management APIが利用可能か確認
-          if (!window.PasswordCredential || isSignUp) return;
+          if (!window.PasswordCredential) {
+            addLog('❌ PasswordCredential API利用不可');
+            return;
+          }
+
+          if (isSignUp) {
+            addLog('サインアップモード - スキップ');
+            return;
+          }
+
+          addLog('✅ 生体認証開始...');
 
           try {
             // 保存されている認証情報を取得（毎回生体認証プロンプトを表示）
+            addLog('navigator.credentials.get呼び出し中...');
             const credential = await navigator.credentials.get({
               password: true,
               mediation: 'required' // 毎回認証プロンプトを表示
             });
 
+            if (isCancelled) {
+              addLog('コンポーネントがアンマウント済み');
+              return;
+            }
+
+            addLog('credentials.get完了: ' + (credential ? '認証情報あり' : '認証情報なし'));
+
             if (credential && credential.type === 'password') {
               // 認証情報を取得できた場合、ログイン
+              addLog('🔐 認証成功 - ログイン処理開始');
               setLoading(true);
 
               const result = await supabaseClient.auth.signInWithPassword({
@@ -168,21 +201,32 @@
               });
 
               if (result.error) throw result.error;
+              addLog('✅ ログイン成功');
               onAuthSuccess(result.data.session);
             } else {
               // 認証情報がない場合、生体認証ボタンを表示
+              addLog('認証情報なし - ボタン表示');
               setShowBiometricButton(true);
             }
           } catch (err) {
-            console.log('Biometric login cancelled or not available:', err);
+            addLog('❌ エラー: ' + (err.message || err.name || 'Unknown'));
             // 生体認証がキャンセルされた場合やエラーの場合、ボタンを表示
-            setShowBiometricButton(true);
+            if (!isCancelled) {
+              setShowBiometricButton(true);
+            }
           } finally {
-            setLoading(false);
+            if (!isCancelled) {
+              setLoading(false);
+            }
           }
         };
 
         tryAutoLogin();
+
+        return () => {
+          addLog('useEffectクリーンアップ');
+          isCancelled = true;
+        };
       }, [isSignUp, onAuthSuccess]);
 
       const handleSubmit = async (e) => {
@@ -220,14 +264,18 @@
             // ログイン成功後、認証情報を保存（次回の自動ログイン用）
             if (window.PasswordCredential) {
               try {
+                addLog('💾 認証情報を保存中...');
                 const credential = new PasswordCredential({
                   id: email,
                   password: password,
                 });
                 await navigator.credentials.store(credential);
+                addLog('✅ 認証情報を保存しました');
               } catch (storeErr) {
-                console.log('Credential store skipped:', storeErr);
+                addLog('❌ 認証情報の保存失敗: ' + (storeErr.message || 'Unknown'));
               }
+            } else {
+              addLog('❌ PasswordCredential API利用不可 - 保存スキップ');
             }
 
             onAuthSuccess(result.data.session);
@@ -242,6 +290,26 @@
 
       return (
         <div className={`min-h-screen flex items-center justify-center p-4 ${isDarkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-emerald-50 to-teal-100'}`}>
+          {/* デバッグログウィンドウ */}
+          {showDebug && debugLogs.length > 0 && (
+            <div className="fixed bottom-0 left-0 right-0 bg-black bg-opacity-90 text-white text-xs p-2 max-h-48 overflow-y-auto z-50 font-mono">
+              <div className="flex justify-between items-center mb-1">
+                <span className="font-bold">🐛 Debug Log</span>
+                <button
+                  onClick={() => setShowDebug(false)}
+                  className="text-white px-2 py-1 rounded hover:bg-gray-700"
+                >
+                  ✕
+                </button>
+              </div>
+              {debugLogs.map((log, index) => (
+                <div key={index} className="border-t border-gray-700 pt-1 mt-1">
+                  {log}
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className={`rounded-2xl shadow-xl p-8 w-full max-w-md ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
             <div className="text-center mb-8">
               <h1 className={`text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Uber記録</h1>
