@@ -139,11 +139,8 @@ app.get('/api/ticker', async (req, res) => {
       return res.status(500).json(result);
     }
 
-    // 現在価格をSupabaseに記録
+    // 24時間前の価格を取得して変動率を計算
     const currentPrice = parseFloat(result.last);
-    await savePriceToSupabase(pair, currentPrice);
-
-    // 24時間前の価格を取得
     const price24hAgo = await getPriceFrom24hAgo(pair);
 
     if (price24hAgo !== null) {
