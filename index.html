@@ -6503,7 +6503,7 @@
                       mondayOfThisWeek.setHours(0, 0, 0, 0);
                       const thisMondayStr = formatDateToLocal(mondayOfThisWeek);
 
-                      // 今週のhoursから計算（実働のみ: 時間・件数・金額全て入力されているもの）
+                      // 今週のdailyDataから計算（dailyDataには既に基本売上とクエスト報酬が分離されている）
                       const thisWeekData = {
                         hours: 0,
                         deliveries: 0,
@@ -6512,68 +6512,23 @@
                         days: 0
                       };
 
-                      Object.values(hours).forEach(dayData => {
-                        // 実働の条件: 時間・件数・金額全てが入力されている
-                        if (dayData.hours > 0 && dayData.deliveries > 0 && dayData.earnings > 0) {
-                          thisWeekData.hours += dayData.hours;
-                          thisWeekData.deliveries += dayData.deliveries;
-                          thisWeekData.earnings += dayData.earnings;
+                      // 今週の各日のデータをdailyDataから取得
+                      Object.entries(dailyData).forEach(([dateStr, data]) => {
+                        const date = new Date(dateStr);
+                        const dayOfWeek = date.getDay();
+                        const monday = new Date(date);
+                        monday.setDate(date.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+                        const mondayStr = formatDateToLocal(monday);
+
+                        // 今週のデータのみを集計
+                        if (mondayStr === thisMondayStr) {
+                          thisWeekData.hours += data.hours || 0;
+                          thisWeekData.deliveries += data.deliveries || 0;
+                          thisWeekData.earnings += data.earnings || 0;
+                          thisWeekData.quest += data.quest || 0;
                           thisWeekData.days += 1;
                         }
                       });
-
-                      // 今週のクエストを計算（実働件数のみを使用）
-                      let weekdayDeliveries = 0;
-                      let weekdayQuest = 0;
-                      weekdays.forEach(day => {
-                        const dayData = hours[day];
-                        // 実働の条件: 時間・件数・金額全てが入力されている
-                        if (dayData.hours > 0 && dayData.deliveries > 0 && dayData.earnings > 0) {
-                          weekdayDeliveries += dayData.deliveries;
-                        }
-                      });
-
-                      // デバッグ用: クエスト設定を出力
-                      console.log('weekdayDeliveries:', weekdayDeliveries);
-                      console.log('weekdayQuests:', weekdayQuests);
-
-                      let cumulative = 0;
-                      for (let i = 0; i < weekdayQuests.length; i++) {
-                        const quest = weekdayQuests[i];
-                        if (weekdayDeliveries >= cumulative + quest.count) {
-                          console.log(`Quest ${i + 1} 達成: ${quest.count}件で${quest.reward}円`);
-                          weekdayQuest += quest.reward;
-                          cumulative += quest.count;
-                        } else {
-                          // 前のクエストが未達成なら、次のクエストは計算しない
-                          console.log(`Quest ${i + 1} 未達成: ${cumulative + quest.count}件必要、現在${weekdayDeliveries}件`);
-                          break;
-                        }
-                      }
-
-                      let weekendDeliveries = 0;
-                      let weekendQuest = 0;
-                      weekends.forEach(day => {
-                        const dayData = hours[day];
-                        // 実働の条件: 時間・件数・金額全てが入力されている
-                        if (dayData.hours > 0 && dayData.deliveries > 0 && dayData.earnings > 0) {
-                          weekendDeliveries += dayData.deliveries;
-                        }
-                      });
-
-                      cumulative = 0;
-                      for (let i = 0; i < weekendQuests.length; i++) {
-                        const quest = weekendQuests[i];
-                        if (weekendDeliveries >= cumulative + quest.count) {
-                          weekendQuest += quest.reward;
-                          cumulative += quest.count;
-                        } else {
-                          // 前のクエストが未達成なら、次のクエストは計算しない
-                          break;
-                        }
-                      }
-
-                      thisWeekData.quest = weekdayQuest + weekendQuest;
 
                       if (thisWeekData.hours > 0) {
                         weeklyData[thisMondayStr] = thisWeekData;
