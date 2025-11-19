@@ -6628,22 +6628,27 @@
                           </div>
                           <div className="text-right">
                             {(() => {
-                              // 24時間の中間値を基準に変動率を計算
-                              const high = Number(btcPrice.high);
-                              const low = Number(btcPrice.low);
-                              const current = Number(btcPrice.last);
-                              const midPoint = (high + low) / 2;
-                              const changePercent = ((current - midPoint) / midPoint * 100).toFixed(2);
-                              const isPositive = parseFloat(changePercent) >= 0;
+                              // CoinGeckoから取得した24時間変動率を使用
+                              if (btcPrice.change_24h !== undefined) {
+                                const changePercent = Number(btcPrice.change_24h).toFixed(2);
+                                const isPositive = parseFloat(changePercent) >= 0;
 
-                              return (
-                                <>
-                                  <div className={`text-sm mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>前日比</div>
-                                  <div className={`text-2xl font-bold ${isPositive ? (isDarkMode ? 'text-green-400' : 'text-green-600') : (isDarkMode ? 'text-red-400' : 'text-red-600')}`}>
-                                    {isPositive ? '+' : ''}{changePercent}%
+                                return (
+                                  <>
+                                    <div className={`text-sm mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>前日比</div>
+                                    <div className={`text-2xl font-bold ${isPositive ? (isDarkMode ? 'text-green-400' : 'text-green-600') : (isDarkMode ? 'text-red-400' : 'text-red-600')}`}>
+                                      {isPositive ? '+' : ''}{changePercent}%
+                                    </div>
+                                  </>
+                                );
+                              } else {
+                                // フォールバック: CoinGeckoデータがない場合
+                                return (
+                                  <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                    データ取得中...
                                   </div>
-                                </>
-                              );
+                                );
+                              }
                             })()}
                           </div>
                         </div>

@@ -47,7 +47,7 @@ app.get('/health', (req, res) => {
 // ==================== Public API (認証不要) ====================
 
 /**
- * ティッカー取得
+ * ティッカー取得（CoinGeckoから24h変動率も取得）
  * GET /api/ticker?pair=btc_jpy
  */
 app.get('/api/ticker', async (req, res) => {
@@ -63,6 +63,21 @@ app.get('/api/ticker', async (req, res) => {
     if (!result.success) {
       console.error('[/api/ticker] API失敗:', result);
       return res.status(500).json(result);
+    }
+
+    // CoinGeckoから24時間変動率を取得
+    try {
+      const fetch = require('node-fetch');
+      const coingeckoResponse = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=jpy&include_24hr_change=true');
+      const coingeckoData = await coingeckoResponse.json();
+
+      if (coingeckoData.bitcoin && coingeckoData.bitcoin.jpy_24h_change !== undefined) {
+        result.change_24h = coingeckoData.bitcoin.jpy_24h_change;
+        console.log('[/api/ticker] 24h変動率取得成功:', result.change_24h);
+      }
+    } catch (coingeckoError) {
+      console.error('[/api/ticker] CoinGecko API失敗:', coingeckoError);
+      // CoinGeckoが失敗してもCoincheckのデータは返す
     }
 
     res.json(result);
