@@ -17,7 +17,7 @@
   <script crossorigin="anonymous" src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin="anonymous" src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script crossorigin="anonymous" src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/tailwindcss-cdn@3.4.1/tailwindcss.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     body {
@@ -111,6 +111,7 @@
       const [loading, setLoading] = useState(false);
       const [error, setError] = useState('');
       const [showBiometricButton, setShowBiometricButton] = useState(false);
+      const [isDarkMode] = useState(() => localStorage.getItem('darkMode') === 'true');
 
       // 生体認証ログイン処理
       const handleBiometricLogin = async () => {
@@ -5656,6 +5657,8 @@
                                 .from('expenses')
                                 .update({
                                   date: editingExpense.date,
+                                  category: 'other',
+                                  description: '',
                                   amount: editingExpense.amount,
                                   business_percentage: editingExpense.businessPercentage,
                                   accounting_subject: editingExpense.accountingSubject || '',
@@ -5690,6 +5693,8 @@
                                 .insert({
                                   user_id: session.user.id,
                                   date: editingExpense.date,
+                                  category: 'other',
+                                  description: '',
                                   amount: editingExpense.amount,
                                   business_percentage: editingExpense.businessPercentage,
                                   accounting_subject: editingExpense.accountingSubject || '',
