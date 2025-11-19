@@ -46,6 +46,13 @@ app.get('/health', (req, res) => {
 
 // ==================== Public API (認証不要) ====================
 
+// CoinGecko データのキャッシュ（1分間有効）
+let coingeckoCache = {
+  data: null,
+  timestamp: 0
+};
+const COINGECKO_CACHE_DURATION = 60000; // 60秒
+
 /**
  * ティッカー取得（CoinGeckoから24h変動率も取得）
  * GET /api/ticker?pair=btc_jpy
@@ -65,19 +72,38 @@ app.get('/api/ticker', async (req, res) => {
       return res.status(500).json(result);
     }
 
-    // CoinGeckoから24時間変動率を取得
-    try {
-      const fetch = require('node-fetch');
-      const coingeckoResponse = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=jpy&include_24hr_change=true');
-      const coingeckoData = await coingeckoResponse.json();
+    // CoinGeckoから24時間変動率を取得（キャッシュ利用）
+    const now = Date.now();
+    const cacheAge = now - coingeckoCache.timestamp;
 
-      if (coingeckoData.bitcoin && coingeckoData.bitcoin.jpy_24h_change !== undefined) {
-        result.change_24h = coingeckoData.bitcoin.jpy_24h_change;
-        console.log('[/api/ticker] 24h変動率取得成功:', result.change_24h);
+    if (coingeckoCache.data && cacheAge < COINGECKO_CACHE_DURATION) {
+      // キャッシュが有効な場合
+      console.log(`[/api/ticker] CoinGeckoキャッシュ使用（${Math.round(cacheAge / 1000)}秒前のデータ）`);
+      result.change_24h = coingeckoCache.data;
+    } else {
+      // キャッシュが期限切れまたは存在しない場合、新規取得
+      try {
+        const fetch = require('node-fetch');
+        console.log('[/api/ticker] CoinGecko API呼び出し中...');
+        const coingeckoResponse = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=jpy&include_24hr_change=true');
+        const coingeckoData = await coingeckoResponse.json();
+
+        if (coingeckoData.bitcoin && coingeckoData.bitcoin.jpy_24h_change !== undefined) {
+          result.change_24h = coingeckoData.bitcoin.jpy_24h_change;
+          // キャッシュを更新
+          coingeckoCache.data = result.change_24h;
+          coingeckoCache.timestamp = now;
+          console.log('[/api/ticker] 24h変動率取得成功 & キャッシュ更新:', result.change_24h);
+        }
+      } catch (coingeckoError) {
+        console.error('[/api/ticker] CoinGecko API失敗:', coingeckoError);
+        // 古いキャッシュがあれば使用
+        if (coingeckoCache.data !== null) {
+          console.log('[/api/ticker] 古いキャッシュを使用');
+          result.change_24h = coingeckoCache.data;
+        }
+        // CoinGeckoが失敗してもCoincheckのデータは返す
       }
-    } catch (coingeckoError) {
-      console.error('[/api/ticker] CoinGecko API失敗:', coingeckoError);
-      // CoinGeckoが失敗してもCoincheckのデータは返す
     }
 
     res.json(result);
