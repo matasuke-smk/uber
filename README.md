@@ -74,12 +74,68 @@ Uber Eats配達パートナー向けの週間売上シミュレーターです�
 - **PWA対応**: Service Worker、manifest.json
 - **データ保存**: localStorage
 - **オフライン対応**: あり
+- **ネイティブアプリ化**: Capacitor 6.x
 
 ## ファイル構成
 
 - `index.html` - メインアプリケーション
 - `manifest.json` - PWA設定
 - `sw.js` - Service Worker
+- `package.json` - Node.js設定
+- `build.js` - ビルドスクリプト
+- `capacitor.config.json` - Capacitor設定
+
+## ネイティブアプリとして使用する方法
+
+このアプリはCapacitorを使ってiOS/Androidのネイティブアプリとしてビルドできます。
+
+### 必要な環境
+
+**Android:**
+- Android Studio（最新版）
+- Java Development Kit (JDK) 17以上
+
+**iOS:**
+- macOS
+- Xcode（最新版）
+- CocoaPods
+
+### ビルド手順
+
+1. **依存関係のインストール:**
+```bash
+npm install
+```
+
+2. **Webアプリをビルド:**
+```bash
+npm run build
+```
+
+3. **Capacitorプロジェクトを同期:**
+```bash
+npm run cap:sync
+```
+
+4. **Android Studioで開く:**
+```bash
+npm run cap:open:android
+```
+Android Studioが開くので、そこからビルド・実行できます。
+
+5. **Xcodeで開く（macOSのみ）:**
+```bash
+npm run cap:open:ios
+```
+Xcodeが開くので、そこからビルド・実行できます。
+
+### 更新時の手順
+
+index.htmlを更新した後は以下を実行：
+```bash
+npm run build
+npm run cap:sync
+```
 
 ## ブラウザ対応
 

@@ -1,0 +1,24 @@
+{
+  "name": "uber-earnings-app",
+  "version": "1.0.0",
+  "description": "Uber Eats週間売上シミュレーター",
+  "main": "index.html",
+  "scripts": {
+    "build": "node build.js",
+    "dev": "npx serve .",
+    "cap:sync": "npx cap sync",
+    "cap:open:ios": "npx cap open ios",
+    "cap:open:android": "npx cap open android"
+  },
+  "keywords": ["uber-eats", "earnings", "pwa", "capacitor"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@capacitor/cli": "^6.0.0"
+  },
+  "dependencies": {
+    "@capacitor/core": "^6.0.0",
+    "@capacitor/ios": "^6.0.0",
+    "@capacitor/android": "^6.0.0"
+  }
+}
