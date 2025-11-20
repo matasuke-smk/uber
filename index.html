@@ -3096,7 +3096,7 @@
                   // この日に新たに達成したクエスト報酬のみを計算
                   let dayQuestReward = 0;
 
-                  if (hours[day].hours > 0) {
+                  if (hours[day].hours > 0 || hours[day].deliveries > 0) {
                     // 平日（月～木）のクエスト計算
                     if (isWeekday) {
                       let cumulativeBefore = 0; // 前日までの累積
