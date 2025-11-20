@@ -2860,6 +2860,9 @@
           // 金額計算：入力がある場合はクエストを引いた額を基本売上とする
           if (dayData.earnings > 0) {
             weekdayBasicEarnings += dayData.earnings - dayQuestReward;
+          } else if (dayData.deliveries > 0) {
+            // 件数が入力されている場合は、件数 × 平均単価で計算
+            weekdayBasicEarnings += dayData.deliveries * effectiveValues.weekdayAvgPrice;
           } else {
             weekdayBasicEarnings += dayData.hours * effectiveValues.weekdayDeliveriesPerHour * effectiveValues.weekdayAvgPrice;
           }
@@ -2920,6 +2923,9 @@
           // 金額計算：入力がある場合はクエストを引いた額を基本売上とする
           if (dayData.earnings > 0) {
             weekendBasicEarnings += dayData.earnings - dayQuestReward;
+          } else if (dayData.deliveries > 0) {
+            // 件数が入力されている場合は、件数 × 平均単価で計算
+            weekendBasicEarnings += dayData.deliveries * effectiveValues.weekendAvgPrice;
           } else {
             weekendBasicEarnings += dayData.hours * effectiveValues.weekendDeliveriesPerHour * effectiveValues.weekendAvgPrice;
           }
