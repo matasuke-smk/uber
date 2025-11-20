@@ -2811,14 +2811,17 @@
         let weekdayBasicEarnings = 0;
         let weekdayQuestEarnings = 0;
 
-        // まず配達件数を計算（クエスト計算に必要）
+        // まず配達件数と稼働時間を計算（クエスト計算に必要）
         const weekdayDailyData = [];
         weekdays.forEach(day => {
           const dayData = hours[day];
-          weekdayHours += dayData.hours;
+          // 時間の決定：時間が入力されていればその値、なければ件数から逆算
+          const dayHours = dayData.hours > 0 ? dayData.hours : (dayData.deliveries > 0 ? dayData.deliveries / effectiveValues.weekdayDeliveriesPerHour : 0);
+          weekdayHours += dayHours;
+          // 件数の決定：件数が入力されていればその値、なければ時間から計算
           const dayDeliveries = dayData.deliveries > 0 ? dayData.deliveries : dayData.hours * effectiveValues.weekdayDeliveriesPerHour;
           weekdayDeliveries += dayDeliveries;
-          weekdayDailyData.push({ day, dayData, dayDeliveries });
+          weekdayDailyData.push({ day, dayData, dayDeliveries, dayHours });
         });
 
         // 各日のクエスト報酬を計算
@@ -2874,14 +2877,17 @@
         let weekendBasicEarnings = 0;
         let weekendQuestEarnings = 0;
 
-        // まず配達件数を計算（クエスト計算に必要）
+        // まず配達件数と稼働時間を計算（クエスト計算に必要）
         const weekendDailyData = [];
         weekends.forEach(day => {
           const dayData = hours[day];
-          weekendHours += dayData.hours;
+          // 時間の決定：時間が入力されていればその値、なければ件数から逆算
+          const dayHours = dayData.hours > 0 ? dayData.hours : (dayData.deliveries > 0 ? dayData.deliveries / effectiveValues.weekendDeliveriesPerHour : 0);
+          weekendHours += dayHours;
+          // 件数の決定：件数が入力されていればその値、なければ時間から計算
           const dayDeliveries = dayData.deliveries > 0 ? dayData.deliveries : dayData.hours * effectiveValues.weekendDeliveriesPerHour;
           weekendDeliveries += dayDeliveries;
-          weekendDailyData.push({ day, dayData, dayDeliveries });
+          weekendDailyData.push({ day, dayData, dayDeliveries, dayHours });
         });
 
         // 各日のクエスト報酬を計算
@@ -3197,7 +3203,10 @@
                           onChange={(e) => updateHours(day, 'hours', e.target.value)}
                           onKeyDown={handleKeyDown}
                           className={`w-full px-2 py-2 border-2 rounded-lg focus:outline-none text-sm text-center ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-400' : 'border-gray-200 focus:border-blue-500'}`}
-                          placeholder="0"
+                          placeholder={hours[day].deliveries > 0 && !hours[day].hours ? (() => {
+                            const deliveriesPerHour = isWeekday ? effectiveValues.weekdayDeliveriesPerHour : effectiveValues.weekendDeliveriesPerHour;
+                            return (hours[day].deliveries / deliveriesPerHour).toFixed(1);
+                          })() : "0"}
                         />
                         <input
                           type="number"
@@ -3217,10 +3226,19 @@
                           onChange={(e) => updateHours(day, 'earnings', e.target.value)}
                           onKeyDown={handleKeyDown}
                           className={`w-full px-2 py-2 border-2 rounded-lg focus:outline-none text-sm text-center ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-400' : 'border-gray-200 focus:border-blue-500'}`}
-                          placeholder={hours[day].hours > 0 ? (() => {
+                          placeholder={(hours[day].hours > 0 || hours[day].deliveries > 0) ? (() => {
                             const price = isWeekday ? effectiveValues.weekdayAvgPrice : effectiveValues.weekendAvgPrice;
                             const deliveries = isWeekday ? effectiveValues.weekdayDeliveriesPerHour : effectiveValues.weekendDeliveriesPerHour;
-                            const basicEarnings = Math.floor(hours[day].hours * deliveries * price);
+                            let basicEarnings;
+                            if (hours[day].deliveries > 0) {
+                              // 件数が入力されている場合は、件数 × 平均単価で計算
+                              basicEarnings = Math.floor(hours[day].deliveries * price);
+                            } else if (hours[day].hours > 0) {
+                              // 時間のみの場合は、時間 × 平均件数 × 平均単価で計算
+                              basicEarnings = Math.floor(hours[day].hours * deliveries * price);
+                            } else {
+                              basicEarnings = 0;
+                            }
                             return (basicEarnings + dayQuestReward).toString();
                           })() : "0"}
                         />
