@@ -3691,6 +3691,89 @@
                                     </div>
                                   </div>
                                 </div>
+
+                                {/* 国民年金の免除基準 */}
+                                <div className={`mt-4 p-3 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-300'}`}>
+                                  <div className={`text-sm font-bold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>📋 国民年金 保険料免除判定</div>
+                                  {(() => {
+                                    const pensionMonthly = 16980; // 2024年度: 月額16,980円
+                                    const pensionYearly = pensionMonthly * 12;
+                                    const incomeAfterBlue = Math.max(0, netProfit - blueDeduction);
+
+                                    // 免除基準（単身者の場合）
+                                    const fullExemption = 670000; // 全額免除: 所得67万円以下
+                                    const threeQuarterExemption = 1280000; // 3/4免除: 所得128万円以下
+                                    const halfExemption = 1680000; // 半額免除: 所得168万円以下
+                                    const quarterExemption = 2080000; // 1/4免除: 所得208万円以下
+
+                                    let exemptionStatus = '';
+                                    let exemptionRate = 0;
+                                    let pensionAmount = pensionYearly;
+                                    let statusColor = '';
+                                    let nextThreshold = 0;
+                                    let nextLevel = '';
+
+                                    if (incomeAfterBlue <= fullExemption) {
+                                      exemptionStatus = '全額免除';
+                                      exemptionRate = 100;
+                                      pensionAmount = 0;
+                                      statusColor = isDarkMode ? 'text-green-400' : 'text-green-600';
+                                    } else if (incomeAfterBlue <= threeQuarterExemption) {
+                                      exemptionStatus = '3/4免除';
+                                      exemptionRate = 75;
+                                      pensionAmount = Math.floor(pensionYearly * 0.25);
+                                      statusColor = isDarkMode ? 'text-lime-400' : 'text-lime-600';
+                                      nextThreshold = fullExemption;
+                                      nextLevel = '全額免除';
+                                    } else if (incomeAfterBlue <= halfExemption) {
+                                      exemptionStatus = '半額免除';
+                                      exemptionRate = 50;
+                                      pensionAmount = Math.floor(pensionYearly * 0.5);
+                                      statusColor = isDarkMode ? 'text-yellow-400' : 'text-yellow-600';
+                                      nextThreshold = threeQuarterExemption;
+                                      nextLevel = '3/4免除';
+                                    } else if (incomeAfterBlue <= quarterExemption) {
+                                      exemptionStatus = '1/4免除';
+                                      exemptionRate = 25;
+                                      pensionAmount = Math.floor(pensionYearly * 0.75);
+                                      statusColor = isDarkMode ? 'text-orange-400' : 'text-orange-600';
+                                      nextThreshold = halfExemption;
+                                      nextLevel = '半額免除';
+                                    } else {
+                                      exemptionStatus = '免除なし（全額納付）';
+                                      exemptionRate = 0;
+                                      pensionAmount = pensionYearly;
+                                      statusColor = isDarkMode ? 'text-red-400' : 'text-red-600';
+                                      nextThreshold = quarterExemption;
+                                      nextLevel = '1/4免除';
+                                    }
+
+                                    const remaining = nextThreshold > 0 ? Math.max(0, incomeAfterBlue - nextThreshold) : 0;
+
+                                    return (
+                                      <div className="space-y-2">
+                                        <div className="flex items-center justify-between">
+                                          <span className={`text-sm font-bold ${statusColor}`}>
+                                            {exemptionStatus}
+                                          </span>
+                                          <span className={`text-base font-bold ${statusColor}`}>
+                                            ¥{pensionAmount.toLocaleString()}/年
+                                          </span>
+                                        </div>
+                                        <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                          {exemptionRate === 100 ? (
+                                            <span className={isDarkMode ? 'text-green-400' : 'text-green-600'}>✅ 全額免除達成（保険料0円）</span>
+                                          ) : nextThreshold > 0 ? (
+                                            <span>あと¥{remaining.toLocaleString()}利益を減らすと{nextLevel}</span>
+                                          ) : null}
+                                        </div>
+                                        <div className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                                          ※単身者の場合。青色控除後の所得で判定。月額¥{pensionMonthly.toLocaleString()}
+                                        </div>
+                                      </div>
+                                    );
+                                  })()}
+                                </div>
                               </div>
                             );
                           })()}
