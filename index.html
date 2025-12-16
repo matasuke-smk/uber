@@ -3565,6 +3565,136 @@
                             </div>
                           </div>
 
+                          {/* 青色申告シミュレーション */}
+                          {(() => {
+                            const blueDeduction = 650000; // 青色申告特別控除65万円
+                            const basicDeductionIncome = 480000; // 基礎控除（所得税）48万円
+                            const basicDeductionResident = 430000; // 基礎控除（住民税）43万円
+
+                            // 所得税の計算
+                            const taxableIncomeForIncome = Math.max(0, netProfit - blueDeduction - basicDeductionIncome);
+                            let incomeTax = 0;
+                            if (taxableIncomeForIncome <= 1950000) {
+                              incomeTax = taxableIncomeForIncome * 0.05;
+                            } else if (taxableIncomeForIncome <= 3300000) {
+                              incomeTax = taxableIncomeForIncome * 0.1 - 97500;
+                            } else if (taxableIncomeForIncome <= 6950000) {
+                              incomeTax = taxableIncomeForIncome * 0.2 - 427500;
+                            } else if (taxableIncomeForIncome <= 9000000) {
+                              incomeTax = taxableIncomeForIncome * 0.23 - 636000;
+                            } else {
+                              incomeTax = taxableIncomeForIncome * 0.33 - 1536000;
+                            }
+                            incomeTax = Math.floor(incomeTax);
+
+                            // 住民税の計算
+                            const taxableIncomeForResident = Math.max(0, netProfit - blueDeduction - basicDeductionResident);
+                            const residentTaxIncome = Math.floor(taxableIncomeForResident * 0.1); // 所得割10%
+                            const residentTaxEqual = 5000; // 均等割5000円
+                            const residentTax = residentTaxIncome + residentTaxEqual;
+
+                            // 国民健康保険料の計算（概算：所得割10% + 均等割等4万円）
+                            const healthInsuranceBase = Math.max(0, netProfit - blueDeduction - basicDeductionResident);
+                            const healthInsuranceIncome = Math.floor(healthInsuranceBase * 0.1); // 所得割10%
+                            const healthInsuranceEqual = 40000; // 均等割等4万円
+                            const healthInsurance = healthInsuranceIncome + healthInsuranceEqual;
+
+                            // 最低額になるまでの残り
+                            const incomeTaxThreshold = blueDeduction + basicDeductionIncome; // 113万円
+                            const residentTaxThreshold = blueDeduction + basicDeductionResident + 450000; // 153万円（非課税ライン）
+                            const healthInsuranceThreshold = blueDeduction + basicDeductionResident; // 108万円
+
+                            const remainingForIncomeTax = Math.max(0, netProfit - incomeTaxThreshold);
+                            const remainingForResidentTax = Math.max(0, netProfit - residentTaxThreshold);
+                            const remainingForHealthInsurance = Math.max(0, netProfit - healthInsuranceThreshold);
+
+                            const incomeTaxAchieved = netProfit <= incomeTaxThreshold;
+                            const residentTaxAchieved = netProfit <= residentTaxThreshold;
+                            const healthInsuranceAchieved = netProfit <= healthInsuranceThreshold;
+
+                            return (
+                              <div className={`rounded-xl p-4 border-2 ${isDarkMode ? 'bg-purple-900/20 border-purple-700' : 'bg-purple-50 border-purple-200'}`}>
+                                <div className={`text-base font-bold mb-3 ${isDarkMode ? 'text-purple-400' : 'text-purple-800'}`}>💼 青色申告シミュレーション</div>
+                                <div className={`text-xs mb-3 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                  ※青色申告特別控除65万円、基礎控除48万円（所得税）/43万円（住民税・国保）で計算
+                                </div>
+
+                                <div className="space-y-3">
+                                  {/* 所得税 */}
+                                  <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-gray-700/50' : 'bg-white'}`}>
+                                    <div className="flex items-center justify-between mb-2">
+                                      <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>所得税</span>
+                                      <span className={`text-lg font-bold ${isDarkMode ? 'text-yellow-400' : 'text-yellow-600'}`}>
+                                        ¥{incomeTax.toLocaleString()}
+                                      </span>
+                                    </div>
+                                    <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                      {incomeTaxAchieved ? (
+                                        <span className={isDarkMode ? 'text-green-400' : 'text-green-600'}>✅ 最低額（0円）達成</span>
+                                      ) : (
+                                        <span>あと¥{remainingForIncomeTax.toLocaleString()}利益を減らすと0円</span>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* 住民税 */}
+                                  <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-gray-700/50' : 'bg-white'}`}>
+                                    <div className="flex items-center justify-between mb-2">
+                                      <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>住民税</span>
+                                      <span className={`text-lg font-bold ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`}>
+                                        ¥{residentTax.toLocaleString()}
+                                      </span>
+                                    </div>
+                                    <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                      {residentTaxAchieved ? (
+                                        <span className={isDarkMode ? 'text-green-400' : 'text-green-600'}>✅ 最低額（均等割のみ）達成</span>
+                                      ) : (
+                                        <span>あと¥{remainingForResidentTax.toLocaleString()}利益を減らすと均等割のみ</span>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* 国民健康保険料 */}
+                                  <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-gray-700/50' : 'bg-white'}`}>
+                                    <div className="flex items-center justify-between mb-2">
+                                      <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>国民健康保険料</span>
+                                      <span className={`text-lg font-bold ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>
+                                        ¥{healthInsurance.toLocaleString()}
+                                      </span>
+                                    </div>
+                                    <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                      {healthInsuranceAchieved ? (
+                                        <span className={isDarkMode ? 'text-green-400' : 'text-green-600'}>✅ 最低額（均等割等のみ）達成</span>
+                                      ) : (
+                                        <span>あと¥{remainingForHealthInsurance.toLocaleString()}利益を減らすと均等割等のみ</span>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* 合計 */}
+                                  <div className={`p-3 rounded-lg border-2 ${isDarkMode ? 'bg-gray-800 border-purple-700' : 'bg-purple-100 border-purple-300'}`}>
+                                    <div className="flex items-center justify-between">
+                                      <span className={`text-sm font-bold ${isDarkMode ? 'text-purple-400' : 'text-purple-800'}`}>税金・保険料 合計</span>
+                                      <span className={`text-xl font-bold ${isDarkMode ? 'text-purple-400' : 'text-purple-800'}`}>
+                                        ¥{(incomeTax + residentTax + healthInsurance).toLocaleString()}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {/* 手取り */}
+                                  <div className={`p-3 rounded-lg border-2 ${isDarkMode ? 'bg-blue-900/30 border-blue-700' : 'bg-blue-100 border-blue-300'}`}>
+                                    <div className="flex items-center justify-between">
+                                      <span className={`text-sm font-bold ${isDarkMode ? 'text-blue-400' : 'text-blue-800'}`}>税引後手取り（概算）</span>
+                                      <span className={`text-xl font-bold ${isDarkMode ? 'text-blue-400' : 'text-blue-800'}`}>
+                                        ¥{(netProfit - incomeTax - residentTax - healthInsurance).toLocaleString()}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })()}
+
                           {/* 総稼働時間と総配達件数 */}
                           <div className="grid grid-cols-2 gap-3">
                             <div className={`rounded-xl p-4 ${isDarkMode ? 'bg-blue-900/20' : 'bg-blue-50'}`}>
