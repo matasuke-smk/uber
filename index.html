@@ -6928,39 +6928,45 @@
                         <h3 className={`font-bold text-lg ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>📜 取引履歴</h3>
                       </div>
                       {btcPurchases && btcPurchases.length > 0 ? (
-                        <div className={`overflow-x-auto`}>
-                          <table className="w-full text-sm">
-                            <thead>
-                              <tr className={`border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-                                <th className={`text-left p-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>日付</th>
-                                <th className={`text-right p-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>BTC量</th>
-                                <th className={`text-right p-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>価格</th>
-                                <th className={`text-right p-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>金額</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {btcPurchases.map((purchase, idx) => (
-                                <tr key={idx} className={`border-b ${isDarkMode ? 'border-gray-700 hover:bg-gray-700/50' : 'border-gray-100 hover:bg-gray-50'}`}>
-                                  <td className={`p-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                                    {new Date(purchase.created_at).toLocaleDateString('ja-JP', {
-                                      year: 'numeric',
-                                      month: '2-digit',
-                                      day: '2-digit'
-                                    })}
-                                  </td>
-                                  <td className={`p-2 text-right font-mono ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
+                        <div className="space-y-3">
+                          {btcPurchases.map((purchase, idx) => (
+                            <div key={idx} className={`p-4 rounded-lg border ${isDarkMode ? 'bg-gray-700/50 border-gray-600 hover:bg-gray-700' : 'bg-gray-50 border-gray-200 hover:bg-gray-100'} transition-colors`}>
+                              <div className="flex items-center justify-between mb-3">
+                                <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                  {new Date(purchase.created_at).toLocaleDateString('ja-JP', {
+                                    year: 'numeric',
+                                    month: '2-digit',
+                                    day: '2-digit',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </span>
+                                <span className={`px-2 py-1 rounded text-xs font-bold ${purchase.order_type === 'buy' ? (isDarkMode ? 'bg-green-900/50 text-green-400' : 'bg-green-100 text-green-700') : (isDarkMode ? 'bg-red-900/50 text-red-400' : 'bg-red-100 text-red-700')}`}>
+                                  {purchase.order_type === 'buy' ? '買' : '売'}
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-2 gap-3 text-sm">
+                                <div>
+                                  <div className={`text-xs mb-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>BTC量</div>
+                                  <div className={`font-bold font-mono ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
                                     {parseFloat(purchase.btc_amount || 0).toFixed(8)}
-                                  </td>
-                                  <td className={`p-2 text-right ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                                    ¥{Number(purchase.rate || 0).toLocaleString()}
-                                  </td>
-                                  <td className={`p-2 text-right font-bold ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className={`text-xs mb-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>金額</div>
+                                  <div className={`font-bold ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
                                     ¥{Number(purchase.jpy_amount || 0).toLocaleString()}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
+                                  </div>
+                                </div>
+                                <div className="col-span-2">
+                                  <div className={`text-xs mb-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>価格</div>
+                                  <div className={`font-bold ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`}>
+                                    ¥{Number(purchase.rate || 0).toLocaleString()}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       ) : (
                         <div className={`text-center py-8 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
