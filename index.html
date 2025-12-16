@@ -3511,6 +3511,7 @@
                           let totalDeliveries = 0;
                           let totalEarnings = 0;
                           let totalQuest = 0;
+                          let workingDays = 0;
 
                           allEntries.forEach(([, data]) => {
                             if (data) {
@@ -3518,6 +3519,7 @@
                               totalDeliveries += data.deliveries || 0;
                               totalEarnings += data.earnings || 0;
                               totalQuest += data.quest || 0;
+                              if (data.hours > 0) workingDays++;
                             }
                           });
 
@@ -3598,7 +3600,7 @@
                               </div>
                               <div>
                                 <div className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>日平均売上</div>
-                                <div className={`font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>¥{Math.floor(totalSales / allEntries.length).toLocaleString()}/日</div>
+                                <div className={`font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>¥{workingDays > 0 ? Math.floor(totalSales / workingDays).toLocaleString() : 0}/日</div>
                               </div>
                             </div>
                           </div>
