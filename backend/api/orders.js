@@ -193,25 +193,31 @@ class OrderService {
       let errorCount = 0;
       let skippedCount = 0;
 
-      // 一昨日の0時0分0秒を計算（UTC）
-      const twoDaysAgo = new Date();
-      twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-      twoDaysAgo.setHours(0, 0, 0, 0);
-      const cutoffDate = twoDaysAgo.toISOString();
+      console.log(`取引所から${transactions.length}件の取引を取得`);
 
-      console.log('取引所取引履歴同期: 基準日時 =', cutoffDate);
+      // 7日前の0時0分0秒を計算（UTC）
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      sevenDaysAgo.setHours(0, 0, 0, 0);
+      const cutoffDate = sevenDaysAgo.toISOString();
+
+      console.log('取引所取引履歴同期: 基準日時（7日前） =', cutoffDate);
 
       // 各取引をpurchasesテーブルに保存
       for (const tx of transactions) {
         try {
+          console.log(`[取引] ID:${tx.id}, ペア:${tx.pair}, タイプ:${tx.side}, 日時:${tx.created_at}`);
+
           // BTCペアのみ処理
           if (tx.pair !== 'btc_jpy') {
+            console.log(`  → スキップ（BTCペアでない）`);
             skippedCount++;
             continue;
           }
 
-          // 一昨日以降のデータのみ処理
+          // 7日以内のデータのみ処理
           if (tx.created_at < cutoffDate) {
+            console.log(`  → スキップ（7日より前のデータ）`);
             skippedCount++;
             continue;
           }
@@ -225,6 +231,7 @@ class OrderService {
             .maybeSingle();
 
           if (existing) {
+            console.log(`  → スキップ（既に存在）`);
             skippedCount++;
             continue; // すでに存在する場合はスキップ
           }
@@ -251,9 +258,10 @@ class OrderService {
           });
 
           if (error) {
-            console.error('取引保存エラー:', error);
+            console.error(`  → 保存エラー:`, error);
             errorCount++;
           } else {
+            console.log(`  → 保存成功（BTC:${Math.abs(btcAmount)}, JPY:${jpyAmount}）`);
             syncedCount++;
           }
         } catch (err) {
