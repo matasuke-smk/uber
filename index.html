@@ -926,16 +926,27 @@
       // BTC: モーダルが開かれたときに自動で同期
       useEffect(() => {
         if (showBTCModal && session?.user?.id && coincheckApiKey && coincheckApiSecret) {
+          console.log('[自動同期] 条件を満たしたので同期を開始します');
           // 非同期で同期を実行（エラーがあっても続行）
           const autoSync = async () => {
             try {
+              console.log('[自動同期] syncBtcTransactions() 呼び出し中...');
               await syncBtcTransactions();
+              console.log('[自動同期] 同期完了');
             } catch (error) {
-              // エラーは無視（自動同期のため）
+              console.error('[自動同期] エラー発生:', error);
+              setBtcError(`自動同期エラー: ${error.message}`);
             }
           };
 
           autoSync();
+        } else {
+          console.log('[自動同期] 条件を満たしていません:', {
+            showBTCModal,
+            hasSession: !!session?.user?.id,
+            hasApiKey: !!coincheckApiKey,
+            hasApiSecret: !!coincheckApiSecret
+          });
         }
       }, [showBTCModal]);
 
