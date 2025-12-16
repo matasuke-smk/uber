@@ -3592,7 +3592,7 @@
                               </div>
                               <div>
                                 <div className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>時給換算</div>
-                                <div className={`font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>¥{Math.floor(earningsPerHour).toLocaleString()}/h</div>
+                                <div className={`font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>¥{Math.round(earningsPerHour).toLocaleString()}/h</div>
                               </div>
                               <div>
                                 <div className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>配達件数</div>
@@ -3600,7 +3600,7 @@
                               </div>
                               <div>
                                 <div className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>日平均売上</div>
-                                <div className={`font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>¥{workingDays > 0 ? Math.floor(totalSales / workingDays).toLocaleString() : 0}/日</div>
+                                <div className={`font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>¥{workingDays > 0 ? Math.round(totalSales / workingDays).toLocaleString() : 0}/日</div>
                               </div>
                             </div>
                           </div>
