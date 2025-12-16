@@ -328,26 +328,24 @@ app.put('/api/orders/:orderId/status', authenticateUser, async (req, res) => {
 });
 
 /**
- * 未決済注文一覧取得
+ * 未決済注文一覧取得（Coincheck APIから直接取得）
  * GET /api/orders/open
  * Headers: x-user-id, x-api-key, x-api-secret
  */
 app.get('/api/orders/open', authenticateUser, async (req, res) => {
   try {
-    const orderService = new OrderService(
-      req.apiKey,
-      req.apiSecret,
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_KEY
-    );
-
-    const result = await orderService.getOpenOrdersFromDB(req.userId);
+    const coincheck = new CoincheckAPI(req.apiKey, req.apiSecret);
+    const result = await coincheck.getOpenOrders();
 
     if (!result.success) {
       return res.status(500).json(result);
     }
 
-    res.json(result);
+    // レスポンス形式を統一
+    res.json({
+      success: true,
+      orders: result.orders || []
+    });
   } catch (error) {
     console.error('未決済注文取得エラー:', error);
     res.status(500).json({ success: false, error: error.message });
