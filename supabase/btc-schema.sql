@@ -216,7 +216,7 @@ BEGIN
     v_user_id := NEW.user_id;
   END IF;
 
-  -- 統計を計算
+  -- 統計を計算（購入のみ）
   SELECT
     COALESCE(SUM(btc_amount), 0),
     COALESCE(SUM(jpy_amount), 0),
@@ -234,7 +234,8 @@ BEGIN
     v_purchase_count
   FROM purchases
   WHERE user_id = v_user_id
-    AND status = 'completed';
+    AND status = 'completed'
+    AND order_type = 'buy';
 
   -- investment_statsに挿入または更新
   INSERT INTO investment_stats (

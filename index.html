@@ -511,6 +511,7 @@
         const wakeUpServer = async () => {
           try {
             console.log('Waking up backend server...');
+            // リトライ処理は使わず、エラーを無視（起動トリガーとして使うだけ）
             await fetch(`${BACKEND_API_URL}/api/ticker`);
             console.log('Backend server woken up');
           } catch (error) {
@@ -550,10 +551,48 @@
         // Supabaseへの保存は自動的に行われます（useEffectによる）
       };
 
+      // リトライ付きfetchユーティリティ関数（Cold Start対応）
+      const fetchWithRetry = async (url, options = {}, maxRetries = 3, timeout = 90000) => {
+        for (let i = 0; i < maxRetries; i++) {
+          try {
+            console.log(`[Fetch] Attempt ${i + 1}/${maxRetries}: ${url}`);
+
+            // タイムアウト付きfetch
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+            const response = await fetch(url, {
+              ...options,
+              signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}`);
+            }
+
+            console.log(`[Fetch] Success on attempt ${i + 1}`);
+            return response;
+          } catch (error) {
+            console.warn(`[Fetch] Attempt ${i + 1} failed:`, error.message);
+
+            // 最後の試行でなければ待機してリトライ
+            if (i < maxRetries - 1) {
+              const waitTime = Math.min(1000 * Math.pow(2, i), 10000); // 指数バックオフ（最大10秒）
+              console.log(`[Fetch] Retrying in ${waitTime}ms...`);
+              await new Promise(resolve => setTimeout(resolve, waitTime));
+            } else {
+              throw error;
+            }
+          }
+        }
+      };
+
       // BTC: 現在価格を取得
       const fetchBtcPrice = async () => {
         try {
-          const response = await fetch(`${BACKEND_API_URL}/api/ticker`);
+          const response = await fetchWithRetry(`${BACKEND_API_URL}/api/ticker`);
           const data = await response.json();
           if (data.success !== false) {
             setBtcPrice(data);
@@ -575,7 +614,7 @@
 
         try {
           console.log('[購入履歴] 取得開始...');
-          const response = await fetch(`${BACKEND_API_URL}/api/purchases?limit=50`, {
+          const response = await fetchWithRetry(`${BACKEND_API_URL}/api/purchases?limit=50`, {
             headers: {
               'x-user-id': session.user.id,
               'x-api-key': coincheckApiKey,
@@ -609,7 +648,7 @@
         setBtcError(null);
         try {
           // 取引所の取引履歴を同期（BTCのみ、一昨日以降）
-          const exchangeResponse = await fetch(`${BACKEND_API_URL}/api/sync/transactions`, {
+          const exchangeResponse = await fetchWithRetry(`${BACKEND_API_URL}/api/sync/transactions`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -676,7 +715,7 @@
           console.log('[削除] 基準日時（JST）:', datetimeInput);
           console.log('[削除] 基準日時（UTC）:', utcString);
 
-          const response = await fetch(`${BACKEND_API_URL}/api/purchases/before`, {
+          const response = await fetchWithRetry(`${BACKEND_API_URL}/api/purchases/before`, {
             method: 'DELETE',
             headers: {
               'Content-Type': 'application/json',
@@ -776,7 +815,7 @@
           console.log('[手動追加] 金額:', jpyAmount);
 
           // バックエンドAPIに送信
-          const response = await fetch(`${BACKEND_API_URL}/api/purchases/manual`, {
+          const response = await fetchWithRetry(`${BACKEND_API_URL}/api/purchases/manual`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -820,7 +859,7 @@
         }
 
         try {
-          const response = await fetch(`${BACKEND_API_URL}/api/balance`, {
+          const response = await fetchWithRetry(`${BACKEND_API_URL}/api/balance`, {
             headers: {
               'x-user-id': session.user.id,
               'x-api-key': coincheckApiKey,
@@ -847,7 +886,7 @@
         }
 
         try {
-          const response = await fetch(`${BACKEND_API_URL}/api/stats`, {
+          const response = await fetchWithRetry(`${BACKEND_API_URL}/api/stats`, {
             headers: {
               'x-user-id': session.user.id,
               'x-api-key': coincheckApiKey,
