@@ -501,6 +501,7 @@
       const [btcBalance, setBtcBalance] = useState(null);
       const [btcPurchases, setBtcPurchases] = useState(null);
       const [btcStats, setBtcStats] = useState(null);
+      const [btcOpenOrders, setBtcOpenOrders] = useState(null);
       const [btcLoading, setBtcLoading] = useState(false);
       const [btcError, setBtcError] = useState(null);
       const [btcLastUpdate, setBtcLastUpdate] = useState(null);
@@ -904,6 +905,31 @@
         }
       };
 
+      // BTC: 未約定注文を取得
+      const fetchBtcOpenOrders = async () => {
+        if (!session?.user?.id || !coincheckApiKey || !coincheckApiSecret) {
+          return;
+        }
+
+        try {
+          const response = await fetchWithRetry(`${BACKEND_API_URL}/api/orders/open`, {
+            headers: {
+              'x-user-id': session.user.id,
+              'x-api-key': coincheckApiKey,
+              'x-api-secret': coincheckApiSecret
+            }
+          });
+          const data = await response.json();
+          if (data.success && data.orders) {
+            setBtcOpenOrders(data.orders);
+          } else {
+            console.error('未約定注文取得エラー:', data.error);
+          }
+        } catch (error) {
+          console.error('未約定注文取得エラー:', error);
+        }
+      };
+
       // BTC: すべてのデータを取得
       const fetchAllBtcData = async () => {
         setBtcLoading(true);
@@ -913,7 +939,8 @@
             fetchBtcPrice(),
             fetchBtcBalance(),
             fetchBtcStats(),
-            fetchBtcPurchases()
+            fetchBtcPurchases(),
+            fetchBtcOpenOrders()
           ]);
         } catch (error) {
           console.error('データ取得エラー:', error);
@@ -6832,6 +6859,73 @@
                           <div className={`text-2xl font-bold ${isDarkMode ? 'text-pink-400' : 'text-pink-600'}`}>
                             ¥{Number(btcStats.average_rate || 0).toLocaleString()}
                           </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 未約定注文 */}
+                    {btcOpenOrders && btcOpenOrders.length > 0 && (
+                      <div className={`rounded-xl p-6 border-2 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200'}`}>
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className={`font-bold text-lg ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>📋 未約定注文</h3>
+                          <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                            <span className={`font-bold ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>{btcOpenOrders.length}件</span>
+                          </div>
+                        </div>
+                        <div className="space-y-3">
+                          {btcOpenOrders.map((order, idx) => (
+                            <div key={idx} className={`p-4 rounded-lg border ${isDarkMode ? 'bg-gray-700/50 border-gray-600' : 'bg-white/70 border-blue-100'}`}>
+                              <div className="flex items-start justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                  <span className={`px-2 py-1 rounded text-xs font-bold ${order.order_type === 'buy' ? (isDarkMode ? 'bg-green-900/50 text-green-400' : 'bg-green-100 text-green-700') : (isDarkMode ? 'bg-red-900/50 text-red-400' : 'bg-red-100 text-red-700')}`}>
+                                    {order.order_type === 'buy' ? '買' : order.order_type === 'sell' ? '売' : order.order_type}
+                                  </span>
+                                  <span className={`px-2 py-1 rounded text-xs font-medium ${isDarkMode ? 'bg-blue-900/50 text-blue-400' : 'bg-blue-100 text-blue-700'}`}>
+                                    {order.status || 'NEW'}
+                                  </span>
+                                </div>
+                                <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                  {new Date(order.created_at).toLocaleDateString('ja-JP', {
+                                    year: 'numeric',
+                                    month: '2-digit',
+                                    day: '2-digit',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-2 gap-3 text-sm">
+                                <div>
+                                  <div className={`text-xs mb-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>注文価格</div>
+                                  <div className={`font-bold ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`}>
+                                    {order.rate ? `¥${Number(order.rate).toLocaleString()}` : order.market_buy_amount ? `市場価格 (¥${Number(order.market_buy_amount).toLocaleString()})` : '市場価格'}
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className={`text-xs mb-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>注文量</div>
+                                  <div className={`font-bold ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
+                                    {order.amount ? `${parseFloat(order.amount).toFixed(8)} BTC` : order.market_buy_amount ? `¥${Number(order.market_buy_amount).toLocaleString()}` : '-'}
+                                  </div>
+                                </div>
+                                {order.pending_amount !== null && order.pending_amount !== undefined && (
+                                  <div>
+                                    <div className={`text-xs mb-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>未約定量</div>
+                                    <div className={`font-bold ${isDarkMode ? 'text-yellow-400' : 'text-yellow-600'}`}>
+                                      {parseFloat(order.pending_amount).toFixed(8)} BTC
+                                    </div>
+                                  </div>
+                                )}
+                                {order.executed_amount !== null && order.executed_amount !== undefined && parseFloat(order.executed_amount) > 0 && (
+                                  <div>
+                                    <div className={`text-xs mb-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>約定済み量</div>
+                                    <div className={`font-bold ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>
+                                      {parseFloat(order.executed_amount).toFixed(8)} BTC
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     )}
