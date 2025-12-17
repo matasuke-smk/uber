@@ -3568,8 +3568,20 @@
                           {/* 青色申告シミュレーション */}
                           {(() => {
                             const blueDeduction = 650000; // 青色申告特別控除65万円
-                            const basicDeductionIncome = 480000; // 基礎控除（所得税）48万円
                             const basicDeductionResident = 430000; // 基礎控除（住民税）43万円
+
+                            // 2025年税制改正：所得税の基礎控除は所得に応じて変動
+                            const incomeAfterBlue = Math.max(0, netProfit - blueDeduction);
+                            let basicDeductionIncome = 480000; // デフォルト48万円
+                            if (incomeAfterBlue <= 1320000) {
+                              basicDeductionIncome = 950000; // 132万円以下: 95万円
+                            } else if (incomeAfterBlue <= 6550000) {
+                              // 132万円超～655万円以下: 88万円～63万円（段階的逓減、2025-2026年のみ）
+                              // 簡易計算: 平均として75万円を使用
+                              basicDeductionIncome = 750000;
+                            } else {
+                              basicDeductionIncome = 580000; // 655万円超: 58万円
+                            }
 
                             // 所得税の計算
                             const taxableIncomeForIncome = Math.max(0, netProfit - blueDeduction - basicDeductionIncome);
@@ -3590,18 +3602,18 @@
                             // 住民税の計算
                             const taxableIncomeForResident = Math.max(0, netProfit - blueDeduction - basicDeductionResident);
                             const residentTaxIncome = Math.floor(taxableIncomeForResident * 0.1); // 所得割10%
-                            const residentTaxEqual = 5000; // 均等割5000円
+                            const residentTaxEqual = 6000; // 均等割6000円（京都市: 市民税3,500円 + 府民税1,500円 + 森林環境税1,000円）
                             const residentTax = residentTaxIncome + residentTaxEqual;
 
-                            // 国民健康保険料の計算（概算：所得割10% + 均等割等4万円）
+                            // 国民健康保険料の計算（京都市の場合：所得割10% + 均等割18,070円）
                             const healthInsuranceBase = Math.max(0, netProfit - blueDeduction - basicDeductionResident);
                             const healthInsuranceIncome = Math.floor(healthInsuranceBase * 0.1); // 所得割10%
-                            const healthInsuranceEqual = 40000; // 均等割等4万円
+                            const healthInsuranceEqual = 18070; // 均等割18,070円（京都市、医療分+後期高齢者支援分）
                             const healthInsurance = healthInsuranceIncome + healthInsuranceEqual;
 
                             // 最低額になるまでの残り
-                            const incomeTaxThreshold = blueDeduction + basicDeductionIncome; // 113万円
-                            const residentTaxThreshold = blueDeduction + basicDeductionResident + 450000; // 153万円（非課税ライン）
+                            const incomeTaxThreshold = blueDeduction + basicDeductionIncome;
+                            const residentTaxThreshold = blueDeduction + basicDeductionResident; // 110万円（非課税ライン）
                             const healthInsuranceThreshold = blueDeduction + basicDeductionResident; // 108万円
 
                             const remainingForIncomeTax = Math.max(0, netProfit - incomeTaxThreshold);
@@ -3614,9 +3626,10 @@
 
                             return (
                               <div className={`rounded-xl p-4 border-2 ${isDarkMode ? 'bg-purple-900/20 border-purple-700' : 'bg-purple-50 border-purple-200'}`}>
-                                <div className={`text-base font-bold mb-3 ${isDarkMode ? 'text-purple-400' : 'text-purple-800'}`}>💼 青色申告シミュレーション</div>
+                                <div className={`text-base font-bold mb-3 ${isDarkMode ? 'text-purple-400' : 'text-purple-800'}`}>💼 青色申告シミュレーション（2025年税制改正対応）</div>
                                 <div className={`text-xs mb-3 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                                  ※青色申告特別控除65万円、基礎控除48万円（所得税）/43万円（住民税・国保）で計算
+                                  ※青色申告特別控除65万円、基礎控除は所得に応じて58万円～95万円（所得税）/43万円（住民税・国保）で計算<br />
+                                  ※住民税均等割6,000円、国保均等割18,070円は京都市の2025年度の数値です（市区町村により異なります）
                                 </div>
 
                                 <div className="space-y-3">
@@ -3657,16 +3670,16 @@
                                   {/* 国民健康保険料 */}
                                   <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-gray-700/50' : 'bg-white'}`}>
                                     <div className="flex items-center justify-between mb-2">
-                                      <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>国民健康保険料</span>
+                                      <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>国民健康保険料（京都市）</span>
                                       <span className={`text-lg font-bold ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>
                                         ¥{healthInsurance.toLocaleString()}
                                       </span>
                                     </div>
                                     <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                                       {healthInsuranceAchieved ? (
-                                        <span className={isDarkMode ? 'text-green-400' : 'text-green-600'}>✅ 最低額（均等割等のみ）達成</span>
+                                        <span className={isDarkMode ? 'text-green-400' : 'text-green-600'}>✅ 最低額（均等割¥18,070）達成</span>
                                       ) : (
-                                        <span>あと¥{remainingForHealthInsurance.toLocaleString()}利益を減らすと均等割等のみ</span>
+                                        <span>あと¥{remainingForHealthInsurance.toLocaleString()}利益を減らすと均等割のみ</span>
                                       )}
                                     </div>
                                   </div>
@@ -3696,15 +3709,15 @@
                                 <div className={`mt-4 p-3 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-300'}`}>
                                   <div className={`text-sm font-bold mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>📋 国民年金 保険料免除判定</div>
                                   {(() => {
-                                    const pensionMonthly = 16980; // 2024年度: 月額16,980円
+                                    const pensionMonthly = 17510; // 2025年度: 月額17,510円
                                     const pensionYearly = pensionMonthly * 12;
                                     const incomeAfterBlue = Math.max(0, netProfit - blueDeduction);
 
                                     // 免除基準（単身者の場合）
                                     const fullExemption = 670000; // 全額免除: 所得67万円以下
-                                    const threeQuarterExemption = 1280000; // 3/4免除: 所得128万円以下
-                                    const halfExemption = 1680000; // 半額免除: 所得168万円以下
-                                    const quarterExemption = 2080000; // 1/4免除: 所得208万円以下
+                                    const threeQuarterExemption = 880000; // 3/4免除: 所得88万円以下
+                                    const halfExemption = 1280000; // 半額免除: 所得128万円以下
+                                    const quarterExemption = 1680000; // 1/4免除: 所得168万円以下
 
                                     let exemptionStatus = '';
                                     let exemptionRate = 0;
