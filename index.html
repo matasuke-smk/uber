@@ -6708,10 +6708,16 @@
                                 <span className={isDarkMode ? 'text-gray-300' : 'text-gray-700'}>総配達件数</span>
                                 <span className={`font-bold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{periodDeliveries}件</span>
                               </div>
-                              <div className={`flex justify-between items-center p-2 rounded-lg ${isDarkMode ? 'bg-gray-700/50' : 'bg-white'}`}>
-                                <span className={isDarkMode ? 'text-gray-300' : 'text-gray-700'}>平均時給</span>
-                                <span className={`font-bold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                              <div className={`flex justify-between items-center p-2 rounded-lg ${isDarkMode ? 'bg-blue-700/30' : 'bg-blue-50'}`}>
+                                <span className={isDarkMode ? 'text-blue-300' : 'text-blue-700'}>売上時給</span>
+                                <span className={`font-bold ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
                                   ¥{periodHours > 0 ? Math.round(totalRevenue / periodHours).toLocaleString() : 0}
+                                </span>
+                              </div>
+                              <div className={`flex justify-between items-center p-2 rounded-lg ${isDarkMode ? 'bg-purple-700/30' : 'bg-purple-50'}`}>
+                                <span className={isDarkMode ? 'text-purple-300' : 'text-purple-700'}>利益時給</span>
+                                <span className={`font-bold ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>
+                                  ¥{periodHours > 0 ? Math.round(netIncome / periodHours).toLocaleString() : 0}
                                 </span>
                               </div>
                               <div className={`flex justify-between items-center p-2 rounded-lg ${isDarkMode ? 'bg-gray-700/50' : 'bg-white'}`}>
