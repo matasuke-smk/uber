@@ -418,7 +418,8 @@
       const [weekendDeliveriesPerHour, setWeekendDeliveriesPerHour] = useState(4);
       const [useAutoCalculate, setUseAutoCalculate] = useState(false);
       const [settingsLoading, setSettingsLoading] = useState(true);
-      
+      const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+
       // クエスト設定 (Supabaseから読み込む)
       const [weekdayQuests, setWeekdayQuests] = useState([
         { count: 10, reward: 0 },
@@ -1582,6 +1583,7 @@
         const loadSettings = async () => {
           if (!session?.user?.id) {
             setSettingsLoading(false);
+            setInitialLoadComplete(true);
             return;
           }
 
@@ -1797,6 +1799,8 @@
             console.error('Error loading settings:', error);
           } finally {
             setSettingsLoading(false);
+            // 500ms後に初回読み込み完了フラグを立てる（自動保存を許可）
+            setTimeout(() => setInitialLoadComplete(true), 500);
           }
         };
 
@@ -2016,6 +2020,18 @@
         if (!session?.user?.id) return;
 
         try {
+          // 既存データを取得して、nullで上書きしないように保護
+          const { data: existingData } = await supabaseClient
+            .from('user_settings')
+            .select('coincheck_api_key, coincheck_api_secret, vision_api_key')
+            .eq('user_id', session.user.id)
+            .single();
+
+          // APIキーが空の場合は既存データを保持
+          const finalCoincheckApiKey = coincheckApiKey || existingData?.coincheck_api_key || null;
+          const finalCoincheckApiSecret = coincheckApiSecret || existingData?.coincheck_api_secret || null;
+          const finalVisionApiKey = visionApiKey || existingData?.vision_api_key || null;
+
           const { error } = await supabaseClient
             .from('user_settings')
             .upsert({
@@ -2030,10 +2046,10 @@
               target_amount: targetAmount,
               current_week_start: currentWeekStart,
               hours: hours,
-              vision_api_key: visionApiKey || null,
+              vision_api_key: finalVisionApiKey,
               is_dark_mode: isDarkMode,
-              coincheck_api_key: coincheckApiKey || null,
-              coincheck_api_secret: coincheckApiSecret || null,
+              coincheck_api_key: finalCoincheckApiKey,
+              coincheck_api_secret: finalCoincheckApiSecret,
               updated_at: new Date().toISOString()
             }, {
               onConflict: 'user_id'
@@ -2047,14 +2063,15 @@
 
       // Auto-save settings when they change (debounced)
       useEffect(() => {
-        if (settingsLoading) return;
+        // 初回読み込み完了前、または読み込み中は保存しない
+        if (settingsLoading || !initialLoadComplete) return;
         const timer = setTimeout(() => {
           saveSettings();
         }, 500);
         return () => clearTimeout(timer);
       }, [weekdayAvgPrice, weekendAvgPrice, weekdayDeliveriesPerHour, weekendDeliveriesPerHour,
           useAutoCalculate, weekdayQuests, weekendQuests, targetAmount, currentWeekStart, hours, isDarkMode,
-          coincheckApiKey, coincheckApiSecret, settingsLoading]);
+          coincheckApiKey, coincheckApiSecret, settingsLoading, initialLoadComplete]);
 
       // Keep these in localStorage
       useEffect(() => {
