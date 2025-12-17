@@ -6695,36 +6695,64 @@
                           {/* 利益率・統計 */}
                           <div className={`rounded-xl p-4 border-2 ${isDarkMode ? 'bg-purple-900/20 border-purple-700' : 'bg-purple-50 border-purple-200'}`}>
                             <h3 className={`font-bold text-lg mb-4 ${isDarkMode ? 'text-purple-400' : 'text-purple-800'}`}>経営指標</h3>
-                            <div className="space-y-2">
-                              <div className={`flex justify-between items-center p-2 rounded-lg ${isDarkMode ? 'bg-gray-700/50' : 'bg-white'}`}>
-                                <span className={isDarkMode ? 'text-gray-300' : 'text-gray-700'}>利益率</span>
-                                <span className={`font-bold ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>{profitMargin}%</span>
+                            <div className="space-y-4">
+                              {/* 利益率 */}
+                              <div className={`flex justify-between items-center p-3 rounded-lg border-2 ${isDarkMode ? 'bg-purple-700/30 border-purple-600' : 'bg-white border-purple-300'}`}>
+                                <span className={`font-medium ${isDarkMode ? 'text-purple-300' : 'text-purple-700'}`}>利益率</span>
+                                <span className={`text-xl font-bold ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>{profitMargin}%</span>
                               </div>
-                              <div className={`flex justify-between items-center p-2 rounded-lg ${isDarkMode ? 'bg-gray-700/50' : 'bg-white'}`}>
-                                <span className={isDarkMode ? 'text-gray-300' : 'text-gray-700'}>稼働日数</span>
-                                <span className={`font-bold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{periodDays}日</span>
+
+                              {/* 基本情報 */}
+                              <div>
+                                <div className={`text-xs font-bold mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>📊 基本情報</div>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div className={`flex justify-between items-center p-2 rounded-lg ${isDarkMode ? 'bg-gray-700/50' : 'bg-white'}`}>
+                                    <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>稼働日数</span>
+                                    <span className={`font-bold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{periodDays}日</span>
+                                  </div>
+                                  <div className={`flex justify-between items-center p-2 rounded-lg ${isDarkMode ? 'bg-gray-700/50' : 'bg-white'}`}>
+                                    <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>配達件数</span>
+                                    <span className={`font-bold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{periodDeliveries}件</span>
+                                  </div>
+                                </div>
                               </div>
-                              <div className={`flex justify-between items-center p-2 rounded-lg ${isDarkMode ? 'bg-gray-700/50' : 'bg-white'}`}>
-                                <span className={isDarkMode ? 'text-gray-300' : 'text-gray-700'}>総配達件数</span>
-                                <span className={`font-bold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{periodDeliveries}件</span>
+
+                              {/* 時給 */}
+                              <div>
+                                <div className={`text-xs font-bold mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>⏱️ 時給</div>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-blue-700/30' : 'bg-blue-50'}`}>
+                                    <div className={`text-xs ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>売上</div>
+                                    <div className={`text-lg font-bold ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+                                      ¥{periodHours > 0 ? Math.round(totalRevenue / periodHours).toLocaleString() : 0}
+                                    </div>
+                                  </div>
+                                  <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-purple-700/30' : 'bg-purple-50'}`}>
+                                    <div className={`text-xs ${isDarkMode ? 'text-purple-300' : 'text-purple-700'}`}>利益</div>
+                                    <div className={`text-lg font-bold ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>
+                                      ¥{periodHours > 0 ? Math.round(netIncome / periodHours).toLocaleString() : 0}
+                                    </div>
+                                  </div>
+                                </div>
                               </div>
-                              <div className={`flex justify-between items-center p-2 rounded-lg ${isDarkMode ? 'bg-blue-700/30' : 'bg-blue-50'}`}>
-                                <span className={isDarkMode ? 'text-blue-300' : 'text-blue-700'}>売上時給</span>
-                                <span className={`font-bold ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
-                                  ¥{periodHours > 0 ? Math.round(totalRevenue / periodHours).toLocaleString() : 0}
-                                </span>
-                              </div>
-                              <div className={`flex justify-between items-center p-2 rounded-lg ${isDarkMode ? 'bg-purple-700/30' : 'bg-purple-50'}`}>
-                                <span className={isDarkMode ? 'text-purple-300' : 'text-purple-700'}>利益時給</span>
-                                <span className={`font-bold ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>
-                                  ¥{periodHours > 0 ? Math.round(netIncome / periodHours).toLocaleString() : 0}
-                                </span>
-                              </div>
-                              <div className={`flex justify-between items-center p-2 rounded-lg ${isDarkMode ? 'bg-gray-700/50' : 'bg-white'}`}>
-                                <span className={isDarkMode ? 'text-gray-300' : 'text-gray-700'}>1日平均売上</span>
-                                <span className={`font-bold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                                  ¥{periodDays > 0 ? Math.round(totalRevenue / periodDays).toLocaleString() : 0}
-                                </span>
+
+                              {/* 1日平均 */}
+                              <div>
+                                <div className={`text-xs font-bold mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>📅 1日平均</div>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-blue-700/30' : 'bg-blue-50'}`}>
+                                    <div className={`text-xs ${isDarkMode ? 'text-blue-300' : 'text-blue-700'}`}>売上</div>
+                                    <div className={`text-lg font-bold ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+                                      ¥{periodDays > 0 ? Math.round(totalRevenue / periodDays).toLocaleString() : 0}
+                                    </div>
+                                  </div>
+                                  <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-purple-700/30' : 'bg-purple-50'}`}>
+                                    <div className={`text-xs ${isDarkMode ? 'text-purple-300' : 'text-purple-700'}`}>利益</div>
+                                    <div className={`text-lg font-bold ${isDarkMode ? 'text-purple-400' : 'text-purple-600'}`}>
+                                      ¥{periodDays > 0 ? Math.round(netIncome / periodDays).toLocaleString() : 0}
+                                    </div>
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           </div>
