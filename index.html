@@ -4736,24 +4736,13 @@
                       }, 0);
                       const totalQuest = monthData.reduce((sum, [, data]) => sum + (data.quest || 0), 0);
 
-                      // 当月の経費を集計
-                      const totalExpense = Object.values(expenses).reduce((sum, expense) => {
-                        const expenseDate = new Date(expense.date + 'T00:00:00');
-                        if (expenseDate.getFullYear() === currentMonth.getFullYear() &&
-                            expenseDate.getMonth() === currentMonth.getMonth()) {
-                          const businessAmount = expense.amount * (expense.businessPercentage / 100);
-                          return sum + businessAmount;
-                        }
-                        return sum;
-                      }, 0);
-
                       // 平均値の計算
                       const avgPricePerDelivery = totalDeliveries > 0 ? totalEarnings / totalDeliveries : 0;
                       const avgDeliveriesPerHour = totalHours > 0 ? totalDeliveries / totalHours : 0;
 
                       // 時給の計算
                       const basicHourlyWage = totalHours > 0 ? totalEarnings / totalHours : 0;
-                      const totalHourlyWage = totalHours > 0 ? (totalEarnings + totalQuest - totalExpense) / totalHours : 0;
+                      const totalHourlyWage = totalHours > 0 ? (totalEarnings + totalQuest) / totalHours : 0;
 
                       return (
                         <div className={`rounded-xl p-4 border-2 ${isDarkMode ? 'bg-purple-900/20 border-purple-700' : 'bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200'}`}>
