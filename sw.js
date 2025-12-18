@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ubereats-simulator-v82';
+const CACHE_NAME = 'ubereats-simulator-v83';
 const urlsToCache = [
   './index.html',
   './manifest.json',
@@ -15,11 +15,25 @@ self.addEventListener('install', event => {
 
 // フェッチ時
 self.addEventListener('fetch', event => {
+  // 外部APIリクエスト（バックエンド、Supabaseなど）はService Workerを通さない
+  const url = new URL(event.request.url);
+  if (url.origin !== location.origin) {
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request)
       .then(response => {
         // キャッシュがあればそれを返す、なければネットワークから取得
         return response || fetch(event.request);
+      })
+      .catch(error => {
+        // ネットワークエラー時はエラーを静かに処理
+        console.warn('SW fetch error:', error);
+        return new Response('Network error', {
+          status: 408,
+          headers: { 'Content-Type': 'text/plain' }
+        });
       })
   );
 });

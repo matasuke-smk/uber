@@ -954,54 +954,57 @@
 
       // BTC: モーダルが開かれたときに自動でデータ取得と同期、リアルタイム更新を開始
       useEffect(() => {
-        if (showBTCModal && session?.user?.id && coincheckApiKey && coincheckApiSecret) {
-          console.log('[BTC初期化] データ取得と同期を開始します');
-
-          const initBtcData = async () => {
-            try {
-              // まず既存データを取得して即座に表示
-              console.log('[BTC初期化] 既存データを取得中...');
-              await fetchAllBtcData();
-              console.log('[BTC初期化] 既存データ取得完了');
-
-              // その後、バックグラウンドで同期を実行
-              console.log('[BTC初期化] バックグラウンド同期を開始...');
-              await syncBtcTransactions();
-              console.log('[BTC初期化] バックグラウンド同期完了');
-            } catch (error) {
-              console.error('[BTC初期化] エラー発生:', error);
-              setBtcError(`初期化エラー: ${error.message}`);
-            }
-          };
-
-          initBtcData();
-
-          // 価格を10秒ごとに自動更新
-          const priceInterval = setInterval(() => {
-            fetchBtcPrice();
-          }, 10000);
-
-          // 残高、統計、購入履歴を30秒ごとに自動更新
-          const dataInterval = setInterval(() => {
-            fetchBtcBalance();
-            fetchBtcStats();
-            fetchBtcPurchases();
-          }, 30000);
-
-          // クリーンアップ: モーダルを閉じた時にタイマーを停止
-          return () => {
-            clearInterval(priceInterval);
-            clearInterval(dataInterval);
-          };
-        } else {
-          console.log('[BTC初期化] 条件を満たしていません:', {
-            showBTCModal,
-            hasSession: !!session?.user?.id,
-            hasApiKey: !!coincheckApiKey,
-            hasApiSecret: !!coincheckApiSecret
-          });
+        // モーダルが開いていない場合は何もしない
+        if (!showBTCModal) {
+          return;
         }
-      }, [showBTCModal, session, coincheckApiKey, coincheckApiSecret]);
+
+        // APIキーが設定されていない場合は何もしない
+        if (!session?.user?.id || !coincheckApiKey || !coincheckApiSecret) {
+          console.log('[BTC初期化] APIキー未設定のためスキップ');
+          return;
+        }
+
+        console.log('[BTC初期化] データ取得と同期を開始します');
+
+        const initBtcData = async () => {
+          try {
+            // まず既存データを取得して即座に表示
+            console.log('[BTC初期化] 既存データを取得中...');
+            await fetchAllBtcData();
+            console.log('[BTC初期化] 既存データ取得完了');
+
+            // その後、バックグラウンドで同期を実行
+            console.log('[BTC初期化] バックグラウンド同期を開始...');
+            await syncBtcTransactions();
+            console.log('[BTC初期化] バックグラウンド同期完了');
+          } catch (error) {
+            console.error('[BTC初期化] エラー発生:', error);
+            setBtcError(`初期化エラー: ${error.message}`);
+          }
+        };
+
+        initBtcData();
+
+        // 価格を10秒ごとに自動更新
+        const priceInterval = setInterval(() => {
+          fetchBtcPrice();
+        }, 10000);
+
+        // 残高、統計、購入履歴を30秒ごとに自動更新
+        const dataInterval = setInterval(() => {
+          fetchBtcBalance();
+          fetchBtcStats();
+          fetchBtcPurchases();
+        }, 30000);
+
+        // クリーンアップ: モーダルを閉じた時にタイマーを停止
+        return () => {
+          console.log('[BTC初期化] クリーンアップ: インターバルを停止');
+          clearInterval(priceInterval);
+          clearInterval(dataInterval);
+        };
+      }, [showBTCModal]);
 
       // 店舗名候補を生成する関数（使用回数順にソート）
       const getVendorSuggestions = (inputValue) => {
