@@ -9,11 +9,22 @@ on:
 jobs:
   ping:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Ping Render Backend
         run: |
           echo "Pinging backend at $(date)"
-          curl -f https://uber-btc-backend.onrender.com/health || echo "Backend might be sleeping, waking up..."
-          sleep 5
-          curl -f https://uber-btc-backend.onrender.com/health
+
+          # 最大30秒のタイムアウトで1回目のリクエスト
+          curl -f --max-time 30 https://uber-btc-backend.onrender.com/health || {
+            echo "Backend might be sleeping, waking up..."
+            sleep 5
+
+            # 2回目のリクエスト（起動に時間がかかる場合）
+            curl -f --max-time 60 https://uber-btc-backend.onrender.com/health || {
+              echo "Backend did not respond, it might be down"
+              exit 0  # エラーでもワークフローは成功とする
+            }
+          }
+
           echo "Backend is alive!"
