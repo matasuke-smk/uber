@@ -1803,6 +1803,30 @@
             }
           } catch (error) {
             console.error('Error loading settings:', error);
+
+            // エラーが発生した場合でも、localStorageから復元を試みる
+            const localWeekStart = loadFromStorage('currentWeekStart', null);
+            const localHours = loadFromStorage('hours', null);
+
+            if (localWeekStart && localHours) {
+              // 今週の月曜日を計算
+              const today = new Date();
+              const dayOfWeek = today.getDay();
+              const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+              const thisMonday = new Date(today);
+              thisMonday.setDate(today.getDate() + diff);
+              const thisMondayStr = formatDateToLocal(thisMonday);
+
+              // 同じ週ならlocalStorageのhoursを復元
+              if (localWeekStart === thisMondayStr) {
+                console.log('[復元] localStorageから今週のデータを復元します');
+                setHours(localHours);
+                setCurrentWeekStart(localWeekStart);
+              } else {
+                // 週が変わっている場合は空のデータ
+                setCurrentWeekStart(thisMondayStr);
+              }
+            }
           } finally {
             setSettingsLoading(false);
             // 500ms後に初回読み込み完了フラグを立てる（自動保存を許可）
@@ -2102,6 +2126,14 @@
           localStorage.setItem('lastAccessDate', JSON.stringify(lastAccessDate));
         }
       }, [lastAccessDate]);
+
+      // hoursとcurrentWeekStartもlocalStorageにバックアップ（Supabase読み込み失敗時の復元用）
+      useEffect(() => {
+        if (typeof window !== 'undefined' && !settingsLoading) {
+          localStorage.setItem('hours', JSON.stringify(hours));
+          localStorage.setItem('currentWeekStart', JSON.stringify(currentWeekStart));
+        }
+      }, [hours, currentWeekStart, settingsLoading]);
 
       // BTCモーダルが開いたときにデータを取得し、リアルタイム更新を開始
       useEffect(() => {
