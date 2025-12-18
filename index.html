@@ -5094,8 +5094,15 @@
                         <input
                           type="number"
                           step="100"
-                          value={editingDayData.earnings || ''}
-                          onChange={(e) => setEditingDayData({...editingDayData, earnings: parseInt(e.target.value) || 0})}
+                          value={(editingDayData.earnings - (editingDayData.rainQuest || 0)) || ''}
+                          onChange={(e) => {
+                            const newBasicEarnings = parseInt(e.target.value) || 0;
+                            // 基本売上 = 入力値、earningsには雨クエスト分を足して保存
+                            setEditingDayData({
+                              ...editingDayData,
+                              earnings: newBasicEarnings + (editingDayData.rainQuest || 0)
+                            });
+                          }}
                           onKeyDown={handleKeyDown}
                           className={`flex-1 px-4 py-3 border-2 rounded-xl focus:outline-none text-lg ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-purple-400' : 'border-gray-200 focus:border-purple-500'}`}
                           placeholder={editingDayData.hours > 0 ? (() => {
@@ -5178,8 +5185,9 @@
                               const oldRainQuest = editingDayData.rainQuest || 0;
                               const diff = newRainQuest - oldRainQuest;
 
-                              // 基本売上から差分を引く（トータルの売上は変わらない）
-                              const newEarnings = Math.max(0, (editingDayData.earnings || 0) - diff);
+                              // earningsは内部的に「基本売上+雨クエスト」なので、差分を加算
+                              // （雨クエストが増えた分だけearningsも増える）
+                              const newEarnings = (editingDayData.earnings || 0) + diff;
 
                               setEditingDayData({
                                 ...editingDayData,
@@ -5207,10 +5215,10 @@
                           const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 4;
                           const price = isWeekday ? effectiveValues.weekdayAvgPrice : effectiveValues.weekendAvgPrice;
                           const deliveries = isWeekday ? effectiveValues.weekdayDeliveriesPerHour : effectiveValues.weekendDeliveriesPerHour;
+                          // earningsには既に雨クエスト分が含まれているため、questのみ加算
                           return (
                             (editingDayData.earnings || (editingDayData.hours * deliveries * price)) +
-                            (editingDayData.quest || 0) +
-                            (editingDayData.rainQuest || 0)
+                            (editingDayData.quest || 0)
                           ).toLocaleString();
                         })()}
                       </div>
@@ -5230,7 +5238,9 @@
                               const price = isWeekday ? effectiveValues.weekdayAvgPrice : effectiveValues.weekendAvgPrice;
                               const deliveries = isWeekday ? effectiveValues.weekdayDeliveriesPerHour : effectiveValues.weekendDeliveriesPerHour;
                               const earnings = editingDayData.earnings || (editingDayData.hours * deliveries * price);
-                              return Math.round(earnings / editingDayData.hours).toLocaleString();
+                              // 基本時給は雨クエストを除いた純粋な基本売上の時給
+                              const basicEarnings = earnings - (editingDayData.rainQuest || 0);
+                              return Math.round(basicEarnings / editingDayData.hours).toLocaleString();
                             })()}
                           </div>
                         </div>
@@ -5245,7 +5255,8 @@
                               const price = isWeekday ? effectiveValues.weekdayAvgPrice : effectiveValues.weekendAvgPrice;
                               const deliveries = isWeekday ? effectiveValues.weekdayDeliveriesPerHour : effectiveValues.weekendDeliveriesPerHour;
                               const earnings = editingDayData.earnings || (editingDayData.hours * deliveries * price);
-                              const total = earnings + (editingDayData.quest || 0) + (editingDayData.rainQuest || 0);
+                              // earningsには既に雨クエスト分が含まれているため、questのみ加算
+                              const total = earnings + (editingDayData.quest || 0);
                               return Math.round(total / editingDayData.hours).toLocaleString();
                             })()}
                           </div>
