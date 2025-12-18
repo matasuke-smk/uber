@@ -2467,6 +2467,15 @@
                 .delete()
                 .eq('user_id', session.user.id)
                 .in('date', datesToDelete);
+
+              // ローカルのdailyDataステートからも削除
+              setDailyData(prev => {
+                const newData = { ...prev };
+                datesToDelete.forEach(date => {
+                  delete newData[date];
+                });
+                return newData;
+              });
             }
 
             // 保存
@@ -2476,6 +2485,25 @@
                 .upsert(datesToSave, {
                   onConflict: 'user_id,date'
                 });
+
+              // ローカルのdailyDataステートを更新（rainQuestなどを保持）
+              setDailyData(prev => {
+                const newData = { ...prev };
+                datesToSave.forEach(record => {
+                  newData[record.date] = {
+                    hours: record.hours,
+                    deliveries: record.deliveries,
+                    earnings: record.earnings,
+                    quest: record.quest,
+                    rainQuest: record.rain_quest || 0,
+                    isRainy: record.is_rainy,
+                    isHoliday: record.is_holiday
+                  };
+                });
+                return newData;
+              });
+
+              console.log('[今週の稼働→保存完了] dailyDataステートを更新しました');
             }
           } catch (error) {
             console.error('Error saving daily data from hours:', error);
