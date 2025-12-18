@@ -419,6 +419,7 @@
       const [useAutoCalculate, setUseAutoCalculate] = useState(false);
       const [settingsLoading, setSettingsLoading] = useState(true);
       const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+      const [settingsLoadError, setSettingsLoadError] = useState(false);
 
       // クエスト設定 (Supabaseから読み込む)
       const [weekdayQuests, setWeekdayQuests] = useState([
@@ -1593,6 +1594,8 @@
             return;
           }
 
+          let hasError = false;
+
           try {
             const { data, error } = await supabaseClient
               .from('user_settings')
@@ -1804,33 +1807,67 @@
           } catch (error) {
             console.error('Error loading settings:', error);
 
-            // エラーが発生した場合でも、localStorageから復元を試みる
+            // エラーフラグを立てる（自動保存を防ぐ）
+            hasError = true;
+            setSettingsLoadError(true);
+
+            // エラーが発生した場合、localStorageから全設定を復元を試みる
+            const localWeekdayAvgPrice = loadFromStorage('weekdayAvgPrice', null);
+            const localWeekendAvgPrice = loadFromStorage('weekendAvgPrice', null);
+            const localWeekdayDeliveries = loadFromStorage('weekdayDeliveriesPerHour', null);
+            const localWeekendDeliveries = loadFromStorage('weekendDeliveriesPerHour', null);
+            const localUseAuto = loadFromStorage('useAutoCalculate', null);
+            const localWeekdayQuests = loadFromStorage('weekdayQuests', null);
+            const localWeekendQuests = loadFromStorage('weekendQuests', null);
+            const localTarget = loadFromStorage('targetAmount', null);
             const localWeekStart = loadFromStorage('currentWeekStart', null);
             const localHours = loadFromStorage('hours', null);
+            const localDarkMode = localStorage.getItem('darkMode') === 'true';
+            const localVisionApiKey = localStorage.getItem('visionApiKey');
+            const localCoincheckApiKey = loadFromStorage('coincheckApiKey', null);
+            const localCoincheckApiSecret = loadFromStorage('coincheckApiSecret', null);
 
-            if (localWeekStart && localHours) {
-              // 今週の月曜日を計算
-              const today = new Date();
-              const dayOfWeek = today.getDay();
-              const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-              const thisMonday = new Date(today);
-              thisMonday.setDate(today.getDate() + diff);
-              const thisMondayStr = formatDateToLocal(thisMonday);
+            console.log('[復元] Supabase接続エラーのため、localStorageから復元します');
 
-              // 同じ週ならlocalStorageのhoursを復元
-              if (localWeekStart === thisMondayStr) {
-                console.log('[復元] localStorageから今週のデータを復元します');
-                setHours(localHours);
-                setCurrentWeekStart(localWeekStart);
-              } else {
-                // 週が変わっている場合は空のデータ
-                setCurrentWeekStart(thisMondayStr);
-              }
+            // 設定を復元
+            if (localWeekdayAvgPrice !== null) setWeekdayAvgPrice(localWeekdayAvgPrice);
+            if (localWeekendAvgPrice !== null) setWeekendAvgPrice(localWeekendAvgPrice);
+            if (localWeekdayDeliveries !== null) setWeekdayDeliveriesPerHour(localWeekdayDeliveries);
+            if (localWeekendDeliveries !== null) setWeekendDeliveriesPerHour(localWeekendDeliveries);
+            if (localUseAuto !== null) setUseAutoCalculate(localUseAuto);
+            if (localWeekdayQuests !== null) setWeekdayQuests(localWeekdayQuests);
+            if (localWeekendQuests !== null) setWeekendQuests(localWeekendQuests);
+            if (localTarget !== null) setTargetAmount(localTarget);
+            if (localDarkMode !== null) setIsDarkMode(localDarkMode);
+            if (localVisionApiKey) setVisionApiKey(localVisionApiKey);
+            if (localCoincheckApiKey) setCoincheckApiKey(localCoincheckApiKey);
+            if (localCoincheckApiSecret) setCoincheckApiSecret(localCoincheckApiSecret);
+
+            // 今週の月曜日を計算
+            const today = new Date();
+            const dayOfWeek = today.getDay();
+            const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+            const thisMonday = new Date(today);
+            thisMonday.setDate(today.getDate() + diff);
+            const thisMondayStr = formatDateToLocal(thisMonday);
+
+            // 同じ週ならlocalStorageのhoursを復元
+            if (localWeekStart === thisMondayStr && localHours) {
+              console.log('[復元] 今週のデータを復元します');
+              setHours(localHours);
+              setCurrentWeekStart(localWeekStart);
+            } else {
+              // 週が変わっている場合は空のデータ
+              setCurrentWeekStart(thisMondayStr);
             }
+
+            alert('⚠️ ネットワークエラーが発生しました。\nlocalStorageからデータを復元しました。\n\nネットワーク接続を確認してから、ページを再読み込みしてください。');
           } finally {
             setSettingsLoading(false);
-            // 500ms後に初回読み込み完了フラグを立てる（自動保存を許可）
-            setTimeout(() => setInitialLoadComplete(true), 500);
+            // エラーがない場合のみ、初回読み込み完了フラグを立てる（自動保存を許可）
+            if (!hasError) {
+              setTimeout(() => setInitialLoadComplete(true), 500);
+            }
           }
         };
 
@@ -1918,6 +1955,13 @@
             }
           } catch (error) {
             console.error('Error loading daily data:', error);
+
+            // エラー時はlocalStorageから復元
+            const localDailyData = loadFromStorage('dailyData', null);
+            if (localDailyData && Object.keys(localDailyData).length > 0) {
+              console.log('[復元] dailyDataをlocalStorageから復元します');
+              setDailyData(localDailyData);
+            }
           } finally {
             setDailyDataLoading(false);
           }
@@ -2104,8 +2148,8 @@
 
       // Auto-save settings when they change (debounced)
       useEffect(() => {
-        // 初回読み込み完了前、または読み込み中は保存しない
-        if (settingsLoading || !initialLoadComplete) return;
+        // 初回読み込み完了前、読み込み中、またはエラー時は保存しない
+        if (settingsLoading || !initialLoadComplete || settingsLoadError) return;
         const timer = setTimeout(() => {
           saveSettings();
         }, 500);
@@ -2127,13 +2171,33 @@
         }
       }, [lastAccessDate]);
 
-      // hoursとcurrentWeekStartもlocalStorageにバックアップ（Supabase読み込み失敗時の復元用）
+      // 全設定をlocalStorageにバックアップ（Supabase読み込み失敗時の復元用）
       useEffect(() => {
         if (typeof window !== 'undefined' && !settingsLoading) {
           localStorage.setItem('hours', JSON.stringify(hours));
           localStorage.setItem('currentWeekStart', JSON.stringify(currentWeekStart));
+          localStorage.setItem('weekdayAvgPrice', JSON.stringify(weekdayAvgPrice));
+          localStorage.setItem('weekendAvgPrice', JSON.stringify(weekendAvgPrice));
+          localStorage.setItem('weekdayDeliveriesPerHour', JSON.stringify(weekdayDeliveriesPerHour));
+          localStorage.setItem('weekendDeliveriesPerHour', JSON.stringify(weekendDeliveriesPerHour));
+          localStorage.setItem('useAutoCalculate', JSON.stringify(useAutoCalculate));
+          localStorage.setItem('weekdayQuests', JSON.stringify(weekdayQuests));
+          localStorage.setItem('weekendQuests', JSON.stringify(weekendQuests));
+          localStorage.setItem('targetAmount', JSON.stringify(targetAmount));
+          localStorage.setItem('darkMode', isDarkMode.toString());
+          if (coincheckApiKey) localStorage.setItem('coincheckApiKey', JSON.stringify(coincheckApiKey));
+          if (coincheckApiSecret) localStorage.setItem('coincheckApiSecret', JSON.stringify(coincheckApiSecret));
         }
-      }, [hours, currentWeekStart, settingsLoading]);
+      }, [hours, currentWeekStart, weekdayAvgPrice, weekendAvgPrice, weekdayDeliveriesPerHour,
+          weekendDeliveriesPerHour, useAutoCalculate, weekdayQuests, weekendQuests, targetAmount,
+          isDarkMode, coincheckApiKey, coincheckApiSecret, settingsLoading]);
+
+      // dailyDataもlocalStorageにバックアップ（Supabase読み込み失敗時の復元用）
+      useEffect(() => {
+        if (typeof window !== 'undefined' && !dailyDataLoading && Object.keys(dailyData).length > 0) {
+          localStorage.setItem('dailyData', JSON.stringify(dailyData));
+        }
+      }, [dailyData, dailyDataLoading]);
 
       // BTCモーダルが開いたときにデータを取得し、リアルタイム更新を開始
       useEffect(() => {
