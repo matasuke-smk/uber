@@ -951,25 +951,31 @@
         }
       };
 
-      // BTC: モーダルが開かれたときに自動で同期
+      // BTC: モーダルが開かれたときに自動でデータ取得と同期
       useEffect(() => {
         if (showBTCModal && session?.user?.id && coincheckApiKey && coincheckApiSecret) {
-          console.log('[自動同期] 条件を満たしたので同期を開始します');
-          // 非同期で同期を実行（エラーがあっても続行）
-          const autoSync = async () => {
+          console.log('[BTC初期化] データ取得と同期を開始します');
+
+          const initBtcData = async () => {
             try {
-              console.log('[自動同期] syncBtcTransactions() 呼び出し中...');
+              // まず既存データを取得して即座に表示
+              console.log('[BTC初期化] 既存データを取得中...');
+              await fetchAllBtcData();
+              console.log('[BTC初期化] 既存データ取得完了');
+
+              // その後、バックグラウンドで同期を実行
+              console.log('[BTC初期化] バックグラウンド同期を開始...');
               await syncBtcTransactions();
-              console.log('[自動同期] 同期完了');
+              console.log('[BTC初期化] バックグラウンド同期完了');
             } catch (error) {
-              console.error('[自動同期] エラー発生:', error);
-              setBtcError(`自動同期エラー: ${error.message}`);
+              console.error('[BTC初期化] エラー発生:', error);
+              setBtcError(`初期化エラー: ${error.message}`);
             }
           };
 
-          autoSync();
+          initBtcData();
         } else {
-          console.log('[自動同期] 条件を満たしていません:', {
+          console.log('[BTC初期化] 条件を満たしていません:', {
             showBTCModal,
             hasSession: !!session?.user?.id,
             hasApiKey: !!coincheckApiKey,
