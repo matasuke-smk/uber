@@ -3024,11 +3024,15 @@
             }
           }
 
-          weekdayQuestEarnings += dayQuestReward;
+          // 雨クエストを取得（dailyDataから）
+          const dateStr = getDayDate(day);
+          const dayRainQuest = (dateStr && dailyData[dateStr]) ? (dailyData[dateStr].rainQuest || 0) : 0;
 
-          // 金額計算：入力がある場合はクエストを引いた額を基本売上とする
+          weekdayQuestEarnings += dayQuestReward + dayRainQuest;
+
+          // 金額計算：入力がある場合はクエストと雨クエストを引いた額を基本売上とする
           if (dayData.earnings > 0) {
-            weekdayBasicEarnings += dayData.earnings - dayQuestReward;
+            weekdayBasicEarnings += dayData.earnings - dayQuestReward - dayRainQuest;
           } else if (dayData.deliveries > 0) {
             // 件数が入力されている場合は、件数 × 平均単価で計算
             weekdayBasicEarnings += dayData.deliveries * effectiveValues.weekdayAvgPrice;
@@ -3090,11 +3094,15 @@
             }
           }
 
-          weekendQuestEarnings += dayQuestReward;
+          // 雨クエストを取得（dailyDataから）
+          const dateStr = getDayDate(day);
+          const dayRainQuest = (dateStr && dailyData[dateStr]) ? (dailyData[dateStr].rainQuest || 0) : 0;
 
-          // 金額計算：入力がある場合はクエストを引いた額を基本売上とする
+          weekendQuestEarnings += dayQuestReward + dayRainQuest;
+
+          // 金額計算：入力がある場合はクエストと雨クエストを引いた額を基本売上とする
           if (dayData.earnings > 0) {
-            weekendBasicEarnings += dayData.earnings - dayQuestReward;
+            weekendBasicEarnings += dayData.earnings - dayQuestReward - dayRainQuest;
           } else if (dayData.deliveries > 0) {
             // 件数が入力されている場合は、件数 × 平均単価で計算
             weekendBasicEarnings += dayData.deliveries * effectiveValues.weekendAvgPrice;
@@ -6948,8 +6956,10 @@
 
                         weeklyData[mondayStr].hours += data.hours || 0;
                         weeklyData[mondayStr].deliveries += data.deliveries || 0;
-                        weeklyData[mondayStr].earnings += data.earnings || 0;
-                        weeklyData[mondayStr].quest += data.quest || 0;
+                        // earningsから雨クエストを引いて純粋な基本売上を計算
+                        weeklyData[mondayStr].earnings += (data.earnings || 0) - (data.rainQuest || 0);
+                        // クエスト報酬に雨クエストを含める
+                        weeklyData[mondayStr].quest += (data.quest || 0) + (data.rainQuest || 0);
                         weeklyData[mondayStr].days += 1;
                       });
 
@@ -6982,7 +6992,8 @@
                           thisWeekData.hours += data.hours || 0;
                           thisWeekData.deliveries += data.deliveries || 0;
                           thisWeekData.earnings += data.earnings || 0;
-                          thisWeekData.quest += data.quest || 0;
+                          // クエスト報酬に雨クエストを含める
+                          thisWeekData.quest += (data.quest || 0) + (data.rainQuest || 0);
                           thisWeekData.days += 1;
                         }
                       });

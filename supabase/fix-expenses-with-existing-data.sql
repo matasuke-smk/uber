@@ -1,0 +1,229 @@
+-- 経費管理システム - 既存データ対応版セットアップスクリプト
+-- 実行日: 2025-12-18
+-- このスクリプトは既存データを保持しながら安全に実行できます
+
+-- ===================================
+-- 1. 経費テーブル (expenses)
+-- ===================================
+CREATE TABLE IF NOT EXISTS expenses (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  date DATE NOT NULL,
+  category VARCHAR(50),
+  description TEXT,
+  amount DECIMAL(18, 2) NOT NULL,
+  business_percentage INTEGER DEFAULT 100,
+  accounting_subject VARCHAR(100),
+  credit_account VARCHAR(100),
+  photo_url TEXT,
+  memo TEXT,
+  vendor VARCHAR(200),
+  uploaded_at TIMESTAMP WITH TIME ZONE,
+  original_hash TEXT
+);
+
+-- インデックス作成（既存の場合はスキップ）
+CREATE INDEX IF NOT EXISTS idx_expenses_user_id ON expenses(user_id);
+CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(date DESC);
+CREATE INDEX IF NOT EXISTS idx_expenses_vendor ON expenses(vendor);
+CREATE INDEX IF NOT EXISTS idx_expenses_category ON expenses(category);
+
+-- RLSポリシー設定
+ALTER TABLE expenses ENABLE ROW LEVEL SECURITY;
+
+-- 既存ポリシーを削除して再作成
+DROP POLICY IF EXISTS "Users can view their own expenses" ON expenses;
+CREATE POLICY "Users can view their own expenses"
+  ON expenses FOR SELECT
+  USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can insert their own expenses" ON expenses;
+CREATE POLICY "Users can insert their own expenses"
+  ON expenses FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update their own expenses" ON expenses;
+CREATE POLICY "Users can update their own expenses"
+  ON expenses FOR UPDATE
+  USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete their own expenses" ON expenses;
+CREATE POLICY "Users can delete their own expenses"
+  ON expenses FOR DELETE
+  USING (auth.uid() = user_id);
+
+-- ===================================
+-- 2. 経費監査ログテーブル (expense_audit_log)
+-- ===================================
+CREATE TABLE IF NOT EXISTS expense_audit_log (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  expense_id UUID REFERENCES expenses(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  action VARCHAR(20) NOT NULL,
+  old_data JSONB,
+  new_data JSONB,
+  changed_fields TEXT[]
+);
+
+-- user_idカラムを段階的に追加（既存データ対応）
+DO $$
+BEGIN
+  -- user_idカラムが存在しない場合のみ追加
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'expense_audit_log' AND column_name = 'user_id'
+  ) THEN
+    -- Step 1: NULL許容でカラムを追加
+    ALTER TABLE expense_audit_log ADD COLUMN user_id UUID;
+
+    -- Step 2: 既存データにuser_idを設定（expense_idから逆引き）
+    UPDATE expense_audit_log eal
+    SET user_id = e.user_id
+    FROM expenses e
+    WHERE eal.expense_id = e.id
+    AND eal.user_id IS NULL;
+
+    -- Step 3: expense_idがNULLまたは対応するexpenseが存在しない行を削除
+    DELETE FROM expense_audit_log
+    WHERE user_id IS NULL;
+
+    -- Step 4: NOT NULL制約と外部キー制約を追加
+    ALTER TABLE expense_audit_log
+      ALTER COLUMN user_id SET NOT NULL,
+      ADD CONSTRAINT expense_audit_log_user_id_fkey
+        FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+    RAISE NOTICE 'user_idカラムを追加し、既存データを更新しました';
+  ELSE
+    RAISE NOTICE 'user_idカラムは既に存在します';
+  END IF;
+END $$;
+
+-- インデックス作成（既存の場合はスキップ）
+CREATE INDEX IF NOT EXISTS idx_expense_audit_log_user_id ON expense_audit_log(user_id);
+CREATE INDEX IF NOT EXISTS idx_expense_audit_log_expense_id ON expense_audit_log(expense_id);
+CREATE INDEX IF NOT EXISTS idx_expense_audit_log_created_at ON expense_audit_log(created_at DESC);
+
+-- RLSポリシー設定
+ALTER TABLE expense_audit_log ENABLE ROW LEVEL SECURITY;
+
+-- 既存ポリシーを削除して再作成
+DROP POLICY IF EXISTS "Users can view their own expense audit logs" ON expense_audit_log;
+CREATE POLICY "Users can view their own expense audit logs"
+  ON expense_audit_log FOR SELECT
+  USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can insert their own expense audit logs" ON expense_audit_log;
+CREATE POLICY "Users can insert their own expense audit logs"
+  ON expense_audit_log FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+-- ===================================
+-- 3. トリガー関数: updated_at自動更新
+-- ===================================
+CREATE OR REPLACE FUNCTION update_expenses_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS update_expenses_updated_at_trigger ON expenses;
+CREATE TRIGGER update_expenses_updated_at_trigger
+  BEFORE UPDATE ON expenses
+  FOR EACH ROW
+  EXECUTE FUNCTION update_expenses_updated_at();
+
+-- ===================================
+-- 4. トリガー関数: 経費監査ログ自動作成
+-- ===================================
+CREATE OR REPLACE FUNCTION log_expense_changes()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_changed_fields TEXT[];
+  v_old_data JSONB;
+  v_new_data JSONB;
+  v_user_id UUID;
+BEGIN
+  -- user_idを取得
+  IF TG_OP = 'DELETE' THEN
+    v_user_id := OLD.user_id;
+  ELSE
+    v_user_id := NEW.user_id;
+  END IF;
+
+  -- INSERT操作
+  IF TG_OP = 'INSERT' THEN
+    v_new_data := to_jsonb(NEW);
+    INSERT INTO expense_audit_log (user_id, expense_id, action, new_data)
+    VALUES (v_user_id, NEW.id, 'INSERT', v_new_data);
+    RETURN NEW;
+  END IF;
+
+  -- UPDATE操作
+  IF TG_OP = 'UPDATE' THEN
+    v_old_data := to_jsonb(OLD);
+    v_new_data := to_jsonb(NEW);
+
+    -- 変更されたフィールドを検出
+    v_changed_fields := ARRAY[]::TEXT[];
+    IF OLD.date IS DISTINCT FROM NEW.date THEN
+      v_changed_fields := array_append(v_changed_fields, 'date');
+    END IF;
+    IF OLD.amount IS DISTINCT FROM NEW.amount THEN
+      v_changed_fields := array_append(v_changed_fields, 'amount');
+    END IF;
+    IF OLD.business_percentage IS DISTINCT FROM NEW.business_percentage THEN
+      v_changed_fields := array_append(v_changed_fields, 'business_percentage');
+    END IF;
+    IF OLD.vendor IS DISTINCT FROM NEW.vendor THEN
+      v_changed_fields := array_append(v_changed_fields, 'vendor');
+    END IF;
+    IF OLD.memo IS DISTINCT FROM NEW.memo THEN
+      v_changed_fields := array_append(v_changed_fields, 'memo');
+    END IF;
+
+    -- 変更があった場合のみログを記録
+    IF array_length(v_changed_fields, 1) > 0 THEN
+      INSERT INTO expense_audit_log (user_id, expense_id, action, old_data, new_data, changed_fields)
+      VALUES (v_user_id, NEW.id, 'UPDATE', v_old_data, v_new_data, v_changed_fields);
+    END IF;
+    RETURN NEW;
+  END IF;
+
+  -- DELETE操作
+  IF TG_OP = 'DELETE' THEN
+    v_old_data := to_jsonb(OLD);
+    INSERT INTO expense_audit_log (user_id, expense_id, action, old_data)
+    VALUES (v_user_id, OLD.id, 'DELETE', v_old_data);
+    RETURN OLD;
+  END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 既存トリガーを削除して再作成
+DROP TRIGGER IF EXISTS log_expense_changes_trigger ON expenses;
+CREATE TRIGGER log_expense_changes_trigger
+  AFTER INSERT OR UPDATE OR DELETE ON expenses
+  FOR EACH ROW
+  EXECUTE FUNCTION log_expense_changes();
+
+-- ===================================
+-- 完了メッセージ
+-- ===================================
+DO $$
+BEGIN
+  RAISE NOTICE '========================================';
+  RAISE NOTICE '経費管理システムのセットアップが完了しました';
+  RAISE NOTICE '========================================';
+  RAISE NOTICE 'テーブル:';
+  RAISE NOTICE '  - expenses (経費テーブル)';
+  RAISE NOTICE '  - expense_audit_log (監査ログテーブル)';
+  RAISE NOTICE '';
+  RAISE NOTICE 'RLSポリシー: 有効';
+  RAISE NOTICE 'トリガー: 有効 (SECURITY DEFINER)';
+  RAISE NOTICE '========================================';
+END $$;
