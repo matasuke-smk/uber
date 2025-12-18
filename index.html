@@ -952,7 +952,7 @@
         }
       };
 
-      // BTC: モーダルが開かれたときに自動でデータ取得と同期
+      // BTC: モーダルが開かれたときに自動でデータ取得と同期、リアルタイム更新を開始
       useEffect(() => {
         if (showBTCModal && session?.user?.id && coincheckApiKey && coincheckApiSecret) {
           console.log('[BTC初期化] データ取得と同期を開始します');
@@ -975,6 +975,24 @@
           };
 
           initBtcData();
+
+          // 価格を10秒ごとに自動更新
+          const priceInterval = setInterval(() => {
+            fetchBtcPrice();
+          }, 10000);
+
+          // 残高、統計、購入履歴を30秒ごとに自動更新
+          const dataInterval = setInterval(() => {
+            fetchBtcBalance();
+            fetchBtcStats();
+            fetchBtcPurchases();
+          }, 30000);
+
+          // クリーンアップ: モーダルを閉じた時にタイマーを停止
+          return () => {
+            clearInterval(priceInterval);
+            clearInterval(dataInterval);
+          };
         } else {
           console.log('[BTC初期化] 条件を満たしていません:', {
             showBTCModal,
@@ -983,7 +1001,7 @@
             hasApiSecret: !!coincheckApiSecret
           });
         }
-      }, [showBTCModal]);
+      }, [showBTCModal, session, coincheckApiKey, coincheckApiSecret]);
 
       // 店舗名候補を生成する関数（使用回数順にソート）
       const getVendorSuggestions = (inputValue) => {
@@ -2199,31 +2217,6 @@
         }
       }, [dailyData, dailyDataLoading]);
 
-      // BTCモーダルが開いたときにデータを取得し、リアルタイム更新を開始
-      useEffect(() => {
-        if (showBTCModal) {
-          // 初回データ取得
-          fetchAllBtcData();
-
-          // 価格を10秒ごとに自動更新
-          const priceInterval = setInterval(() => {
-            fetchBtcPrice();
-          }, 10000);
-
-          // 残高、統計、購入履歴を30秒ごとに自動更新
-          const dataInterval = setInterval(() => {
-            fetchBtcBalance();
-            fetchBtcStats();
-            fetchBtcPurchases();
-          }, 30000);
-
-          // クリーンアップ: モーダルを閉じた時にタイマーを停止
-          return () => {
-            clearInterval(priceInterval);
-            clearInterval(dataInterval);
-          };
-        }
-      }, [showBTCModal, session, coincheckApiKey, coincheckApiSecret]);
 
       // BTC: エラーを自動的に消す（5秒後）
       useEffect(() => {
