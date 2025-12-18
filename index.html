@@ -7089,7 +7089,8 @@
                         if (mondayStr === thisMondayStr) {
                           thisWeekData.hours += data.hours || 0;
                           thisWeekData.deliveries += data.deliveries || 0;
-                          thisWeekData.earnings += data.earnings || 0;
+                          // earningsから雨クエストを引いて純粋な基本売上を計算
+                          thisWeekData.earnings += (data.earnings || 0) - (data.rainQuest || 0);
                           // クエスト報酬に雨クエストを含める
                           thisWeekData.quest += (data.quest || 0) + (data.rainQuest || 0);
                           thisWeekData.days += 1;
