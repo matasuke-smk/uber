@@ -2356,7 +2356,7 @@
                 }
               }
 
-              // 既存のdailyDataから雨の日・祝日フラグを取得
+              // 既存のdailyDataから雨の日・祝日フラグ・雨クエストを取得
               const existingData = dailyData[dateStr] || {};
 
               datesToSave.push({
@@ -2366,6 +2366,7 @@
                 deliveries: tempData[dateStr].deliveries,
                 earnings: tempData[dateStr].earnings - dayQuestReward,
                 quest: dayQuestReward,
+                rain_quest: existingData.rainQuest || 0,
                 is_rainy: existingData.isRainy || false,
                 is_holiday: existingData.isHoliday || false,
                 updated_at: new Date().toISOString()
@@ -2397,7 +2398,7 @@
                 }
               }
 
-              // 既存のdailyDataから雨の日・祝日フラグを取得
+              // 既存のdailyDataから雨の日・祝日フラグ・雨クエストを取得
               const existingData = dailyData[dateStr] || {};
 
               datesToSave.push({
@@ -2407,6 +2408,7 @@
                 deliveries: tempData[dateStr].deliveries,
                 earnings: tempData[dateStr].earnings - dayQuestReward,
                 quest: dayQuestReward,
+                rain_quest: existingData.rainQuest || 0,
                 is_rainy: existingData.isRainy || false,
                 is_holiday: existingData.isHoliday || false,
                 updated_at: new Date().toISOString()
@@ -5110,8 +5112,18 @@
                             step="100"
                             value={editingDayData.rainQuest || ''}
                             onChange={(e) => {
-                              const rainQuest = parseInt(e.target.value) || 0;
-                              setEditingDayData({...editingDayData, rainQuest});
+                              const newRainQuest = parseInt(e.target.value) || 0;
+                              const oldRainQuest = editingDayData.rainQuest || 0;
+                              const diff = newRainQuest - oldRainQuest;
+
+                              // 基本売上から差分を引く（トータルの売上は変わらない）
+                              const newEarnings = Math.max(0, (editingDayData.earnings || 0) - diff);
+
+                              setEditingDayData({
+                                ...editingDayData,
+                                rainQuest: newRainQuest,
+                                earnings: newEarnings
+                              });
                             }}
                             onKeyDown={handleKeyDown}
                             className={`flex-1 px-4 py-3 border-2 rounded-xl focus:outline-none text-lg ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-400' : 'border-gray-200 focus:border-blue-500'}`}
