@@ -470,7 +470,7 @@
       const [originalSelectedDate, setOriginalSelectedDate] = useState(null); // 日付変更用
       const [showDayEdit, setShowDayEdit] = useState(false);
       const [isChangingDate, setIsChangingDate] = useState(false); // 日付変更モード
-      const [editingDayData, setEditingDayData] = useState({ hours: 0, deliveries: 0, earnings: 0, quest: 0, isRainy: false, isHoliday: false });
+      const [editingDayData, setEditingDayData] = useState({ hours: 0, deliveries: 0, earnings: 0, quest: 0, rainQuest: 0, isRainy: false, isHoliday: false });
 
       // 経費管理関連のstate
       const [expenses, setExpenses] = useState({});
@@ -1831,6 +1831,7 @@
                 deliveries: record.deliveries,
                 earnings: record.earnings,
                 quest: record.quest,
+                rainQuest: record.rain_quest || 0,
                 isRainy: record.is_rainy,
                 isHoliday: record.is_holiday
               };
@@ -2355,6 +2356,9 @@
                 }
               }
 
+              // 既存のdailyDataから雨の日・祝日フラグを取得
+              const existingData = dailyData[dateStr] || {};
+
               datesToSave.push({
                 user_id: session.user.id,
                 date: dateStr,
@@ -2362,8 +2366,8 @@
                 deliveries: tempData[dateStr].deliveries,
                 earnings: tempData[dateStr].earnings - dayQuestReward,
                 quest: dayQuestReward,
-                is_rainy: false,
-                is_holiday: false,
+                is_rainy: existingData.isRainy || false,
+                is_holiday: existingData.isHoliday || false,
                 updated_at: new Date().toISOString()
               });
             });
@@ -2393,6 +2397,9 @@
                 }
               }
 
+              // 既存のdailyDataから雨の日・祝日フラグを取得
+              const existingData = dailyData[dateStr] || {};
+
               datesToSave.push({
                 user_id: session.user.id,
                 date: dateStr,
@@ -2400,8 +2407,8 @@
                 deliveries: tempData[dateStr].deliveries,
                 earnings: tempData[dateStr].earnings - dayQuestReward,
                 quest: dayQuestReward,
-                is_rainy: false,
-                is_holiday: false,
+                is_rainy: existingData.isRainy || false,
+                is_holiday: existingData.isHoliday || false,
                 updated_at: new Date().toISOString()
               });
             });
@@ -2727,7 +2734,7 @@
         setOriginalSelectedDate(dateStr); // 元の日付を保存
 
         // その日のデータを取得
-        const dayData = dailyData[dateStr] || { hours: 0, deliveries: 0, earnings: 0, quest: 0, isRainy: false, isHoliday: false };
+        const dayData = dailyData[dateStr] || { hours: 0, deliveries: 0, earnings: 0, quest: 0, rainQuest: 0, isRainy: false, isHoliday: false };
         setEditingDayData(dayData);
         setShowDayEdit(true);
       };
@@ -2756,6 +2763,7 @@
               deliveries: editingDayData.deliveries,
               earnings: editingDayData.earnings,
               quest: editingDayData.quest,
+              rain_quest: editingDayData.rainQuest || 0,
               is_rainy: editingDayData.isRainy,
               is_holiday: editingDayData.isHoliday,
               updated_at: new Date().toISOString()
@@ -5090,6 +5098,30 @@
                       </div>
                     </div>
 
+                    {/* 雨クエスト入力欄（雨の日チェック時のみ表示） */}
+                    {editingDayData.isRainy && (
+                      <div>
+                        <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                          🌧️ 雨クエスト
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            step="100"
+                            value={editingDayData.rainQuest || ''}
+                            onChange={(e) => {
+                              const rainQuest = parseInt(e.target.value) || 0;
+                              setEditingDayData({...editingDayData, rainQuest});
+                            }}
+                            onKeyDown={handleKeyDown}
+                            className={`flex-1 px-4 py-3 border-2 rounded-xl focus:outline-none text-lg ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-400' : 'border-gray-200 focus:border-blue-500'}`}
+                            placeholder="0"
+                          />
+                          <span className={`font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>円</span>
+                        </div>
+                      </div>
+                    )}
+
                     {/* 合計表示 */}
                     <div className={`rounded-xl p-4 border-2 ${isDarkMode ? 'bg-purple-900/20 border-purple-700' : 'bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200'}`}>
                       <div className={`text-sm mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>この日の売上</div>
@@ -5103,7 +5135,8 @@
                           const deliveries = isWeekday ? effectiveValues.weekdayDeliveriesPerHour : effectiveValues.weekendDeliveriesPerHour;
                           return (
                             (editingDayData.earnings || (editingDayData.hours * deliveries * price)) +
-                            (editingDayData.quest || 0)
+                            (editingDayData.quest || 0) +
+                            (editingDayData.rainQuest || 0)
                           ).toLocaleString();
                         })()}
                       </div>
@@ -5138,7 +5171,7 @@
                               const price = isWeekday ? effectiveValues.weekdayAvgPrice : effectiveValues.weekendAvgPrice;
                               const deliveries = isWeekday ? effectiveValues.weekdayDeliveriesPerHour : effectiveValues.weekendDeliveriesPerHour;
                               const earnings = editingDayData.earnings || (editingDayData.hours * deliveries * price);
-                              const total = earnings + (editingDayData.quest || 0);
+                              const total = earnings + (editingDayData.quest || 0) + (editingDayData.rainQuest || 0);
                               return Math.round(total / editingDayData.hours).toLocaleString();
                             })()}
                           </div>
