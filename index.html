@@ -1835,6 +1835,16 @@
                 isRainy: record.is_rainy,
                 isHoliday: record.is_holiday
               };
+
+              // デバッグログ：雨の日データを確認
+              if (record.is_rainy || record.rain_quest > 0) {
+                console.log(`[読み込み] ${record.date}:`, {
+                  isRainy: record.is_rainy,
+                  rainQuest: record.rain_quest,
+                  earnings: record.earnings,
+                  quest: record.quest
+                });
+              }
             }
 
             // localStorageからの移行（Supabaseにデータがない場合）
@@ -2359,6 +2369,16 @@
               // 既存のdailyDataから雨の日・祝日フラグ・雨クエストを取得
               const existingData = dailyData[dateStr] || {};
 
+              // デバッグログ：保存するデータを確認
+              if (existingData.isRainy || existingData.rainQuest > 0) {
+                console.log(`[今週の稼働→保存] ${dateStr}:`, {
+                  existingIsRainy: existingData.isRainy,
+                  existingRainQuest: existingData.rainQuest,
+                  newEarnings: tempData[dateStr].earnings - dayQuestReward,
+                  newQuest: dayQuestReward
+                });
+              }
+
               datesToSave.push({
                 user_id: session.user.id,
                 date: dateStr,
@@ -2400,6 +2420,16 @@
 
               // 既存のdailyDataから雨の日・祝日フラグ・雨クエストを取得
               const existingData = dailyData[dateStr] || {};
+
+              // デバッグログ：保存するデータを確認
+              if (existingData.isRainy || existingData.rainQuest > 0) {
+                console.log(`[今週の稼働→保存] ${dateStr}:`, {
+                  existingIsRainy: existingData.isRainy,
+                  existingRainQuest: existingData.rainQuest,
+                  newEarnings: tempData[dateStr].earnings - dayQuestReward,
+                  newQuest: dayQuestReward
+                });
+              }
 
               datesToSave.push({
                 user_id: session.user.id,
@@ -2737,6 +2767,10 @@
 
         // その日のデータを取得
         const dayData = dailyData[dateStr] || { hours: 0, deliveries: 0, earnings: 0, quest: 0, rainQuest: 0, isRainy: false, isHoliday: false };
+
+        // デバッグログ：カレンダーから開いた時のデータを確認
+        console.log(`[カレンダー開く] ${dateStr}:`, dayData);
+
         setEditingDayData(dayData);
         setShowDayEdit(true);
       };
