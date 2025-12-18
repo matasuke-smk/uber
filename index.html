@@ -5182,17 +5182,12 @@
                             value={editingDayData.rainQuest || ''}
                             onChange={(e) => {
                               const newRainQuest = parseInt(e.target.value) || 0;
-                              const oldRainQuest = editingDayData.rainQuest || 0;
-                              const diff = newRainQuest - oldRainQuest;
 
-                              // earningsは内部的に「基本売上+雨クエスト」なので、差分を加算
-                              // （雨クエストが増えた分だけearningsも増える）
-                              const newEarnings = (editingDayData.earnings || 0) + diff;
-
+                              // earningsは変更せず、rainQuestだけを変更
+                              // 基本売上 = earnings - rainQuest なので、rainQuestが増えれば基本売上が減る
                               setEditingDayData({
                                 ...editingDayData,
-                                rainQuest: newRainQuest,
-                                earnings: newEarnings
+                                rainQuest: newRainQuest
                               });
                             }}
                             onKeyDown={handleKeyDown}
